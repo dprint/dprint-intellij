@@ -1,0 +1,17 @@
+# Default detekt configuration:
+# https://github.com/detekt/detekt/blob/master/detekt-core/src/main/resources/default-detekt-config.yml
+
+complexity:
+  LongMethod:
+    threshold: 80
+  TooManyFunctions:
+    thresholdInFiles: 15
+    thresholdInClasses: 15
+formatting:
+  Indentation:
+    continuationIndentSize: 8
+  ParameterListWrapping:
+    indentSize: 8
+style:
+  ReturnCount:
+    max: 3

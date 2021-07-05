@@ -1,0 +1,43 @@
+<idea-plugin require-restart="true">
+    <id>com.dprint.intellij.plugin</id>
+    <name>dprint</name>
+    <vendor>dprint</vendor>
+
+    <!-- Product and plugin compatibility requirements -->
+    <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <resource-bundle>messages.Bundle</resource-bundle>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <projectService serviceImplementation="com.dprint.config.ProjectConfiguration"/>
+        <projectService serviceImplementation="com.dprint.config.UserConfiguration"/>
+        <projectService serviceImplementation="com.dprint.services.FormatterService"/>
+        <projectService serviceImplementation="com.dprint.services.NotificationService"/>
+        <projectService serviceImplementation="com.dprint.services.DprintService"/>
+        <projectConfigurable parentId="tools"
+                             instance="com.dprint.config.ProjectConfigurable"
+                             id="com.dprint.config.ProjectConfigurable"
+                             bundle="messages.Bundle"
+                             key="config.name"
+                             nonDefaultProject="true"/>
+        <notificationGroup id="dprint.notification.group" displayType="STICKY_BALLOON" key="notification.group.name"/>
+    </extensions>
+
+    <projectListeners>
+        <listener class="com.dprint.listeners.OnSaveListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <listener class="com.dprint.listeners.StartupListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </projectListeners>
+    <actions>
+        <action id="com.dprint.actions.ReformatAction"
+                class="com.dprint.actions.ReformatAction"
+                description="Formats the file with dprint">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift D"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt shift D"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift D"/>
+        </action>
+    </actions>
+</idea-plugin>
