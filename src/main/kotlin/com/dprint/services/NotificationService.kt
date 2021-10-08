@@ -6,13 +6,21 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 
-private const val GROUP_ID = "dprint.notification.group"
+private const val GROUP_ID = "Dprint"
 
 @Service
 class NotificationService(private val project: Project) {
     fun notifyOfConfigError(content: String) {
         notify(
             Bundle.message("notification.config.error.title"),
+            content,
+            NotificationType.ERROR
+        )
+    }
+
+    fun notifyOfFormatFailure(content: String) {
+        notify(
+            Bundle.message("notification.format.failed.title"),
             content,
             NotificationType.ERROR
         )

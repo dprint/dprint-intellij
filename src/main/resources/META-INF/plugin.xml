@@ -21,7 +21,7 @@
                              bundle="messages.Bundle"
                              key="config.name"
                              nonDefaultProject="true"/>
-        <notificationGroup id="dprint.notification.group" displayType="STICKY_BALLOON" key="notification.group.name"/>
+        <notificationGroup id="Dprint" displayType="STICKY_BALLOON" key="notification.group.name"/>
     </extensions>
 
     <projectListeners>
