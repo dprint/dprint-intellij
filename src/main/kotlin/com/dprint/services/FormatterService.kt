@@ -8,10 +8,9 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.progress.BackgroundTaskQueue
 import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
-import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Ref
 import com.intellij.openapi.vfs.ReadonlyStatusHandler
@@ -33,6 +32,8 @@ private const val FORMATTING_TIMEOUT_SECONDS = 10L
  */
 @Service
 class FormatterService(private val project: Project) {
+    private val formatTaskQueue = BackgroundTaskQueue(project, Bundle.message("progress.formatting"))
+
     /**
      * Attempts to format and save a virtual file using Dprint.
      */
@@ -43,6 +44,7 @@ class FormatterService(private val project: Project) {
 
         executeUnderProgress(
             project,
+            Bundle.message("formatting.file", virtualFile.name),
             fun(indicator) {
                 val contentRef = Ref.create<String?>()
                 val filePathRef = Ref.create<String>()
@@ -118,28 +120,26 @@ class FormatterService(private val project: Project) {
 
         val result = dprintService.fmt(filePath, fileContent)
 
-        result.error?.let {
+        result?.error?.let {
             LOGGER.info(Bundle.message("logging.format.failed", filePath, it))
             notificationService.notifyOfFormatFailure(it)
         }
 
         // if the formatted content equals the original content return null so skip the write action
         return when {
+            result == null -> null
             result.error != null -> null
             fileContent == result.formattedContent -> null
             else -> result.formattedContent
         }
     }
 
-    private fun executeUnderProgress(project: Project, handler: (indicator: ProgressIndicator) -> Unit) {
-        val task = object : Task.Backgroundable(project, Bundle.message("progress.formatting")) {
+    private fun executeUnderProgress(project: Project, title: String, handler: (indicator: ProgressIndicator) -> Unit) {
+        val task = object : Task.Backgroundable(project, title) {
             override fun run(indicator: ProgressIndicator) {
                 handler(indicator)
             }
         }
-        return ProgressManager.getInstance().runProcessWithProgressAsynchronously(
-            task,
-            BackgroundableProcessIndicator(task)
-        )
+        this.formatTaskQueue.run(task)
     }
 }
