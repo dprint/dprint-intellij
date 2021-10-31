@@ -230,8 +230,8 @@ class DprintService(private val project: Project) {
             "editor-info",
         )
 
-        val jsonSchema = ExecUtil.execAndGetOutput(commandLine).stdout
-        return Json.parseToJsonElement(jsonSchema).jsonObject["schemaVersion"]?.jsonPrimitive?.int
+        val info = ExecUtil.execAndGetOutput(commandLine).stdout
+        return Json.parseToJsonElement(info).jsonObject["schemaVersion"]?.jsonPrimitive?.int
     }
 
     private fun canFormat(filePath: String): Boolean {
