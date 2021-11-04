@@ -3,6 +3,12 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+## [0.1.0]
+
+### 0.1.0
+
+- Formatting is now run in a background queue
+- Improved logging and notifications
 
 ### 0.0.5
 
