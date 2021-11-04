@@ -85,6 +85,11 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                     }
                 }
             }
+            row {
+                button(Bundle.message("config.reload")) {
+                    dprintService.initialiseEditorService()
+                }
+            }
         }
     }
 }

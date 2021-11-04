@@ -16,6 +16,9 @@ A dprint plugin for Intellij.
 
 ## Development
 
+This project is currently built using JDK 11. To install on a mac with homebrew run `brew install java11` and set that 
+be your project SDK.
+
 ### Intellij Setup
 
 - Set up linting settings, run <kbd>Gradle</kbd> > <kbd>Tasks</kbd> > <kbd>help</kbd> > <kbd>ktlintApplyToIdea</kbd>.

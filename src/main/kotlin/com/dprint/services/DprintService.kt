@@ -4,11 +4,16 @@ import com.dprint.config.ProjectConfiguration
 import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.concurrency.AppExecutorUtil
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -19,6 +24,7 @@ private const val ZERO = 0
 private const val CHECK_COMMAND = 1
 private const val FORMAT_COMMAND = 2
 private const val U32_BYTE_SIZE = 4
+private const val SUPPORTED_SCHEMA_VERSION = 4
 
 private val LOGGER = logger<DprintService>()
 
@@ -33,6 +39,7 @@ private val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
 class DprintService(private val project: Project) {
     private var editorServiceProcess: Process? = null
     private var isFormatting: Boolean = false
+    private val notificationService = project.service<NotificationService>()
 
     /**
      * The resulting state of running the Dprint formatter.
@@ -55,6 +62,17 @@ class DprintService(private val project: Project) {
     fun initialiseEditorService() {
         // If not enabled we don't start the editor service
         if (!project.service<ProjectConfiguration>().state.enabled) return
+        val schemaVersion = this.getSchemaVersion()
+
+        when {
+            schemaVersion == null -> Bundle.message("config.dprint.schemaVersion.not.found")
+            schemaVersion < SUPPORTED_SCHEMA_VERSION -> Bundle.message("config.dprint.schemaVersion.older")
+            schemaVersion > SUPPORTED_SCHEMA_VERSION -> Bundle.message("config.dprint.schemaVersion.newer")
+            else -> null
+        }?.let {
+            this.notificationService.notifyOfConfigError(it)
+            return
+        }
 
         AppExecutorUtil.getAppExecutorService().submit {
             if (this.editorServiceProcess?.isAlive == true) {
@@ -202,6 +220,18 @@ class DprintService(private val project: Project) {
         }
 
         return builder.toString()
+    }
+
+    private fun getSchemaVersion(): Int? {
+        val executablePath = FileUtils.getValidExecutablePath(this.project)
+
+        val commandLine = GeneralCommandLine(
+            executablePath,
+            "editor-info",
+        )
+
+        val info = ExecUtil.execAndGetOutput(commandLine).stdout
+        return Json.parseToJsonElement(info).jsonObject["schemaVersion"]?.jsonPrimitive?.int
     }
 
     private fun canFormat(filePath: String): Boolean {
