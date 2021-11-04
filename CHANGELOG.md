@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### 0.1.0
+
+- Formatting is now run in a background queue
+- Improved logging and notifications
+
 ### 0.0.5
 
 - Support Intellij 2021.2.1.
