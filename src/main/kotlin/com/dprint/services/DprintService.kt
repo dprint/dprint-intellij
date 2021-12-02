@@ -203,8 +203,8 @@ class DprintService(private val project: Project) {
     }
 
     private fun readString(stdout: InputStream, stdin: OutputStream): String {
-        val builder = StringBuilder()
         val totalBytes = readInt(stdout)
+        var result = ByteArray(0)
 
         var index = 0
 
@@ -215,11 +215,11 @@ class DprintService(private val project: Project) {
 
             val numBytes = if (totalBytes - index < BUFFER_SIZE) totalBytes - index else BUFFER_SIZE
             val bytes = stdout.readNBytes(numBytes)
-            builder.append(bytes.decodeToString())
+            result += bytes
             index += numBytes
         }
 
-        return builder.toString()
+        return result.decodeToString()
     }
 
     private fun getSchemaVersion(): Int? {
