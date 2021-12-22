@@ -1,7 +1,7 @@
 # dprint-intellij-plugin
 
 <!-- Plugin description -->
-A dprint plugin for Intellij.
+A dprint plugin for Intellij. Formats code using the dprint CLI.
 <!-- Plugin description end -->
 
 ## Installation
@@ -16,7 +16,7 @@ A dprint plugin for Intellij.
 
 ## Development
 
-This project is currently built using JDK 11. To install on a mac with homebrew run `brew install java11` and set that 
+This project is currently built using JDK 11. To install on a mac with homebrew run `brew install java11` and set that
 be your project SDK.
 
 ### Intellij Setup
