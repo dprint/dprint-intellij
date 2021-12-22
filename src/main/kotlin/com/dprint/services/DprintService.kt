@@ -75,7 +75,7 @@ class DprintService(private val project: Project) {
         }
 
         AppExecutorUtil.getAppExecutorService().submit {
-            if (this.editorServiceProcess?.isAlive == true) {
+            if (this.editorServiceProcess != null) {
                 this.destroyEditorService()
             }
 
