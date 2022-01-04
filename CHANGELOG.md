@@ -3,8 +3,11 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
-## [0.1.1]
-## [0.1.1]
+## [0.1.2]
+
+### 0.1.2
+
+- Updated plugin description
 
 ### 0.1.1
 
