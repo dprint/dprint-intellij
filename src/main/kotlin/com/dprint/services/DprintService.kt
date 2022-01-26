@@ -62,24 +62,22 @@ class DprintService(private val project: Project) {
     fun initialiseEditorService() {
         // If not enabled we don't start the editor service
         if (!project.service<ProjectConfiguration>().state.enabled) return
-        val schemaVersion = this.getSchemaVersion()
-
-        when {
-            schemaVersion == null -> Bundle.message("config.dprint.schemaVersion.not.found")
-            schemaVersion < SUPPORTED_SCHEMA_VERSION -> Bundle.message("config.dprint.schemaVersion.older")
-            schemaVersion > SUPPORTED_SCHEMA_VERSION -> Bundle.message("config.dprint.schemaVersion.newer")
-            else -> null
-        }?.let {
-            this.notificationService.notifyOfConfigError(it)
-            return
-        }
 
         AppExecutorUtil.getAppExecutorService().submit {
-            if (this.editorServiceProcess != null) {
-                this.destroyEditorService()
+            val schemaVersion = this.getSchemaVersion()
+
+            val error = when {
+                schemaVersion == null -> Bundle.message("config.dprint.schemaVersion.not.found")
+                schemaVersion < SUPPORTED_SCHEMA_VERSION -> Bundle.message("config.dprint.schemaVersion.older")
+                schemaVersion > SUPPORTED_SCHEMA_VERSION -> Bundle.message("config.dprint.schemaVersion.newer")
+                else -> null
             }
 
-            maybeCreateEditorService()
+            if (error == null) {
+                maybeCreateEditorService()
+            } else {
+                this.notificationService.notifyOfConfigError(error)
+            }
         }
     }
 
@@ -97,6 +95,7 @@ class DprintService(private val project: Project) {
         LOGGER.info(stderr?.bufferedReader().use { it?.readText() })
         stderr?.close()
         this.editorServiceProcess?.destroy()
+        this.editorServiceProcess = null
     }
 
     private fun getEditorService(): Process? {
@@ -111,6 +110,10 @@ class DprintService(private val project: Project) {
         val notificationService = project.service<NotificationService>()
         val executablePath = FileUtils.getValidExecutablePath(this.project)
         val configPath = FileUtils.getValidConfigPath(project)
+
+        if (this.editorServiceProcess != null) {
+            this.destroyEditorService()
+        }
 
         when {
             configPath.isNullOrBlank() -> {
@@ -232,12 +235,12 @@ class DprintService(private val project: Project) {
             executablePath,
             "editor-info",
         )
-        val info = ExecUtil.execAndGetOutput(commandLine).stdout
+        val result = ExecUtil.execAndGetOutput(commandLine)
 
         return try {
-            Json.parseToJsonElement(info).jsonObject["schemaVersion"]?.jsonPrimitive?.int
+            Json.parseToJsonElement(result.stdout).jsonObject["schemaVersion"]?.jsonPrimitive?.int
         } catch (e: RuntimeException) {
-            LOGGER.error(Bundle.message("error.failed.to.parse.json.schema", info), e)
+            LOGGER.error(Bundle.message("error.failed.to.parse.json.schema", result.stdout, result.stderr), e)
             null
         }
     }
