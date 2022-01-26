@@ -222,6 +222,9 @@ class DprintService(private val project: Project) {
         return result.decodeToString()
     }
 
+    // The less generic error is kotlinx.serialization.json.internal.JsonDecodingException and is not accessible
+    // unfortunately
+    @Suppress("TooGenericExceptionCaught")
     private fun getSchemaVersion(): Int? {
         val executablePath = FileUtils.getValidExecutablePath(this.project)
 
