@@ -229,9 +229,14 @@ class DprintService(private val project: Project) {
             executablePath,
             "editor-info",
         )
-
         val info = ExecUtil.execAndGetOutput(commandLine).stdout
-        return Json.parseToJsonElement(info).jsonObject["schemaVersion"]?.jsonPrimitive?.int
+
+        return try {
+            Json.parseToJsonElement(info).jsonObject["schemaVersion"]?.jsonPrimitive?.int
+        } catch (e: RuntimeException) {
+            LOGGER.error(Bundle.message("error.failed.to.parse.json.schema", info), e)
+            null
+        }
     }
 
     private fun canFormat(filePath: String): Boolean {

@@ -3,8 +3,10 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
-## [0.1.2]
-## [0.1.2]
+
+### 0.1.3
+
+- Fix issue where the inability to parse the schema would stop a project form opening.
 
 ### 0.1.2
 
