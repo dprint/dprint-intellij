@@ -6,6 +6,7 @@
     <!-- Product and plugin compatibility requirements -->
     <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
 
     <resource-bundle>messages.Bundle</resource-bundle>
 
@@ -23,6 +24,7 @@
                              nonDefaultProject="true"/>
         <notificationGroup id="Dprint" displayType="STICKY_BALLOON" key="notification.group.name"
                            isLogByDefault="false"/>
+        <formattingService implementation="com.dprint.formatter.DprintExternalFormatter"/>
     </extensions>
 
     <projectListeners>

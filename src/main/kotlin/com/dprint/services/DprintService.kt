@@ -38,7 +38,6 @@ private val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
 @Service
 class DprintService(private val project: Project) {
     private var editorServiceProcess: Process? = null
-    private var isFormatting: Boolean = false
     private val notificationService = project.service<NotificationService>()
 
     /**
@@ -245,7 +244,7 @@ class DprintService(private val project: Project) {
         }
     }
 
-    private fun canFormat(filePath: String): Boolean {
+    fun canFormat(filePath: String): Boolean {
         LOGGER.info(Bundle.message("formatting.checking.can.format", filePath))
         getEditorService()?.let { editorService ->
             val stdin = editorService.outputStream
@@ -275,14 +274,8 @@ class DprintService(private val project: Project) {
     fun fmt(filePath: String, content: String): DprintResult? {
         val result = DprintResult()
 
-        if (isFormatting) {
-            return null
-        }
-
-        isFormatting = true
-
         if (!canFormat(filePath)) {
-            isFormatting = false
+            result.error = Bundle.message("formatting.cannot.format", filePath)
             return result
         }
 
@@ -304,8 +297,6 @@ class DprintService(private val project: Project) {
 
             readAndAssertSuccess(stdout)
         }
-
-        isFormatting = false
 
         return result
     }

@@ -10,7 +10,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
-import org.jetbrains.annotations.NotNull
 
 private val LOGGER = logger<OnSaveListener>()
 
@@ -20,15 +19,15 @@ private val LOGGER = logger<OnSaveListener>()
 class OnSaveListener(private val project: Project) : BulkFileListener {
     private val formatterService = project.service<FormatterService>()
 
-    override fun before(@NotNull events: List<VFileEvent?>) {
+    override fun before(events: MutableList<out VFileEvent>) {
         val enabled = project.service<ProjectConfiguration>().state.enabled
         val runOnSave = project.service<UserConfiguration>().state.runOnSave
 
         if (!enabled || !runOnSave) return
 
-        for (event in events.filter { it?.isFromSave == true }) {
+        for (event in events.filter { it.isFromSave }) {
 
-            event?.file?.let {
+            event.file?.let {
                 if (FileEditorManager.getInstance(project).selectedFiles.contains(it)) {
                     LOGGER.info(Bundle.message("save.action.run", it.path))
                     formatterService.format(it)
