@@ -120,14 +120,13 @@ class FormatterService(private val project: Project) {
 
         val result = dprintService.fmt(filePath, fileContent)
 
-        result?.error?.let {
+        result.error?.let {
             LOGGER.info(Bundle.message("logging.format.failed", filePath, it))
             notificationService.notifyOfFormatFailure(it)
         }
 
         // if the formatted content equals the original content return null so skip the write action
         return when {
-            result == null -> null
             result.error != null -> null
             fileContent == result.formattedContent -> null
             else -> result.formattedContent

@@ -6,7 +6,7 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 
-private const val GROUP_ID = "Dprint"
+const val NOTIFICATION_GROUP_ID = "Dprint"
 
 @Service
 class NotificationService(private val project: Project) {
@@ -27,7 +27,7 @@ class NotificationService(private val project: Project) {
     }
 
     fun notify(title: String, content: String, type: NotificationType) {
-        NotificationGroupManager.getInstance().getNotificationGroup(GROUP_ID)
+        NotificationGroupManager.getInstance().getNotificationGroup(NOTIFICATION_GROUP_ID)
             .createNotification(title, content, type).notify(project)
     }
 }

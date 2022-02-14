@@ -99,7 +99,7 @@ object FileUtils {
      */
     private fun getLocationFromThePath(workingDirectory: String): String? {
         val commandLine = GeneralCommandLine(
-            if (System.getProperty("os.name").toLowerCase().contains("win")) "where" else "which",
+            if (System.getProperty("os.name").lowercase().contains("win")) "where" else "which",
             "dprint"
         )
         commandLine.withWorkDirectory(workingDirectory)

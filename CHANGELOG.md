@@ -5,6 +5,10 @@
 ## [Unreleased]
 ## [0.1.3]
 
+### 0.2.0
+- Added support for the inbuilt IntelliJ formatter. This allows dprint to be run at the same time as optimizing imports 
+  using `shift + option + command + L`
+
 ### 0.1.3
 
 - Fix issue where the inability to parse the schema would stop a project form opening.
