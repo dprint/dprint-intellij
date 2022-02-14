@@ -271,7 +271,7 @@ class DprintService(private val project: Project) {
      * @param content The content of the file as a string. This is formatted via Dprint and returned via the result.
      * @return A result object containing the formatted content is successful or an error.
      */
-    fun fmt(filePath: String, content: String): DprintResult? {
+    fun fmt(filePath: String, content: String): DprintResult {
         val result = DprintResult()
 
         if (!canFormat(filePath)) {

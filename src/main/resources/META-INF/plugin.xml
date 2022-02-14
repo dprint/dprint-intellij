@@ -25,6 +25,7 @@
         <notificationGroup id="Dprint" displayType="STICKY_BALLOON" key="notification.group.name"
                            isLogByDefault="false"/>
         <formattingService implementation="com.dprint.formatter.DprintExternalFormatter"/>
+        <documentMerger implementation="com.dprint.formatter.DprintDocumentMerger"/>
     </extensions>
 
     <projectListeners>
