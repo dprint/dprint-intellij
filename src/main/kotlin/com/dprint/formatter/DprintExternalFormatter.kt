@@ -14,7 +14,7 @@ import com.intellij.psi.PsiFile
 import java.util.Collections
 
 private val LOGGER = logger<DprintExternalFormatter>()
-private val NAME = "dprintfmt"
+private const val NAME = "dprintfmt"
 
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun getFeatures(): MutableSet<FormattingService.Feature> {
@@ -23,8 +23,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
 
     override fun canFormat(file: PsiFile): Boolean {
         val dprintService = file.project.service<DprintService>()
-        return file.manager?.project?.service<ProjectConfiguration>()?.state?.enabled == true
-            && dprintService.canFormat(file.virtualFile.path)
+        return file.manager?.project?.service<ProjectConfiguration>()?.state?.enabled == true && dprintService.canFormat(file.virtualFile.path)
     }
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
@@ -37,7 +36,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         val notificationService = project.service<NotificationService>()
         val path = formattingRequest.ioFile?.path
 
-        if(path == null) {
+        if (path == null) {
             val message = Bundle.message("formatting.cannot.determine.file.path")
             notificationService.notifyOfFormatFailure(message)
             LOGGER.info(message)

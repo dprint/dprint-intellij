@@ -6,7 +6,7 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 
-public const val NOTIFICATION_GROUP_ID = "Dprint"
+const val NOTIFICATION_GROUP_ID = "Dprint"
 
 @Service
 class NotificationService(private val project: Project) {
