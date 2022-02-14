@@ -23,7 +23,8 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
 
     override fun canFormat(file: PsiFile): Boolean {
         val dprintService = file.project.service<DprintService>()
-        return file.manager?.project?.service<ProjectConfiguration>()?.state?.enabled == true && dprintService.canFormat(file.virtualFile.path)
+        return file.manager?.project?.service<ProjectConfiguration>()?.state?.enabled == true &&
+            dprintService.canFormat(file.virtualFile.path)
     }
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
