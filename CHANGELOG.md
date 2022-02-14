@@ -6,7 +6,7 @@
 ## [0.1.3]
 
 ### 0.2.0
-- Added support for the inbuilt intellij formatter. This allows dprint to be run at the same time as optimizing imports 
+- Added support for the inbuilt IntelliJ formatter. This allows dprint to be run at the same time as optimizing imports 
   using `shift + option + command + L`
 
 ### 0.1.3
