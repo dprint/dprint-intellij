@@ -12,7 +12,7 @@ To use this plugin:
   - To run dprint on save tick the "Run dprint formatter on save" config checkbox.
 - Use the "Reformat with dprint" action (<kbd>Option+Shift+Cmd+D</kbd> on macOS or <kbd>Alt+Shift+Ctrl+D</kbd> on Windows and Linux) or find it using the "Find Action" popup (<kbd>Cmd/Ctrl+Shift+A</kbd>)
 
-If a file can be formatted via dprint, the default IntelliJ formatter will be overridden and dprint will be run in its place when using <kbd>Option+Shift+Cmd+L</kbd> on macOS or <kbd>Alt+Shift+Ctrl+L</kbd> on Windows and Linux
+If a file can be formatted via dprint, the default IntelliJ formatter will be overridden and dprint will be run in its place when using <kbd>Option+Shift+Cmd+L</kbd> on macOS or <kbd>Alt+Shift+Ctrl+L</kbd> on Windows and Linux.
 
 This plugin uses a long-running process known as the `editor-service`. If you change your `dprint.json` file or dprint is not formatting as expected, in `Preferences` -> `Tools` -> `Dprint` click the `Reload` button. This will force the editor service to close down and reload.
 
