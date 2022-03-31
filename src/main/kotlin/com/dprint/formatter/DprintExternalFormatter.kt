@@ -11,25 +11,28 @@ import com.intellij.formatting.service.FormattingService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.psi.PsiFile
-import java.util.Collections
 
 private val LOGGER = logger<DprintExternalFormatter>()
 private const val NAME = "dprintfmt"
 
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun getFeatures(): MutableSet<FormattingService.Feature> {
-        return Collections.emptySet()
+        // To ensure that we don't allow IntelliJ range formatting on files that should be dprint formatted we need to
+        // say we provide the FORMAT_FRAGMENTS and AD_HOC_FORMATTING features then handle them as a no op.
+        return mutableSetOf(FormattingService.Feature.FORMAT_FRAGMENTS, FormattingService.Feature.AD_HOC_FORMATTING)
     }
 
     override fun canFormat(file: PsiFile): Boolean {
         val dprintService = file.project.service<DprintService>()
-        return file.manager?.project?.service<ProjectConfiguration>()?.state?.enabled == true &&
+        return file.virtualFile != null &&
+            file.project.service<ProjectConfiguration>().state.enabled &&
             dprintService.canFormat(file.virtualFile.path)
     }
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
         val project = formattingRequest.context.project
-        if (!project.service<ProjectConfiguration>().state.enabled) {
+        // As per the getFeatures comment we handle FORMAT_FRAGMENTS and AD_HOC_FORMATTING features as a no op.
+        if (!project.service<ProjectConfiguration>().state.enabled || isRangeFormat(formattingRequest)) {
             return null
         }
 
@@ -74,6 +77,18 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             override fun isRunUnderProgress(): Boolean {
                 return true
             }
+        }
+    }
+
+    private fun isRangeFormat(formattingRequest: AsyncFormattingRequest): Boolean {
+        return when {
+            formattingRequest.isQuickFormat -> true
+            formattingRequest.formattingRanges.size > 1 -> true
+            formattingRequest.formattingRanges.size == 1 -> {
+                val range = formattingRequest.formattingRanges[0]
+                return range.startOffset != 0 || range.endOffset != formattingRequest.documentText.length
+            }
+            else -> false
         }
     }
 

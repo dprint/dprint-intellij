@@ -60,13 +60,17 @@ class FormatterService(private val project: Project) {
 
                 try {
                     indicator.text = Bundle.message("dprint.formatting.on", filePathRef.get())
-                    formatInFuture(filePathRef.get(), content).thenApply { result ->
-                        if (result != null) {
-                            WriteCommandAction.runWriteCommandAction(project) {
-                                getDocument(project, virtualFile)?.setText(result)
+                    if (dprintService.canFormat(filePathRef.get())) {
+                        formatInFuture(filePathRef.get(), content).thenApply { result ->
+                            if (result != null) {
+                                WriteCommandAction.runWriteCommandAction(project) {
+                                    getDocument(project, virtualFile)?.setText(result)
+                                }
                             }
-                        }
-                    }.get()
+                        }.get()
+                    } else {
+                        Bundle.message("formatting.cannot.format", filePathRef.get())
+                    }
                 } catch (e: ExecutionException) {
                     // In the event that the editor service times out we kill it and restart
                     LOGGER.error(Bundle.message("error.dprint.failed"), e)
