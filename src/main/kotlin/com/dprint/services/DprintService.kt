@@ -152,7 +152,7 @@ class DprintService(private val project: Project) {
     }
 
     private fun writeSuccess(stdin: OutputStream) {
-        LOGGER.info(Bundle.message("formatting.sending.success.to.editor.service"))
+        LOGGER.debug(Bundle.message("formatting.sending.success.to.editor.service"))
 
         stdin.write(SUCCESS_MESSAGE)
         stdin.flush()
@@ -162,7 +162,7 @@ class DprintService(private val project: Project) {
         val buffer = ByteBuffer.allocate(U32_BYTE_SIZE)
         buffer.putInt(i)
 
-        LOGGER.info(Bundle.message("formatting.sending.to.editor.service", i))
+        LOGGER.debug(Bundle.message("formatting.sending.to.editor.service", i))
 
         stdin.write(buffer.array())
         stdin.flush()
@@ -175,7 +175,7 @@ class DprintService(private val project: Project) {
         writeInt(stdin, byteArray.size)
         stdin.flush()
 
-        LOGGER.info(Bundle.message("formatting.sending.to.editor.service", string))
+        LOGGER.debug(Bundle.message("formatting.sending.to.editor.service", string))
 
         while (pointer < byteArray.size) {
             if (pointer != 0) {
@@ -195,12 +195,12 @@ class DprintService(private val project: Project) {
         for (i in 0 until U32_BYTE_SIZE) {
             assert(bytes[i] == SUCCESS_MESSAGE[i])
         }
-        LOGGER.info(Bundle.message("formatting.received.success"))
+        LOGGER.debug(Bundle.message("formatting.received.success"))
     }
 
     private fun readInt(stdout: InputStream): Int {
         val result = ByteBuffer.wrap(stdout.readNBytes(U32_BYTE_SIZE)).int
-        LOGGER.info(Bundle.message("formatting.received.value", result))
+        LOGGER.debug(Bundle.message("formatting.received.value", result))
         return result
     }
 
@@ -221,7 +221,9 @@ class DprintService(private val project: Project) {
             index += numBytes
         }
 
-        return result.decodeToString()
+        val decodedResult = result.decodeToString()
+        LOGGER.debug(Bundle.message("formatting.received.value", decodedResult))
+        return decodedResult
     }
 
     // The less generic error is kotlinx.serialization.json.internal.JsonDecodingException and is not accessible
@@ -245,23 +247,31 @@ class DprintService(private val project: Project) {
     }
 
     fun canFormat(filePath: String): Boolean {
+        var status = 0
         LOGGER.info(Bundle.message("formatting.checking.can.format", filePath))
         getEditorService()?.let { editorService ->
             val stdin = editorService.outputStream
             val stdout = editorService.inputStream
 
-            writeInt(stdin, CHECK_COMMAND)
-            writeString(stdout, stdin, filePath)
-            writeSuccess(stdin)
+            synchronized(this) {
+                writeInt(stdin, CHECK_COMMAND)
+                writeString(stdout, stdin, filePath)
+                writeSuccess(stdin)
 
-            // https://github.com/dprint/dprint/blob/main/docs/editor-extension-development.md
-            // this command sequence returns 1 if the file can be formatted
-            val status = readInt(stdout)
-            readAndAssertSuccess(stdout)
-            return status == 1
+                // https://github.com/dprint/dprint/blob/main/docs/editor-extension-development.md
+                // this command sequence returns 1 if the file can be formatted
+                status = readInt(stdout)
+                readAndAssertSuccess(stdout)
+            }
         }
 
-        return false
+        val result = status == 1
+        when (result) {
+            true -> LOGGER.info(Bundle.message("formatting.can.format", filePath))
+            false -> LOGGER.info(Bundle.message("formatting.cannot.format", filePath))
+        }
+
+        return result
     }
 
     /**
@@ -274,28 +284,25 @@ class DprintService(private val project: Project) {
     fun fmt(filePath: String, content: String): DprintResult {
         val result = DprintResult()
 
-        if (!canFormat(filePath)) {
-            result.error = Bundle.message("formatting.cannot.format", filePath)
-            return result
-        }
-
         LOGGER.info(Bundle.message("formatting.file", filePath))
         getEditorService()?.let { editorService ->
             val stdin = editorService.outputStream
             val stdout = editorService.inputStream
 
-            writeInt(stdin, FORMAT_COMMAND)
-            writeString(stdout, stdin, filePath)
-            writeString(stdout, stdin, content)
-            writeSuccess(stdin)
+            synchronized(this) {
+                writeInt(stdin, FORMAT_COMMAND)
+                writeString(stdout, stdin, filePath)
+                writeString(stdout, stdin, content)
+                writeSuccess(stdin)
 
-            when (readInt(stdout)) {
-                0 -> Unit // no-op as content didn't change
-                1 -> result.formattedContent = readString(stdout, stdin)
-                2 -> result.error = readString(stdout, stdin)
+                when (readInt(stdout)) {
+                    0 -> Unit // no-op as content didn't change
+                    1 -> result.formattedContent = readString(stdout, stdin)
+                    2 -> result.error = readString(stdout, stdin)
+                }
+
+                readAndAssertSuccess(stdout)
             }
-
-            readAndAssertSuccess(stdout)
         }
 
         return result
