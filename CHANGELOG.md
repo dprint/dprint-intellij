@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.2.2]
 - Fix error that was thrown when code refactoring tools were used
 - Synchronize the editor service so two processes can't interrupt each others formatting
 - Reduce log spam
