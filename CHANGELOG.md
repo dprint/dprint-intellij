@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.2.3]
 - Support all future versions of IntelliJ
 
 ## [0.2.2]
