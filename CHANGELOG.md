@@ -3,6 +3,7 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+- Support all future versions of IntelliJ
 
 ## [0.2.2]
 - Fix error that was thrown when code refactoring tools were used
