@@ -2,9 +2,9 @@ package com.dprint.formatter
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.core.Bundle
-import com.dprint.services.DprintService
 import com.dprint.services.NOTIFICATION_GROUP_ID
 import com.dprint.services.NotificationService
+import com.dprint.services.editorservice.EditorServiceManager
 import com.intellij.formatting.service.AsyncDocumentFormattingService
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
@@ -23,10 +23,10 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
     }
 
     override fun canFormat(file: PsiFile): Boolean {
-        val dprintService = file.project.service<DprintService>()
-        return file.virtualFile != null &&
+        val editorService = file.project.service<EditorServiceManager>().maybeGetEditorService()
+        return editorService != null && file.virtualFile != null &&
             file.project.service<ProjectConfiguration>().state.enabled &&
-            dprintService.canFormat(file.virtualFile.path)
+            editorService.canFormat(file.virtualFile.path)
     }
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
@@ -36,7 +36,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             return null
         }
 
-        val dprintService = project.service<DprintService>()
+        val editorService = project.service<EditorServiceManager>().maybeGetEditorService()
         val notificationService = project.service<NotificationService>()
         val path = formattingRequest.ioFile?.path
 
@@ -48,11 +48,18 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             return null
         }
 
+        if (editorService == null) {
+            val message = Bundle.message("formatting.service.editor.service.uninitialized")
+            notificationService.notifyOfFormatFailure(message)
+            LOGGER.info(message)
+            return null
+        }
+
         return object : FormattingTask {
             override fun run() {
                 val content = formattingRequest.documentText
 
-                val result = dprintService.fmt(path, content)
+                val result = editorService.fmt(path, content)
 
                 result.error?.let {
                     formattingRequest.onError(Bundle.message("notification.format.failed.title"), it)
