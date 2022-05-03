@@ -3,6 +3,7 @@ package com.dprint.services.editorservice
 import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
 import com.dprint.services.NotificationService
+import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -68,7 +69,8 @@ class EditorProcess(private val project: Project) {
             "--config",
             configPath,
             "--parent-pid",
-            pid.toString()
+            pid.toString(),
+            "--verbose"
         )
 
         val workingDir = File(configPath).parent
@@ -90,7 +92,7 @@ class EditorProcess(private val project: Project) {
     }
 
     fun writeSuccess() {
-        LOGGER.debug(Bundle.message("formatting.sending.success.to.editor.service"))
+        LOGGER.info(Bundle.message("formatting.sending.success.to.editor.service"))
         val stdin = getProcess().outputStream
         stdin.write(SUCCESS_MESSAGE)
         stdin.flush()
@@ -99,7 +101,7 @@ class EditorProcess(private val project: Project) {
     fun writeInt(i: Int) {
         val stdin = getProcess().outputStream
 
-        LOGGER.debug(Bundle.message("formatting.sending.to.editor.service", i))
+        LOGGER.info(Bundle.message("formatting.sending.to.editor.service", i))
 
         val buffer = ByteBuffer.allocate(U32_BYTE_SIZE)
         buffer.putInt(i)
@@ -115,7 +117,7 @@ class EditorProcess(private val project: Project) {
         writeInt(byteArray.size)
         stdin.flush()
 
-        LOGGER.debug(Bundle.message("formatting.sending.to.editor.service", string))
+        LOGGER.info(Bundle.message("formatting.sending.to.editor.service", string))
 
         while (pointer < byteArray.size) {
             if (pointer != 0) {
@@ -137,7 +139,7 @@ class EditorProcess(private val project: Project) {
             for (i in 0 until U32_BYTE_SIZE) {
                 assert(bytes[i] == SUCCESS_MESSAGE[i])
             }
-            LOGGER.debug(Bundle.message("formatting.received.success"))
+            LOGGER.info(Bundle.message("formatting.received.success"))
         } else {
             LOGGER.info(Bundle.message("editor.process.cannot.get.editor.service.process"))
             initialize()
@@ -147,7 +149,7 @@ class EditorProcess(private val project: Project) {
     fun readInt(): Int {
         val stdout = getProcess().inputStream
         val result = ByteBuffer.wrap(stdout.readNBytes(U32_BYTE_SIZE)).int
-        LOGGER.debug(Bundle.message("formatting.received.value", result))
+        LOGGER.info(Bundle.message("formatting.received.value", result))
         return result
     }
 
@@ -170,7 +172,18 @@ class EditorProcess(private val project: Project) {
         }
 
         val decodedResult = result.decodeToString()
-        LOGGER.debug(Bundle.message("formatting.received.value", decodedResult))
+        LOGGER.info(Bundle.message("formatting.received.value", decodedResult))
         return decodedResult
+    }
+
+    fun writeBuffer(byteArray: ByteArray) {
+        val stdin = getProcess().outputStream
+        stdin.write(byteArray)
+        stdin.flush()
+    }
+
+    fun readBuffer(totalBytes: Int): ByteArray {
+        val stdout = getProcess().inputStream
+        return stdout.readNBytes(totalBytes)
     }
 }

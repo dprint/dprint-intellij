@@ -1,6 +1,6 @@
-package com.dprint.services.editorservice
+package com.dprint.services.editorservice.exceptions
 
-class ProcessUnavailableException : Exception {
+class UnsupportedMessagePartException : Exception {
     constructor() : super()
     constructor(message: String) : super(message)
     constructor(message: String, cause: Throwable) : super(message, cause)
