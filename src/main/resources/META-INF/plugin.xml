@@ -14,33 +14,31 @@
         <projectService serviceImplementation="com.dprint.config.UserConfiguration"/>
         <projectService serviceImplementation="com.dprint.services.FormatterService"/>
         <projectService serviceImplementation="com.dprint.services.NotificationService"/>
-        <projectService serviceImplementation="com.dprint.services.DprintService"/>
+        <projectService serviceImplementation="com.dprint.services.editorservice.EditorServiceManager"/>
+        <projectService serviceImplementation="com.dprint.services.editorservice.v4.EditorServiceV4"/>
         <projectConfigurable parentId="tools"
                              instance="com.dprint.config.ProjectConfigurable"
                              id="com.dprint.config.ProjectConfigurable"
                              bundle="messages.Bundle"
                              key="config.name"
                              nonDefaultProject="true"/>
-        <notificationGroup id="Dprint" displayType="STICKY_BALLOON" key="notification.group.name"
-                           isLogByDefault="false"/>
+        <notificationGroup id="Dprint" displayType="STICKY_BALLOON" key="notification.group.name" isLogByDefault="false"/>
         <formattingService implementation="com.dprint.formatter.DprintExternalFormatter"/>
         <documentMerger implementation="com.dprint.formatter.DprintDocumentMerger"/>
     </extensions>
 
     <projectListeners>
-        <listener class="com.dprint.listeners.OnSaveListener"
-                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
-        <listener class="com.dprint.listeners.StartupListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+        <listener class="com.dprint.listeners.OnSaveListener" topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
     </projectListeners>
     <actions>
-        <action id="com.dprint.actions.ReformatAction"
-                class="com.dprint.actions.ReformatAction"
-                description="Formats the file with dprint">
+        <action id="com.dprint.actions.ReformatAction" class="com.dprint.actions.ReformatAction">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift D"/>
             <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt shift D"/>
             <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift D"/>
+        </action>
+        <action id="com.dprint.actions.RestartAction" class="com.dprint.actions.RestartAction">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
     </actions>
 </idea-plugin>

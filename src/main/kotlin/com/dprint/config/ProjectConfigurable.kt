@@ -2,7 +2,7 @@ package com.dprint.config
 
 import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
-import com.dprint.services.DprintService
+import com.dprint.services.editorservice.EditorServiceManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.project.Project
@@ -21,7 +21,7 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
     override fun createPanel(): DialogPanel {
         val projectConfig = project.service<ProjectConfiguration>()
         val userConfig = project.service<UserConfiguration>()
-        val dprintService = project.service<DprintService>()
+        val editorServiceManager = project.service<EditorServiceManager>()
 
         return panel {
             row {
@@ -32,9 +32,9 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                         projectConfig.state.enabled = it
 
                         if (it) {
-                            dprintService.initialiseEditorService()
+                            editorServiceManager.restartEditorService()
                         } else {
-                            dprintService.destroyEditorService()
+                            editorServiceManager.destroyEditorService()
                         }
                     }
                 )
@@ -55,7 +55,7 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                         { projectConfig.state.configLocation },
                         {
                             projectConfig.state.configLocation = it
-                            dprintService.initialiseEditorService()
+                            editorServiceManager.restartEditorService()
                         }
                     )
                 ).withValidationOnInput {
@@ -74,7 +74,7 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                         { projectConfig.state.executableLocation },
                         {
                             projectConfig.state.executableLocation = it
-                            dprintService.initialiseEditorService()
+                            editorServiceManager.restartEditorService()
                         }
                     )
                 ).withValidationOnInput {
@@ -87,7 +87,7 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
             }
             row {
                 button(Bundle.message("config.reload")) {
-                    dprintService.initialiseEditorService()
+                    editorServiceManager.restartEditorService()
                 }
             }
         }
