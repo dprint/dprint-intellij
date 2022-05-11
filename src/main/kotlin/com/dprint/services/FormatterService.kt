@@ -23,6 +23,7 @@ import java.util.Collections
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 private val LOGGER = logger<FormatterService>()
 private const val FORMATTING_TIMEOUT_SECONDS = 10L
@@ -91,19 +92,25 @@ class FormatterService(private val project: Project) {
                     } else {
                         Bundle.message("formatting.cannot.format", filePathRef.get())
                     }
+                } catch (e: TimeoutException) {
+                    handleFormatException(e)
                 } catch (e: ExecutionException) {
-                    // In the event that the editor service times out we restart
-                    LOGGER.error(Bundle.message("error.dprint.failed"), e)
-
-                    notificationService.notify(
-                        Bundle.message("error.dprint.failed"),
-                        Bundle.message("error.dprint.failed.timeout", FORMATTING_TIMEOUT_SECONDS),
-                        NotificationType.ERROR
-                    )
-                    editorServiceManager.restartEditorService()
+                    handleFormatException(e)
                 }
             }
         )
+    }
+
+    private fun handleFormatException(e: Exception) {
+        // In the event that the editor service times out we restart
+        LOGGER.error(Bundle.message("error.dprint.failed"), e)
+
+        notificationService.notify(
+            Bundle.message("error.dprint.failed"),
+            Bundle.message("error.dprint.failed.timeout", FORMATTING_TIMEOUT_SECONDS),
+            NotificationType.ERROR
+        )
+        editorServiceManager.restartEditorService()
     }
 
     private fun isFileWriteable(project: Project, virtualFile: VirtualFile): Boolean {

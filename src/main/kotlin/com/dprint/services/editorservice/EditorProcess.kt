@@ -53,9 +53,9 @@ class EditorProcess(private val project: Project) {
         val stderr = this.process?.errorStream
         LOGGER.info(Bundle.message("editor.service.shutting.down"))
         stdin?.close()
-        // LOGGER.info(stdout?.bufferedReader().use { it?.readText() })
+        LOGGER.debug(stdout?.bufferedReader().use { it?.readText() })
         stdout?.close()
-        LOGGER.info(stderr?.bufferedReader().use { it?.readText() })
+        LOGGER.debug(stderr?.bufferedReader().use { it?.readText() })
         stderr?.close()
         this.process?.destroy()
         this.process = null
@@ -92,7 +92,7 @@ class EditorProcess(private val project: Project) {
     }
 
     fun writeSuccess() {
-        LOGGER.info(Bundle.message("formatting.sending.success.to.editor.service"))
+        LOGGER.debug(Bundle.message("formatting.sending.success.to.editor.service"))
         val stdin = getProcess().outputStream
         stdin.write(SUCCESS_MESSAGE)
         stdin.flush()
@@ -101,7 +101,7 @@ class EditorProcess(private val project: Project) {
     fun writeInt(i: Int) {
         val stdin = getProcess().outputStream
 
-        LOGGER.info(Bundle.message("formatting.sending.to.editor.service", i))
+        LOGGER.debug(Bundle.message("formatting.sending.to.editor.service", i))
 
         val buffer = ByteBuffer.allocate(U32_BYTE_SIZE)
         buffer.putInt(i)
@@ -117,7 +117,7 @@ class EditorProcess(private val project: Project) {
         writeInt(byteArray.size)
         stdin.flush()
 
-        LOGGER.info(Bundle.message("formatting.sending.to.editor.service", string))
+        LOGGER.debug(Bundle.message("formatting.sending.to.editor.service", string))
 
         while (pointer < byteArray.size) {
             if (pointer != 0) {
@@ -139,9 +139,9 @@ class EditorProcess(private val project: Project) {
             for (i in 0 until U32_BYTE_SIZE) {
                 assert(bytes[i] == SUCCESS_MESSAGE[i])
             }
-            LOGGER.info(Bundle.message("formatting.received.success"))
+            LOGGER.debug(Bundle.message("formatting.received.success"))
         } else {
-            LOGGER.info(Bundle.message("editor.process.cannot.get.editor.service.process"))
+            LOGGER.debug(Bundle.message("editor.process.cannot.get.editor.service.process"))
             initialize()
         }
     }
@@ -149,7 +149,7 @@ class EditorProcess(private val project: Project) {
     fun readInt(): Int {
         val stdout = getProcess().inputStream
         val result = ByteBuffer.wrap(stdout.readNBytes(U32_BYTE_SIZE)).int
-        LOGGER.info(Bundle.message("formatting.received.value", result))
+        LOGGER.debug(Bundle.message("formatting.received.value", result))
         return result
     }
 
@@ -172,7 +172,7 @@ class EditorProcess(private val project: Project) {
         }
 
         val decodedResult = result.decodeToString()
-        LOGGER.info(Bundle.message("formatting.received.value", decodedResult))
+        LOGGER.debug(Bundle.message("formatting.received.value", decodedResult))
         return decodedResult
     }
 
