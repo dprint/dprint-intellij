@@ -53,7 +53,7 @@ class EditorProcess(private val project: Project) {
         val stderr = this.process?.errorStream
         LOGGER.info(Bundle.message("editor.service.shutting.down"))
         stdin?.close()
-        LOGGER.info(stdout?.bufferedReader().use { it?.readText() })
+        // LOGGER.info(stdout?.bufferedReader().use { it?.readText() })
         stdout?.close()
         LOGGER.info(stderr?.bufferedReader().use { it?.readText() })
         stderr?.close()
@@ -70,7 +70,7 @@ class EditorProcess(private val project: Project) {
             configPath,
             "--parent-pid",
             pid.toString(),
-            "--verbose"
+            "--verbose" // TODO Make this configurable
         )
 
         val workingDir = File(configPath).parent

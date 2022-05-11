@@ -46,7 +46,9 @@ class EditorServiceManager(private val project: Project) {
         val result = ExecUtil.execAndGetOutput(commandLine)
 
         return try {
-            Json.parseToJsonElement(result.stdout).jsonObject["schemaVersion"]?.jsonPrimitive?.int
+            val jsonText = result.stdout
+            LOGGER.info(Bundle.message("config.dprint.editor.info", jsonText))
+            Json.parseToJsonElement(jsonText).jsonObject["schemaVersion"]?.jsonPrimitive?.int
         } catch (e: RuntimeException) {
             LOGGER.error(Bundle.message("error.failed.to.parse.json.schema", result.stdout, result.stderr), e)
             null
@@ -86,6 +88,8 @@ class EditorServiceManager(private val project: Project) {
     }
 
     fun restartEditorService() {
+        // TODO rather than restarting we should try and see if it is healthy, cancel the pending format, and drain
+        //  pending messages if we are on schema version 5
         maybeInitialiseEditorService()
     }
 

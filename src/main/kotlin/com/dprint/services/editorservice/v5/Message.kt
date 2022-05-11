@@ -1,6 +1,7 @@
 package com.dprint.services.editorservice.v5
 
 import com.dprint.services.editorservice.exceptions.UnsupportedMessagePartException
+import java.nio.ByteBuffer
 
 // Dprint uses unsigned bytes of 4x255 for the success message and that translates
 // to 4x-1 in the jvm's signed bytes.
@@ -19,9 +20,9 @@ class Message(val id: Int, val type: MessageType) {
     }
 
     private fun intToFourByteArray(int: Int): ByteArray {
-        val result = ByteArray(U32_BYTE_SIZE)
-        result[0] = int.toByte()
-        return result
+        val buffer = ByteBuffer.allocate(U32_BYTE_SIZE)
+        buffer.putInt(int)
+        return buffer.array()
     }
 
     fun build(): ByteArray {

@@ -8,7 +8,7 @@ complexity:
     thresholdInFiles: 15
     thresholdInClasses: 15
   ComplexMethod:
-    threshold: 20
+    threshold: 25
 formatting:
   Indentation:
     continuationIndentSize: 8

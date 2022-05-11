@@ -22,6 +22,7 @@ import com.intellij.psi.PsiManager
 import java.util.Collections
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
 
 private val LOGGER = logger<FormatterService>()
 private const val FORMATTING_TIMEOUT_SECONDS = 10L
@@ -75,7 +76,7 @@ class FormatterService(private val project: Project) {
 
                         editorServiceInstance.fmt(filePath, content, formatHandler)
 
-                        val result = resultFuture.get()
+                        val result = resultFuture.get(FORMATTING_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 
                         result.error?.let {
                             LOGGER.info(Bundle.message("logging.format.failed", filePath, it))
@@ -91,8 +92,9 @@ class FormatterService(private val project: Project) {
                         Bundle.message("formatting.cannot.format", filePathRef.get())
                     }
                 } catch (e: ExecutionException) {
-                    // In the event that the editor service times out we kill it and restart
+                    // In the event that the editor service times out we restart
                     LOGGER.error(Bundle.message("error.dprint.failed"), e)
+
                     notificationService.notify(
                         Bundle.message("error.dprint.failed"),
                         Bundle.message("error.dprint.failed.timeout", FORMATTING_TIMEOUT_SECONDS),

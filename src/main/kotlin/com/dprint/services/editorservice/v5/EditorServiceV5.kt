@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.apache.lucene.util.ThreadInterruptedException
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
@@ -21,6 +23,7 @@ private val LOGGER = logger<EditorServiceV5>()
 private var messageId = AtomicInteger(0)
 private const val SLEEP_TIME = 500L
 private const val FORCE_DESTROY_DELAY = 1000L
+private const val FORMATTING_TIMEOUT_SECONDS = 10L
 
 @Service
 class EditorServiceV5(project: Project) : EditorService {
@@ -30,9 +33,14 @@ class EditorServiceV5(project: Project) : EditorService {
     private val pendingMessages = PendingMessages()
     private val notificationService = project.service<NotificationService>()
 
+    // TODO pull this out into a listener class
     @Suppress("TooGenericExceptionCaught")
     private fun createStdoutListener(): Thread {
+        if (stdoutListener != null) {
+            stdoutListener?.interrupt()
+        }
         val runnable = Runnable {
+            LOGGER.info("Dprint: Started listener")
             while (true) {
                 if (Thread.interrupted()) {
                     return@Runnable
@@ -89,8 +97,7 @@ class EditorServiceV5(project: Project) : EditorService {
                     LOGGER.info(e)
                     return@Runnable
                 } catch (e: Exception) {
-                    LOGGER.info(Bundle.message("editor.service.read.failed"), e)
-                    editorProcess.initialize()
+                    LOGGER.warn(Bundle.message("editor.service.read.failed"), e)
                     Thread.sleep(SLEEP_TIME)
                 }
             }
@@ -136,15 +143,21 @@ class EditorServiceV5(project: Project) : EditorService {
 
         editorProcess.writeBuffer(message.build())
 
-        val result = future.get()
-
-        return if (result.type == MessageType.CanFormatResponse && result.data is Boolean) {
-            result.data
-        } else if (result.type == MessageType.ErrorResponse && result.data is String) {
-            LOGGER.info(result.data)
-            false
-        } else {
-            LOGGER.info(Bundle.message("editor.service.unsupported.message.type", result.type))
+        return try {
+            val result = future.get(FORMATTING_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            if (result.type == MessageType.CanFormatResponse && result.data is Boolean) {
+                result.data
+            } else if (result.type == MessageType.ErrorResponse && result.data is String) {
+                LOGGER.info(result.data)
+                false
+            } else {
+                LOGGER.info(Bundle.message("editor.service.unsupported.message.type", result.type))
+                false
+            }
+        } catch (e: TimeoutException) {
+            LOGGER.error(e)
+            pendingMessages.take(message.id)
+            initialiseEditorService()
             false
         }
     }
@@ -195,6 +208,7 @@ class EditorServiceV5(project: Project) : EditorService {
         val message = createNewMessage(MessageType.CancelFormat)
         message.addInt(formatId)
         editorProcess.writeBuffer(message.build())
+        pendingMessages.take(formatId)
     }
 
     private fun sendResponse(message: Message) {
