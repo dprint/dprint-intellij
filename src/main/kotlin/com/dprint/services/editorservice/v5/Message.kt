@@ -5,7 +5,7 @@ import java.nio.ByteBuffer
 
 // Dprint uses unsigned bytes of 4x255 for the success message and that translates
 // to 4x-1 in the jvm's signed bytes.
-private val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
+val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
 private const val U32_BYTE_SIZE = 4
 
 class Message(val id: Int, val type: MessageType) {
@@ -34,19 +34,20 @@ class Message(val id: Int, val type: MessageType) {
             }
         }
         val byteLength = bodyLength + U32_BYTE_SIZE * U32_BYTE_SIZE
-        var result = ByteArray(0)
-        result += intToFourByteArray(id)
-        result += intToFourByteArray(type.intValue)
-        result += intToFourByteArray(bodyLength)
+        val buffer = ByteBuffer.allocate(byteLength)
+
+        buffer.put(intToFourByteArray(id))
+        buffer.put(intToFourByteArray(type.intValue))
+        buffer.put(intToFourByteArray(bodyLength))
 
         for (part in parts) {
             when (part) {
                 is ByteArray -> {
-                    result += intToFourByteArray(part.size)
-                    result += part
+                    buffer.put(intToFourByteArray(part.size))
+                    buffer.put(part)
                 }
                 is Int -> {
-                    result += intToFourByteArray(part)
+                    buffer.put(intToFourByteArray(part))
                 }
                 else -> {
                     throw UnsupportedMessagePartException(
@@ -56,11 +57,12 @@ class Message(val id: Int, val type: MessageType) {
             }
         }
 
-        result += SUCCESS_MESSAGE
+        buffer.put(SUCCESS_MESSAGE)
 
-        if (result.size != byteLength) {
-            throw UnsupportedMessagePartException("Incorrect message size, expected $byteLength and got ${result.size}")
+        if (buffer.hasRemaining()) {
+            val message = "Incorrect message size, expected $byteLength and got ${byteLength - buffer.remaining()}"
+            throw UnsupportedMessagePartException(message)
         }
-        return result
+        return buffer.array()
     }
 }
