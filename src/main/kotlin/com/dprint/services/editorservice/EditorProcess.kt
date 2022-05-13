@@ -3,6 +3,7 @@ package com.dprint.services.editorservice
 import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
 import com.dprint.services.NotificationService
+import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -52,9 +53,9 @@ class EditorProcess(private val project: Project) {
         val stderr = this.process?.errorStream
         LOGGER.info(Bundle.message("editor.service.shutting.down"))
         stdin?.close()
-        LOGGER.info(stdout?.bufferedReader().use { it?.readText() })
+        LOGGER.debug(stdout?.bufferedReader().use { it?.readText() })
         stdout?.close()
-        LOGGER.info(stderr?.bufferedReader().use { it?.readText() })
+        LOGGER.debug(stderr?.bufferedReader().use { it?.readText() })
         stderr?.close()
         this.process?.destroy()
         this.process = null
@@ -68,7 +69,8 @@ class EditorProcess(private val project: Project) {
             "--config",
             configPath,
             "--parent-pid",
-            pid.toString()
+            pid.toString(),
+            "--verbose" // TODO Make this configurable
         )
 
         val workingDir = File(configPath).parent
@@ -139,7 +141,7 @@ class EditorProcess(private val project: Project) {
             }
             LOGGER.debug(Bundle.message("formatting.received.success"))
         } else {
-            LOGGER.info(Bundle.message("editor.process.cannot.get.editor.service.process"))
+            LOGGER.debug(Bundle.message("editor.process.cannot.get.editor.service.process"))
             initialize()
         }
     }
@@ -172,5 +174,16 @@ class EditorProcess(private val project: Project) {
         val decodedResult = result.decodeToString()
         LOGGER.debug(Bundle.message("formatting.received.value", decodedResult))
         return decodedResult
+    }
+
+    fun writeBuffer(byteArray: ByteArray) {
+        val stdin = getProcess().outputStream
+        stdin.write(byteArray)
+        stdin.flush()
+    }
+
+    fun readBuffer(totalBytes: Int): ByteArray {
+        val stdout = getProcess().inputStream
+        return stdout.readNBytes(totalBytes)
     }
 }

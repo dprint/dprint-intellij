@@ -5,12 +5,14 @@ import com.dprint.core.Bundle
 import com.dprint.services.NOTIFICATION_GROUP_ID
 import com.dprint.services.NotificationService
 import com.dprint.services.editorservice.EditorServiceManager
+import com.dprint.services.editorservice.FormatResult
 import com.intellij.formatting.service.AsyncDocumentFormattingService
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.psi.PsiFile
+import java.util.concurrent.CompletableFuture
 
 private val LOGGER = logger<DprintExternalFormatter>()
 private const val NAME = "dprintfmt"
@@ -18,8 +20,8 @@ private const val NAME = "dprintfmt"
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun getFeatures(): MutableSet<FormattingService.Feature> {
         // To ensure that we don't allow IntelliJ range formatting on files that should be dprint formatted we need to
-        // say we provide the FORMAT_FRAGMENTS and AD_HOC_FORMATTING features then handle them as a no op.
-        return mutableSetOf(FormattingService.Feature.FORMAT_FRAGMENTS, FormattingService.Feature.AD_HOC_FORMATTING)
+        // say we provide the FORMAT_FRAGMENTS features then handle them as a no op.
+        return mutableSetOf(FormattingService.Feature.FORMAT_FRAGMENTS)
     }
 
     override fun canFormat(file: PsiFile): Boolean {
@@ -32,7 +34,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
         val project = formattingRequest.context.project
         // As per the getFeatures comment we handle FORMAT_FRAGMENTS and AD_HOC_FORMATTING features as a no op.
-        if (!project.service<ProjectConfiguration>().state.enabled || isRangeFormat(formattingRequest)) {
+        if (!project.service<ProjectConfiguration>().state.enabled) {
             return null
         }
 
@@ -55,29 +57,77 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             return null
         }
 
+        if (!editorService.canRangeFormat() && isRangeFormat(formattingRequest)) {
+            return null
+        }
+
         return object : FormattingTask {
+            private var formattingId: Int? = null
+            private var isCancelled = false
+
             override fun run() {
                 val content = formattingRequest.documentText
+                val ranges = formattingRequest.formattingRanges
+                val future = CompletableFuture<FormatResult>()
 
-                val result = editorService.fmt(path, content)
+                for (range in ranges.subList(1, ranges.size)) {
+                    future.thenApply {
+                        if (isCancelled) {
+                            it
+                        } else {
+                            val resultContent = it.formattedContent
+                            val nextFuture = CompletableFuture<FormatResult>()
+                            val nextHandler: (FormatResult) -> Unit = { nextResult ->
+                                nextFuture.complete(nextResult)
+                            }
+                            if (resultContent != null) {
+                                formattingId =
+                                    editorService.fmt(
+                                        path,
+                                        resultContent,
+                                        range.startOffset,
+                                        range.endOffset,
+                                        nextHandler
+                                    )
+                            }
+                            nextFuture.get()
+                        }
+                    }
+                }
 
-                result.error?.let {
-                    formattingRequest.onError(Bundle.message("notification.format.failed.title"), it)
+                val initialRange = if (ranges.size > 0) ranges.first() else null
+                val initialHandler: (FormatResult) -> Unit = {
+                    future.complete(it)
+                }
+                formattingId = editorService.fmt(
+                    path,
+                    content,
+                    initialRange?.startOffset ?: 0,
+                    initialRange?.endOffset ?: content.length,
+                    initialHandler
+                )
+                val result = future.get()
+
+                if (isCancelled) {
                     return
                 }
 
                 result.formattedContent?.let {
                     formattingRequest.onTextReady(it)
-                    return
                 }
 
-                // In the event dprint is a no-op we just reset the original text rather than throwing an error
-                formattingRequest.onTextReady(formattingRequest.documentText)
+                result.error?.let {
+                    formattingRequest.onError("Formatting error", it)
+                }
             }
 
             override fun cancel(): Boolean {
-                // TODO (ryan) to be able to cancel dprint formatting something we need to interrupt the editor service
-                // and reset it. This is non trivial without shutting it down so for now we just don't allow cancelling.
+                if (editorService.canCancelFormat()) {
+                    formattingId?.let { editorService.cancelFormat(it) }
+                    isCancelled = true
+                    return true
+                }
+
                 return false
             }
 
@@ -89,7 +139,6 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
 
     private fun isRangeFormat(formattingRequest: AsyncFormattingRequest): Boolean {
         return when {
-            formattingRequest.isQuickFormat -> true
             formattingRequest.formattingRanges.size > 1 -> true
             formattingRequest.formattingRanges.size == 1 -> {
                 val range = formattingRequest.formattingRanges[0]

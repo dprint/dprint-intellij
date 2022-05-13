@@ -4,6 +4,7 @@ import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
 import com.dprint.services.NotificationService
 import com.dprint.services.editorservice.v4.EditorServiceV4
+import com.dprint.services.editorservice.v5.EditorServiceV5
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.components.Service
@@ -21,6 +22,7 @@ import kotlinx.serialization.json.jsonPrimitive
 
 private val LOGGER = logger<EditorServiceManager>()
 private const val SCHEMA_V4 = 4
+private const val SCHEMA_V5 = 5
 
 @Service
 class EditorServiceManager(private val project: Project) {
@@ -44,7 +46,9 @@ class EditorServiceManager(private val project: Project) {
         val result = ExecUtil.execAndGetOutput(commandLine)
 
         return try {
-            Json.parseToJsonElement(result.stdout).jsonObject["schemaVersion"]?.jsonPrimitive?.int
+            val jsonText = result.stdout
+            LOGGER.info(Bundle.message("config.dprint.editor.info", jsonText))
+            Json.parseToJsonElement(jsonText).jsonObject["schemaVersion"]?.jsonPrimitive?.int
         } catch (e: RuntimeException) {
             LOGGER.error(Bundle.message("error.failed.to.parse.json.schema", result.stdout, result.stderr), e)
             null
@@ -57,6 +61,7 @@ class EditorServiceManager(private val project: Project) {
                 indicator.text = "Getting schema version"
                 val schemaVersion = getSchemaVersion()
                 indicator.text = "Attempting to initialize editor service"
+                LOGGER.info("Received schema version $schemaVersion")
                 when {
                     schemaVersion == null -> notificationService.notifyOfConfigError(
                         Bundle.message("config.dprint.schemaVersion.not.found")
@@ -65,7 +70,8 @@ class EditorServiceManager(private val project: Project) {
                         Bundle.message("config.dprint.schemaVersion.older")
                     )
                     schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
-                    schemaVersion > SCHEMA_V4 -> notificationService.notifyOfConfigError(
+                    schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
+                    schemaVersion > SCHEMA_V5 -> notificationService.notifyOfConfigError(
                         Bundle.message("config.dprint.schemaVersion.newer")
                     )
                 }
@@ -82,6 +88,8 @@ class EditorServiceManager(private val project: Project) {
     }
 
     fun restartEditorService() {
+        // TODO rather than restarting we should try and see if it is healthy, cancel the pending format, and drain
+        //  pending messages if we are on schema version 5
         maybeInitialiseEditorService()
     }
 

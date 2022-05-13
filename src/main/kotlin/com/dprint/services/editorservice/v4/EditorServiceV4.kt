@@ -6,7 +6,7 @@ import com.dprint.services.NotificationService
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
-import com.dprint.services.editorservice.ProcessUnavailableException
+import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -30,13 +30,12 @@ class EditorServiceV4(private val project: Project) : EditorService {
         editorProcess.initialize()
     }
 
-    override fun destroyEditorService() {
-        editorProcess.destroy()
-    }
-
-    // Disposes of the service when IntelliJ shuts down or the plugin is unloaded
     override fun dispose() {
         destroyEditorService()
+    }
+
+    override fun destroyEditorService() {
+        editorProcess.destroy()
     }
 
     override fun canFormat(filePath: String): Boolean {
@@ -69,6 +68,10 @@ class EditorServiceV4(private val project: Project) : EditorService {
         return result
     }
 
+    override fun canRangeFormat(): Boolean {
+        return false
+    }
+
     /**
      * This runs dprint using the editor service with the supplied file path and content as stdin.
      * @param filePath The path of the file being formatted. This is needed so the correct dprint configuration file
@@ -76,7 +79,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
      * @param content The content of the file as a string. This is formatted via Dprint and returned via the result.
      * @return A result object containing the formatted content is successful or an error.
      */
-    override fun fmt(filePath: String, content: String): FormatResult {
+    override fun fmt(filePath: String, content: String, onFinished: (FormatResult) -> Unit): Int? {
         val result = FormatResult()
 
         LOGGER.info(Bundle.message("formatting.file", filePath))
@@ -102,6 +105,23 @@ class EditorServiceV4(private val project: Project) : EditorService {
             LOGGER.info(message, e)
         }
 
-        return result
+        onFinished(result)
+
+        // We cannot cancel in V4 so return null
+        return null
+    }
+
+    override fun fmt(
+        filePath: String,
+        content: String,
+        startIndex: Int?,
+        endIndex: Int?,
+        onFinished: (FormatResult) -> Unit
+    ): Int? {
+        return fmt(filePath, content, onFinished)
+    }
+
+    override fun canCancelFormat(): Boolean {
+        return false
     }
 }

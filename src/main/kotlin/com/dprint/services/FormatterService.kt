@@ -2,6 +2,7 @@ package com.dprint.services
 
 import com.dprint.core.Bundle
 import com.dprint.services.editorservice.EditorServiceManager
+import com.dprint.services.editorservice.FormatResult
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.command.WriteCommandAction
@@ -18,11 +19,11 @@ import com.intellij.openapi.vfs.ReadonlyStatusHandler
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
-import com.intellij.util.concurrency.AppExecutorUtil
 import java.util.Collections
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 private val LOGGER = logger<FormatterService>()
 private const val FORMATTING_TIMEOUT_SECONDS = 10L
@@ -68,28 +69,48 @@ class FormatterService(private val project: Project) {
                     indicator.text = Bundle.message("dprint.formatting.on", filePathRef.get())
 
                     if (editorServiceInstance.canFormat(filePathRef.get())) {
-                        formatFileContentInFuture(filePathRef.get(), content).thenApply { result ->
-                            if (result != null) {
-                                WriteCommandAction.runWriteCommandAction(project) {
-                                    getDocument(project, virtualFile)?.setText(result)
-                                }
+                        val filePath = filePathRef.get()
+                        val resultFuture = CompletableFuture<FormatResult>()
+                        val formatHandler: (FormatResult) -> Unit = {
+                            resultFuture.complete(it)
+                        }
+
+                        editorServiceInstance.fmt(filePath, content, formatHandler)
+
+                        val result = resultFuture.get(FORMATTING_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+
+                        result.error?.let {
+                            LOGGER.info(Bundle.message("logging.format.failed", filePath, it))
+                            notificationService.notifyOfFormatFailure(it)
+                        }
+
+                        result.formattedContent?.let {
+                            WriteCommandAction.runWriteCommandAction(project) {
+                                getDocument(project, virtualFile)?.setText(it)
                             }
-                        }.get()
+                        }
                     } else {
                         Bundle.message("formatting.cannot.format", filePathRef.get())
                     }
+                } catch (e: TimeoutException) {
+                    handleFormatException(e)
                 } catch (e: ExecutionException) {
-                    // In the event that the editor service times out we kill it and restart
-                    LOGGER.error(Bundle.message("error.dprint.failed"), e)
-                    notificationService.notify(
-                        Bundle.message("error.dprint.failed"),
-                        Bundle.message("error.dprint.failed.timeout", FORMATTING_TIMEOUT_SECONDS),
-                        NotificationType.ERROR
-                    )
-                    editorServiceManager.restartEditorService()
+                    handleFormatException(e)
                 }
             }
         )
+    }
+
+    private fun handleFormatException(e: Exception) {
+        // In the event that the editor service times out we restart
+        LOGGER.error(Bundle.message("error.dprint.failed"), e)
+
+        notificationService.notify(
+            Bundle.message("error.dprint.failed"),
+            Bundle.message("error.dprint.failed.timeout", FORMATTING_TIMEOUT_SECONDS),
+            NotificationType.ERROR
+        )
+        editorServiceManager.restartEditorService()
     }
 
     private fun isFileWriteable(project: Project, virtualFile: VirtualFile): Boolean {
@@ -108,43 +129,6 @@ class FormatterService(private val project: Project) {
         }
 
         return null
-    }
-
-    private fun formatFileContentInFuture(filePath: String, fileContent: String): CompletableFuture<String?> {
-        val future = CompletableFuture<String?>().orTimeout(FORMATTING_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-
-        AppExecutorUtil.getAppExecutorService().submit {
-            try {
-                val output = formatFileContent(filePath, fileContent)
-                future.complete(output)
-            } catch (e: ExecutionException) {
-                future.completeExceptionally(e)
-            }
-        }
-
-        return future
-    }
-
-    private fun formatFileContent(filePath: String, fileContent: String): String? {
-        val editorServiceInstance = editorServiceManager.maybeGetEditorService()
-        if (editorServiceInstance == null) {
-            LOGGER.info(Bundle.message("formatting.service.editor.service.uninitialized"))
-            return null
-        }
-
-        val result = editorServiceInstance.fmt(filePath, fileContent)
-
-        result.error?.let {
-            LOGGER.info(Bundle.message("logging.format.failed", filePath, it))
-            notificationService.notifyOfFormatFailure(it)
-        }
-
-        // if the formatted content equals the original content return null so skip the write action
-        return when {
-            result.error != null -> null
-            fileContent == result.formattedContent -> null
-            else -> result.formattedContent
-        }
     }
 
     private fun executeUnderProgress(project: Project, title: String, handler: (indicator: ProgressIndicator) -> Unit) {

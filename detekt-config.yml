@@ -7,6 +7,8 @@ complexity:
   TooManyFunctions:
     thresholdInFiles: 15
     thresholdInClasses: 15
+  ComplexMethod:
+    threshold: 25
 formatting:
   Indentation:
     continuationIndentSize: 8
@@ -14,4 +16,6 @@ formatting:
     indentSize: 8
 style:
   ReturnCount:
-    max: 4
+    max: 5
+  MagicNumber:
+    ignoreEnums: true

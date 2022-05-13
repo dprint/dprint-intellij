@@ -29,6 +29,7 @@ repositories {
 }
 dependencies {
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.19.0")
+    testImplementation(kotlin("test"))
 }
 
 // Configure gradle-intellij-plugin plugin.
@@ -57,6 +58,19 @@ detekt {
     buildUponDefaultConfig = true
 }
 
+sourceSets {
+    main {
+        java {
+            srcDir("src/main/kotlin")
+        }
+    }
+    test {
+        java {
+            srcDir("src/test/kotlin")
+        }
+    }
+}
+
 tasks {
     // Set the compatibility versions to 11
     withType<JavaCompile> {
@@ -69,6 +83,10 @@ tasks {
 
     withType<Detekt> {
         jvmTarget = "11"
+    }
+
+    test {
+        useJUnitPlatform()
     }
 
     runIde {
