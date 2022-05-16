@@ -24,7 +24,7 @@
         <notificationGroup id="Dprint" displayType="STICKY_BALLOON" key="notification.group.name" isLogByDefault="false"/>
         <formattingService implementation="com.dprint.formatter.DprintExternalFormatter"/>
         <documentMerger implementation="com.dprint.formatter.DprintDocumentMerger"/>
-        <toolWindow factoryClass="com.dprint.messages.ConsoleToolWindowFactory" id="Dprint" anchor="bottom"/>
+        <toolWindow factoryClass="com.dprint.toolwindow.ConsoleToolWindowFactory" id="Dprint" anchor="bottom"/>
     </extensions>
 
     <projectListeners>

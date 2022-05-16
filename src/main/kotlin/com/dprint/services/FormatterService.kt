@@ -80,7 +80,7 @@ class FormatterService(private val project: Project) {
 
                         result.error?.let {
                             LOGGER.info(Bundle.message("logging.format.failed", filePath, it))
-                            project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(it)
+                            project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).info(it)
                         }
 
                         result.formattedContent?.let {
@@ -104,7 +104,7 @@ class FormatterService(private val project: Project) {
         // In the event that the editor service times out we restart
         LOGGER.error(Bundle.message("error.dprint.failed"), e)
         project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-            .printMessage(Bundle.message("error.dprint.failed.timeout", FORMATTING_TIMEOUT_SECONDS))
+            .info(Bundle.message("error.dprint.failed.timeout", FORMATTING_TIMEOUT_SECONDS))
         editorServiceManager.restartEditorService()
     }
 

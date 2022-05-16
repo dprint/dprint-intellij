@@ -63,17 +63,17 @@ class EditorServiceManager(private val project: Project) {
                 LOGGER.info("Received schema version $schemaVersion")
                 when {
                     schemaVersion == null -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                        .printMessage(
+                        .info(
                             Bundle.message("config.dprint.schemaVersion.not.found")
                         )
                     schemaVersion < SCHEMA_V4 -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                        .printMessage(
+                        .info(
                             Bundle.message("config.dprint.schemaVersion.older")
                         )
                     schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
                     schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
                     schemaVersion > SCHEMA_V5 -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                        .printMessage(
+                        .info(
                             Bundle.message("config.dprint.schemaVersion.newer")
                         )
                 }

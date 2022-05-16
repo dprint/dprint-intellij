@@ -1,7 +1,6 @@
 package com.dprint.core
 
 import com.dprint.config.ProjectConfiguration
-import com.dprint.messages.DprintMessage
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -26,11 +25,11 @@ object FileUtils {
     /**
      * Validates that a path is a valid json file
      */
-    fun validateConfigFile(path: String): Boolean {
+    fun validateConfigFile(project: Project, path: String): Boolean {
         val file = File(path)
         return file.exists() &&
             file.extension == "json" &&
-            checkIsValidJson(path)
+            checkIsValidJson(project, path)
     }
 
     /**
@@ -41,11 +40,12 @@ object FileUtils {
         val configuredPath = config.state.configLocation
 
         when {
-            validateConfigFile(configuredPath) -> return configuredPath
-            configuredPath.isNotBlank() -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                .printMessage(
-                    Bundle.message("notification.invalid.config.path"),
-                )
+            validateConfigFile(project, configuredPath) -> return configuredPath
+            configuredPath.isNotBlank() -> LogUtils.info(
+                Bundle.message("notification.invalid.config.path"),
+                project,
+                LOGGER
+            )
         }
 
         val basePath = project.basePath
@@ -64,26 +64,27 @@ object FileUtils {
             for (fileName in DEFAULT_CONFIG_NAMES) {
                 val file = File(dir, fileName)
                 when {
-                    file.exists() && checkIsValidJson(file.path) -> return file.path
-                    file.exists() -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(
-                        Bundle.message("notification.invalid.default.config", file.path)
+                    file.exists() && checkIsValidJson(project, file.path) -> return file.path
+                    file.exists() -> LogUtils.warn(
+                        Bundle.message("notification.invalid.default.config", file.path),
+                        project,
+                        LOGGER
                     )
                 }
             }
         }
 
-        project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-            .printMessage(Bundle.message("notification.config.not.found"))
+        LogUtils.info(Bundle.message("notification.config.not.found"), project, LOGGER)
 
         return null
     }
 
-    private fun checkIsValidJson(path: String): Boolean {
+    private fun checkIsValidJson(project: Project, path: String): Boolean {
         return try {
             JsonParser.parseReader(FileReader(path))
             true
         } catch (e: JsonSyntaxException) {
-            LOGGER.error(e)
+            LogUtils.error(e.message ?: "Failed to parse config JSON", e, project, LOGGER)
             false
         }
     }
@@ -129,9 +130,7 @@ object FileUtils {
         when {
             validateExecutablePath(configuredExecutablePath) -> return configuredExecutablePath
             configuredExecutablePath.isNotBlank() ->
-                project.messageBus
-                    .syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                    .printMessage(Bundle.message("notification.invalid.executable.path"))
+                LogUtils.error(Bundle.message("notification.invalid.executable.path"), project, LOGGER)
         }
 
         project.basePath?.let { workingDirectory ->
@@ -140,9 +139,7 @@ object FileUtils {
             }
         }
 
-        project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(
-            Bundle.message("notification.executable.not.found")
-        )
+        LogUtils.error(Bundle.message("notification.executable.not.found"), project, LOGGER)
 
         return null
     }

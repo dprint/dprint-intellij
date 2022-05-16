@@ -1,6 +1,7 @@
-package com.dprint.messages
+package com.dprint.toolwindow
 
 import com.dprint.config.ProjectConfiguration
+import com.dprint.messages.DprintMessage
 import com.intellij.execution.impl.ConsoleViewImpl
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.components.service
@@ -12,25 +13,6 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.ui.content.ContentFactory
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-
-class Console(val project: Project) {
-    val consoleView = ConsoleViewImpl(project, GlobalSearchScope.allScope(project), false, false)
-
-    init {
-        with(project.messageBus.connect()) {
-            subscribe(
-                DprintMessage.DPRINT_MESSAGE_TOPIC,
-                DprintMessage.DprintMessageListener {
-                    consoleView.print(decorateText(it), ConsoleViewContentType.LOG_INFO_OUTPUT)
-                }
-            )
-        }
-    }
-
-    fun decorateText(text: String): String {
-        return "${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}:  ${text}\n"
-    }
-}
 
 class ConsoleToolWindowFactory : ToolWindowFactory {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {

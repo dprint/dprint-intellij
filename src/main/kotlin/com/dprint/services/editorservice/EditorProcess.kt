@@ -35,12 +35,12 @@ class EditorProcess(private val project: Project) {
             configPath.isNullOrBlank() -> {
 
                 project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                    .printMessage(Bundle.message("error.config.path"))
+                    .info(Bundle.message("error.config.path"))
             }
             executablePath.isNullOrBlank() -> {
 
                 project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                    .printMessage(Bundle.message("error.executable.path"))
+                    .info(Bundle.message("error.executable.path"))
             }
             else -> process = createEditorService(executablePath, configPath)
         }

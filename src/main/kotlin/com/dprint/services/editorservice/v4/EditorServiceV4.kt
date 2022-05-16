@@ -2,6 +2,7 @@ package com.dprint.services.editorservice.v4
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.core.Bundle
+import com.dprint.core.LogUtils
 import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
@@ -40,7 +41,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
 
     override fun canFormat(filePath: String): Boolean {
         var status = 0
-        LOGGER.info(Bundle.message("formatting.checking.can.format", filePath))
+        LogUtils.info(Bundle.message("formatting.checking.can.format", filePath), project, LOGGER)
 
         try {
             synchronized(this) {
@@ -54,15 +55,18 @@ class EditorServiceV4(private val project: Project) : EditorService {
                 editorProcess.readAndAssertSuccess()
             }
         } catch (e: ProcessUnavailableException) {
-            val message = Bundle.message("editor.service.unable.to.determine.if.can.format", filePath)
-            project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(message)
-            LOGGER.info(message, e)
+            LogUtils.error(
+                Bundle.message("editor.service.unable.to.determine.if.can.format", filePath),
+                e,
+                project,
+                LOGGER
+            )
         }
 
         val result = status == 1
         when (result) {
-            true -> LOGGER.info(Bundle.message("formatting.can.format", filePath))
-            false -> LOGGER.info(Bundle.message("formatting.cannot.format", filePath))
+            true -> LogUtils.info(Bundle.message("formatting.can.format", filePath), project, LOGGER)
+            false -> LogUtils.info(Bundle.message("formatting.cannot.format", filePath), project, LOGGER)
         }
 
         return result
@@ -82,7 +86,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
     override fun fmt(filePath: String, content: String, onFinished: (FormatResult) -> Unit): Int? {
         val result = FormatResult()
 
-        LOGGER.info(Bundle.message("formatting.file", filePath))
+        LogUtils.info(Bundle.message("formatting.file", filePath), project, LOGGER)
 
         try {
             synchronized(this) {
@@ -100,9 +104,12 @@ class EditorServiceV4(private val project: Project) : EditorService {
                 editorProcess.readAndAssertSuccess()
             }
         } catch (e: ProcessUnavailableException) {
-            val message = Bundle.message("editor.service.unable.to.determine.if.can.format", filePath)
-            project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(message)
-            LOGGER.info(message, e)
+            LogUtils.error(
+                Bundle.message("editor.service.unable.to.determine.if.can.format", filePath),
+                e,
+                project,
+                LOGGER
+            )
         }
 
         onFinished(result)

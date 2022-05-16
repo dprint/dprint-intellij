@@ -1,7 +1,7 @@
 package com.dprint.services.editorservice.v5
 
 import com.dprint.core.Bundle
-import com.dprint.messages.DprintMessage
+import com.dprint.core.LogUtils
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
@@ -87,7 +87,7 @@ class EditorServiceV5(val project: Project) : EditorService {
                                 "editor.service.unsupported.message.type",
                                 messageType
                             )
-                            LOGGER.info(errorMessage)
+                            LogUtils.info(errorMessage, project, LOGGER)
                             sendFailure(messageId, errorMessage)
                         }
                     }
@@ -95,7 +95,7 @@ class EditorServiceV5(val project: Project) : EditorService {
                     LOGGER.info(e)
                     return@Runnable
                 } catch (e: Exception) {
-                    LOGGER.warn(Bundle.message("editor.service.read.failed"), e)
+                    LogUtils.error(Bundle.message("editor.service.read.failed"), e, project, LOGGER)
                     Thread.sleep(SLEEP_TIME)
                 }
             }
@@ -107,7 +107,8 @@ class EditorServiceV5(val project: Project) : EditorService {
     }
 
     override fun initialiseEditorService() {
-        pendingMessages.drain()
+        LogUtils.info("Initializing EditorServiceV5", project, LOGGER)
+        dropMessages()
         editorProcess.initialize()
         stdoutListener = createStdoutListener()
     }
@@ -117,10 +118,11 @@ class EditorServiceV5(val project: Project) : EditorService {
     }
 
     override fun destroyEditorService() {
+        LogUtils.info("Destroying EditorServiceV5", project, LOGGER)
         val message = createNewMessage(MessageType.ShutDownProcess)
         editorProcess.writeBuffer(message.build())
         stdoutListener?.interrupt()
-        pendingMessages.drain()
+        dropMessages()
 
         runBlocking {
             launch {
@@ -131,7 +133,7 @@ class EditorServiceV5(val project: Project) : EditorService {
     }
 
     override fun canFormat(filePath: String): Boolean {
-        LOGGER.info(Bundle.message("formatting.checking.can.format", filePath))
+        LogUtils.info(Bundle.message("formatting.checking.can.format", filePath), project, LOGGER)
         val message = createNewMessage(MessageType.CanFormat)
         message.addString(filePath)
         val future = CompletableFuture<PendingMessages.Result>()
@@ -146,14 +148,16 @@ class EditorServiceV5(val project: Project) : EditorService {
             if (result.type == MessageType.CanFormatResponse && result.data is Boolean) {
                 result.data
             } else if (result.type == MessageType.ErrorResponse && result.data is String) {
-                LOGGER.info(result.data)
+                LogUtils.info(result.data, project, LOGGER)
+                false
+            } else if (result.type === MessageType.Dropped) {
                 false
             } else {
-                LOGGER.info(Bundle.message("editor.service.unsupported.message.type", result.type))
+                LogUtils.info(Bundle.message("editor.service.unsupported.message.type", result.type), project, LOGGER)
                 false
             }
         } catch (e: TimeoutException) {
-            LOGGER.error(e)
+            LOGGER.warn(e)
             pendingMessages.take(message.id)
             initialiseEditorService()
             false
@@ -171,7 +175,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         endIndex: Int?,
         onFinished: (FormatResult) -> Unit
     ): Int {
-        LOGGER.info(Bundle.message("formatting.file", filePath))
+        LogUtils.info(Bundle.message("formatting.file", filePath), project, LOGGER)
         val message = createNewMessage(MessageType.FormatFile)
         message.addString(filePath)
         message.addInt(startIndex ?: 0) // for range formatting add starting index
@@ -184,13 +188,11 @@ class EditorServiceV5(val project: Project) : EditorService {
             if (it.type == MessageType.FormatFileResponse && it.data is String?) {
                 formatResult.formattedContent = it.data
             } else if (it.type == MessageType.ErrorResponse && it.data is String) {
-                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(it.data)
-                LOGGER.info(it.data)
+                LogUtils.warn(it.data, project, LOGGER)
                 formatResult.error = it.data
-            } else {
+            } else if (it.type != MessageType.Dropped) {
                 val errorMessage = Bundle.message("editor.service.unsupported.message.type", it.type)
-                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(errorMessage)
-                LOGGER.info(errorMessage)
+                LogUtils.warn(errorMessage, project, LOGGER)
                 formatResult.error = errorMessage
             }
             onFinished(formatResult)
@@ -198,6 +200,8 @@ class EditorServiceV5(val project: Project) : EditorService {
         pendingMessages.store(message.id, handler)
 
         editorProcess.writeBuffer(message.build())
+
+        LogUtils.info("Created formatting task for $filePath with id ${message.id}", project, LOGGER)
 
         return message.id
     }
@@ -208,9 +212,17 @@ class EditorServiceV5(val project: Project) : EditorService {
 
     override fun cancelFormat(formatId: Int) {
         val message = createNewMessage(MessageType.CancelFormat)
+        LogUtils.info("Cancelling format $formatId", project, LOGGER)
         message.addInt(formatId)
         editorProcess.writeBuffer(message.build())
         pendingMessages.take(formatId)
+    }
+
+    private fun dropMessages() {
+        for (message in pendingMessages.drain()) {
+            LogUtils.info("Clearing message ${message.key}", project, LOGGER)
+            message.value(PendingMessages.Result(MessageType.Dropped, null))
+        }
     }
 
     private fun sendResponse(message: Message) {

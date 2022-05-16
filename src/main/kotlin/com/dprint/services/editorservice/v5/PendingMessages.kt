@@ -2,11 +2,14 @@ package com.dprint.services.editorservice.v5
 
 import java.util.concurrent.ConcurrentHashMap
 
-private typealias Handler = (PendingMessages.Result) -> Unit
+typealias Handler = (PendingMessages.Result) -> Unit
 
 class PendingMessages {
     private val concurrentHashMap = ConcurrentHashMap<Int, Handler>()
 
+    /**
+     * @param type The message type for the result. If null
+     */
     class Result(val type: MessageType, val data: Any?)
 
     fun store(id: Int, handler: Handler) {
@@ -21,9 +24,9 @@ class PendingMessages {
         return handlers
     }
 
-    fun drain(): List<Handler> {
-        val allHandlers = concurrentHashMap.values.toList()
+    fun drain(): List<MutableMap.MutableEntry<Int, Handler>> {
+        val allEntries = concurrentHashMap.entries.toList()
         concurrentHashMap.clear()
-        return allHandlers
+        return allEntries
     }
 }

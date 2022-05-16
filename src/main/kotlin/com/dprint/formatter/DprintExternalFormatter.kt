@@ -2,7 +2,7 @@ package com.dprint.formatter
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.core.Bundle
-import com.dprint.messages.DprintMessage
+import com.dprint.core.LogUtils
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
 import com.intellij.formatting.service.AsyncDocumentFormattingService
@@ -41,17 +41,13 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         val path = formattingRequest.ioFile?.path
 
         if (path == null) {
-            val message = Bundle.message("formatting.cannot.determine.file.path")
-            project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(message)
-            LOGGER.info(message)
+            LogUtils.info(Bundle.message("formatting.cannot.determine.file.path"), project, LOGGER)
             LOGGER.info(formattingRequest.documentText)
             return null
         }
 
         if (editorService == null) {
-            val message = Bundle.message("formatting.service.editor.service.uninitialized")
-            project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(message)
-            LOGGER.info(message)
+            LogUtils.info(Bundle.message("formatting.service.editor.service.uninitialized"), project, LOGGER)
             return null
         }
 
