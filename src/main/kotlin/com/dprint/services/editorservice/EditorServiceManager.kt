@@ -2,7 +2,7 @@ package com.dprint.services.editorservice
 
 import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
-import com.dprint.services.NotificationService
+import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.v4.EditorServiceV4
 import com.dprint.services.editorservice.v5.EditorServiceV5
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -27,7 +27,6 @@ private const val SCHEMA_V5 = 5
 @Service
 class EditorServiceManager(private val project: Project) {
     private var editorService: EditorService? = null
-    private val notificationService = project.service<NotificationService>()
 
     init {
         maybeInitialiseEditorService()
@@ -63,17 +62,20 @@ class EditorServiceManager(private val project: Project) {
                 indicator.text = "Attempting to initialize editor service"
                 LOGGER.info("Received schema version $schemaVersion")
                 when {
-                    schemaVersion == null -> notificationService.notifyOfConfigError(
-                        Bundle.message("config.dprint.schemaVersion.not.found")
-                    )
-                    schemaVersion < SCHEMA_V4 -> notificationService.notifyOfConfigError(
-                        Bundle.message("config.dprint.schemaVersion.older")
-                    )
+                    schemaVersion == null -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                        .printMessage(
+                            Bundle.message("config.dprint.schemaVersion.not.found")
+                        )
+                    schemaVersion < SCHEMA_V4 -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                        .printMessage(
+                            Bundle.message("config.dprint.schemaVersion.older")
+                        )
                     schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
                     schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
-                    schemaVersion > SCHEMA_V5 -> notificationService.notifyOfConfigError(
-                        Bundle.message("config.dprint.schemaVersion.newer")
-                    )
+                    schemaVersion > SCHEMA_V5 -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                        .printMessage(
+                            Bundle.message("config.dprint.schemaVersion.newer")
+                        )
                 }
                 editorService?.initialiseEditorService()
             }

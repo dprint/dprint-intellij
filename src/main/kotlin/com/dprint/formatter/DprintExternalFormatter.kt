@@ -2,8 +2,7 @@ package com.dprint.formatter
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.core.Bundle
-import com.dprint.services.NOTIFICATION_GROUP_ID
-import com.dprint.services.NotificationService
+import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
 import com.intellij.formatting.service.AsyncDocumentFormattingService
@@ -39,12 +38,11 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         }
 
         val editorService = project.service<EditorServiceManager>().maybeGetEditorService()
-        val notificationService = project.service<NotificationService>()
         val path = formattingRequest.ioFile?.path
 
         if (path == null) {
             val message = Bundle.message("formatting.cannot.determine.file.path")
-            notificationService.notifyOfFormatFailure(message)
+            project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(message)
             LOGGER.info(message)
             LOGGER.info(formattingRequest.documentText)
             return null
@@ -52,7 +50,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
 
         if (editorService == null) {
             val message = Bundle.message("formatting.service.editor.service.uninitialized")
-            notificationService.notifyOfFormatFailure(message)
+            project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(message)
             LOGGER.info(message)
             return null
         }
@@ -149,7 +147,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
     }
 
     override fun getNotificationGroupId(): String {
-        return NOTIFICATION_GROUP_ID
+        return "Dprint"
     }
 
     override fun getName(): String {

@@ -1,12 +1,11 @@
 package com.dprint.services.editorservice.v5
 
 import com.dprint.core.Bundle
-import com.dprint.services.NotificationService
+import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.delay
@@ -26,12 +25,11 @@ private const val FORCE_DESTROY_DELAY = 1000L
 private const val FORMATTING_TIMEOUT_SECONDS = 10L
 
 @Service
-class EditorServiceV5(project: Project) : EditorService {
+class EditorServiceV5(val project: Project) : EditorService {
 
     private var editorProcess = EditorProcess(project)
     private var stdoutListener: Thread? = null
     private val pendingMessages = PendingMessages()
-    private val notificationService = project.service<NotificationService>()
 
     // TODO pull this out into a listener class
     @Suppress("TooGenericExceptionCaught")
@@ -185,13 +183,17 @@ class EditorServiceV5(project: Project) : EditorService {
             val formatResult = FormatResult()
             if (it.type == MessageType.FormatFileResponse && it.data is String?) {
                 formatResult.formattedContent = it.data
-                onFinished(formatResult)
             } else if (it.type == MessageType.ErrorResponse && it.data is String) {
-                notificationService.notifyOfFormatFailure(it.data)
+                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(it.data)
                 LOGGER.info(it.data)
+                formatResult.error = it.data
             } else {
-                LOGGER.info(Bundle.message("editor.service.unsupported.message.type", it.type))
+                val errorMessage = Bundle.message("editor.service.unsupported.message.type", it.type)
+                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(errorMessage)
+                LOGGER.info(errorMessage)
+                formatResult.error = errorMessage
             }
+            onFinished(formatResult)
         }
         pendingMessages.store(message.id, handler)
 

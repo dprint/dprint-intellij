@@ -2,7 +2,7 @@ package com.dprint.services.editorservice.v4
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.core.Bundle
-import com.dprint.services.NotificationService
+import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
@@ -23,7 +23,7 @@ private val LOGGER = logger<EditorServiceV4>()
 @Service
 class EditorServiceV4(private val project: Project) : EditorService {
     private var editorProcess = EditorProcess(project)
-    private val notificationService = project.service<NotificationService>()
+
     override fun initialiseEditorService() {
         // If not enabled we don't start the editor service
         if (!project.service<ProjectConfiguration>().state.enabled) return
@@ -55,7 +55,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
             }
         } catch (e: ProcessUnavailableException) {
             val message = Bundle.message("editor.service.unable.to.determine.if.can.format", filePath)
-            notificationService.notifyOfFormatFailure(message)
+            project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(message)
             LOGGER.info(message, e)
         }
 
@@ -101,7 +101,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
             }
         } catch (e: ProcessUnavailableException) {
             val message = Bundle.message("editor.service.unable.to.determine.if.can.format", filePath)
-            notificationService.notifyOfFormatFailure(message)
+            project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(message)
             LOGGER.info(message, e)
         }
 

@@ -1,7 +1,7 @@
 package com.dprint.core
 
 import com.dprint.config.ProjectConfiguration
-import com.dprint.services.NotificationService
+import com.dprint.messages.DprintMessage
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -39,13 +39,13 @@ object FileUtils {
     fun getValidConfigPath(project: Project): String? {
         val config = project.service<ProjectConfiguration>()
         val configuredPath = config.state.configLocation
-        val notificationService = project.service<NotificationService>()
 
         when {
             validateConfigFile(configuredPath) -> return configuredPath
-            configuredPath.isNotBlank() -> notificationService.notifyOfConfigError(
-                Bundle.message("notification.invalid.config.path"),
-            )
+            configuredPath.isNotBlank() -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                .printMessage(
+                    Bundle.message("notification.invalid.config.path"),
+                )
         }
 
         val basePath = project.basePath
@@ -65,14 +65,15 @@ object FileUtils {
                 val file = File(dir, fileName)
                 when {
                     file.exists() && checkIsValidJson(file.path) -> return file.path
-                    file.exists() -> notificationService.notifyOfConfigError(
+                    file.exists() -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(
                         Bundle.message("notification.invalid.default.config", file.path)
                     )
                 }
             }
         }
 
-        notificationService.notifyOfConfigError(Bundle.message("notification.config.not.found"))
+        project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+            .printMessage(Bundle.message("notification.config.not.found"))
 
         return null
     }
@@ -123,14 +124,14 @@ object FileUtils {
      */
     fun getValidExecutablePath(project: Project): String? {
         val config = project.service<ProjectConfiguration>()
-        val notificationService = project.service<NotificationService>()
         val configuredExecutablePath = config.state.executableLocation
 
         when {
             validateExecutablePath(configuredExecutablePath) -> return configuredExecutablePath
-            configuredExecutablePath.isNotBlank() -> notificationService.notifyOfConfigError(
-                Bundle.message("notification.invalid.executable.path"),
-            )
+            configuredExecutablePath.isNotBlank() ->
+                project.messageBus
+                    .syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                    .printMessage(Bundle.message("notification.invalid.executable.path"))
         }
 
         project.basePath?.let { workingDirectory ->
@@ -139,7 +140,7 @@ object FileUtils {
             }
         }
 
-        notificationService.notifyOfConfigError(
+        project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(
             Bundle.message("notification.executable.not.found")
         )
 

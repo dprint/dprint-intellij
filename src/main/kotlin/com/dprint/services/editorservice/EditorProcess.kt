@@ -2,10 +2,9 @@ package com.dprint.services.editorservice
 
 import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
-import com.dprint.services.NotificationService
+import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import java.io.File
@@ -25,7 +24,6 @@ class EditorProcess(private val project: Project) {
     private var process: Process? = null
 
     fun initialize() {
-        val notificationService = project.service<NotificationService>()
         val executablePath = FileUtils.getValidExecutablePath(this.project)
         val configPath = FileUtils.getValidConfigPath(project)
 
@@ -35,10 +33,14 @@ class EditorProcess(private val project: Project) {
 
         when {
             configPath.isNullOrBlank() -> {
-                notificationService.notifyOfConfigError(Bundle.message("error.config.path"))
+
+                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                    .printMessage(Bundle.message("error.config.path"))
             }
             executablePath.isNullOrBlank() -> {
-                notificationService.notifyOfConfigError(Bundle.message("error.executable.path"))
+
+                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                    .printMessage(Bundle.message("error.executable.path"))
             }
             else -> process = createEditorService(executablePath, configPath)
         }

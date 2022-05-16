@@ -1,9 +1,9 @@
 package com.dprint.services
 
 import com.dprint.core.Bundle
+import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
-import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.Service
@@ -34,7 +34,6 @@ private const val FORMATTING_TIMEOUT_SECONDS = 10L
 @Service
 class FormatterService(private val project: Project) {
     private var editorServiceManager = project.service<EditorServiceManager>()
-    private val notificationService = project.service<NotificationService>()
     private val formatTaskQueue = BackgroundTaskQueue(project, Bundle.message("progress.formatting"))
 
     /**
@@ -81,7 +80,7 @@ class FormatterService(private val project: Project) {
 
                         result.error?.let {
                             LOGGER.info(Bundle.message("logging.format.failed", filePath, it))
-                            notificationService.notifyOfFormatFailure(it)
+                            project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).printMessage(it)
                         }
 
                         result.formattedContent?.let {
@@ -104,12 +103,8 @@ class FormatterService(private val project: Project) {
     private fun handleFormatException(e: Exception) {
         // In the event that the editor service times out we restart
         LOGGER.error(Bundle.message("error.dprint.failed"), e)
-
-        notificationService.notify(
-            Bundle.message("error.dprint.failed"),
-            Bundle.message("error.dprint.failed.timeout", FORMATTING_TIMEOUT_SECONDS),
-            NotificationType.ERROR
-        )
+        project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+            .printMessage(Bundle.message("error.dprint.failed.timeout", FORMATTING_TIMEOUT_SECONDS))
         editorServiceManager.restartEditorService()
     }
 
