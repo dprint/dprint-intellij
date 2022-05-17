@@ -7,7 +7,7 @@ import com.intellij.util.messages.Topic
  */
 interface DprintMessage {
     companion object {
-        val DPRINT_MESSAGE_TOPIC = Topic("dprint event message", Listener::class.java)
+        val DPRINT_MESSAGE_TOPIC = Topic("DPRINT_EVENT_MESSAGE", Listener::class.java)
     }
 
     interface Listener {

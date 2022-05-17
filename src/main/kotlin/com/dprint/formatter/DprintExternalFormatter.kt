@@ -111,7 +111,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 }
 
                 result.error?.let {
-                    formattingRequest.onError("Formatting error", it)
+                    formattingRequest.onError(Bundle.message("formatting.error"), it)
                 }
             }
 

@@ -1,6 +1,7 @@
 package com.dprint.actions
 
 import com.dprint.config.ProjectConfiguration
+import com.dprint.core.Bundle
 import com.dprint.core.LogUtils
 import com.dprint.services.editorservice.EditorServiceManager
 import com.intellij.openapi.actionSystem.AnAction
@@ -18,7 +19,7 @@ class RestartAction : AnAction() {
     override fun actionPerformed(event: AnActionEvent) {
         event.project?.let { project ->
             if (!project.service<ProjectConfiguration>().state.enabled) return@let
-            LogUtils.info("Performing restart action", project, LOGGER)
+            LogUtils.info(Bundle.message("restart.action.run"), project, LOGGER)
             project.service<EditorServiceManager>().restartEditorService()
         }
     }

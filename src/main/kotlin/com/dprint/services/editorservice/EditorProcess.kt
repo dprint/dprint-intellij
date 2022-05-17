@@ -2,6 +2,7 @@ package com.dprint.services.editorservice
 
 import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
+import com.dprint.core.LogUtils
 import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -80,9 +81,17 @@ class EditorProcess(private val project: Project) {
         when {
             workingDir != null -> {
                 commandLine.withWorkDirectory(workingDir)
-                LOGGER.info(Bundle.message("editor.service.starting", executablePath, configPath, workingDir))
+                LogUtils.info(
+                    Bundle.message("editor.service.starting", executablePath, configPath, workingDir),
+                    project,
+                    LOGGER
+                )
             }
-            else -> LOGGER.info(Bundle.message("editor.service.starting.working.dir", executablePath, configPath))
+            else -> LogUtils.info(
+                Bundle.message("editor.service.starting.working.dir", executablePath, configPath),
+                project,
+                LOGGER
+            )
         }
 
         return commandLine.createProcess()
@@ -118,8 +127,6 @@ class EditorProcess(private val project: Project) {
 
         writeInt(byteArray.size)
         stdin.flush()
-
-        LOGGER.debug(Bundle.message("formatting.sending.to.editor.service", string))
 
         while (pointer < byteArray.size) {
             if (pointer != 0) {

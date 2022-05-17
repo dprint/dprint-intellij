@@ -3,7 +3,6 @@ package com.dprint.services.editorservice.v4
 import com.dprint.config.ProjectConfiguration
 import com.dprint.core.Bundle
 import com.dprint.core.LogUtils
-import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
@@ -29,6 +28,11 @@ class EditorServiceV4(private val project: Project) : EditorService {
         // If not enabled we don't start the editor service
         if (!project.service<ProjectConfiguration>().state.enabled) return
         editorProcess.initialize()
+        LogUtils.info(
+            Bundle.message("editor.service.initialize", getName()),
+            project,
+            LOGGER
+        )
     }
 
     override fun dispose() {
@@ -36,6 +40,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
     }
 
     override fun destroyEditorService() {
+        LogUtils.info(Bundle.message("editor.service.destroy", getName()), project, LOGGER)
         editorProcess.destroy()
     }
 
@@ -130,5 +135,9 @@ class EditorServiceV4(private val project: Project) : EditorService {
 
     override fun canCancelFormat(): Boolean {
         return false
+    }
+
+    private fun getName(): String {
+        return this::class.java.simpleName
     }
 }

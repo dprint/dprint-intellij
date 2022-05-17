@@ -2,6 +2,7 @@ package com.dprint.services.editorservice
 
 import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
+import com.dprint.core.LogUtils
 import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.v4.EditorServiceV4
 import com.dprint.services.editorservice.v5.EditorServiceV5
@@ -46,10 +47,15 @@ class EditorServiceManager(private val project: Project) {
 
         return try {
             val jsonText = result.stdout
-            LOGGER.info(Bundle.message("config.dprint.editor.info", jsonText))
+            LogUtils.info(Bundle.message("config.dprint.editor.info", jsonText), project, LOGGER)
             Json.parseToJsonElement(jsonText).jsonObject["schemaVersion"]?.jsonPrimitive?.int
         } catch (e: RuntimeException) {
-            LOGGER.error(Bundle.message("error.failed.to.parse.json.schema", result.stdout, result.stderr), e)
+            LogUtils.error(
+                Bundle.message("error.failed.to.parse.json.schema", result.stdout, result.stderr),
+                e,
+                project,
+                LOGGER
+            )
             null
         }
     }
@@ -60,7 +66,7 @@ class EditorServiceManager(private val project: Project) {
                 indicator.text = "Getting schema version"
                 val schemaVersion = getSchemaVersion()
                 indicator.text = "Attempting to initialize editor service"
-                LOGGER.info("Received schema version $schemaVersion")
+                LogUtils.info("Received schema version $schemaVersion", project, LOGGER)
                 when {
                     schemaVersion == null -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
                         .info(
@@ -72,10 +78,11 @@ class EditorServiceManager(private val project: Project) {
                         )
                     schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
                     schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
-                    schemaVersion > SCHEMA_V5 -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                        .info(
-                            Bundle.message("config.dprint.schemaVersion.newer")
-                        )
+                    schemaVersion > SCHEMA_V5 -> LogUtils.info(
+                        Bundle.message("config.dprint.schemaVersion.newer"),
+                        project,
+                        LOGGER
+                    )
                 }
                 editorService?.initialiseEditorService()
             }
