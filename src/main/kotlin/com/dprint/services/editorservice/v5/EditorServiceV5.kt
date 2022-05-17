@@ -33,7 +33,6 @@ class EditorServiceV5(val project: Project) : EditorService {
             stdoutListener?.interrupt()
         }
 
-
         return thread {
             StdoutListener(editorProcess, pendingMessages).run()
         }
@@ -109,7 +108,11 @@ class EditorServiceV5(val project: Project) : EditorService {
     }
 
     override fun fmt(
-        filePath: String, content: String, startIndex: Int?, endIndex: Int?, onFinished: (FormatResult) -> Unit
+        filePath: String,
+        content: String,
+        startIndex: Int?,
+        endIndex: Int?,
+        onFinished: (FormatResult) -> Unit
     ): Int {
         LogUtils.info(Bundle.message("formatting.file", filePath), project, LOGGER)
         val message = createNewMessage(MessageType.FormatFile)
