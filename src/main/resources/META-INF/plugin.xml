@@ -12,9 +12,6 @@
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.dprint.config.ProjectConfiguration"/>
         <projectService serviceImplementation="com.dprint.config.UserConfiguration"/>
-        <projectService serviceImplementation="com.dprint.services.FormatterService"/>
-        <projectService serviceImplementation="com.dprint.services.editorservice.EditorServiceManager"/>
-        <projectService serviceImplementation="com.dprint.services.editorservice.v4.EditorServiceV4"/>
         <projectConfigurable parentId="tools"
                              instance="com.dprint.config.ProjectConfigurable"
                              id="com.dprint.config.ProjectConfigurable"
@@ -33,9 +30,6 @@
     <actions>
         <action id="com.dprint.actions.ReformatAction" class="com.dprint.actions.ReformatAction">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift D"/>
-            <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt shift D"/>
-            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift D"/>
         </action>
         <action id="com.dprint.actions.RestartAction" class="com.dprint.actions.RestartAction">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
