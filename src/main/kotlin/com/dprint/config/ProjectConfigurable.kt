@@ -59,7 +59,7 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                         }
                     )
                 ).withValidationOnInput {
-                    if (it.text.isEmpty() || FileUtils.validateConfigFile(it.text)) {
+                    if (it.text.isEmpty() || FileUtils.validateConfigFile(project, it.text)) {
                         null
                     } else {
                         this.error(Bundle.message("config.dprint.config.invalid"))

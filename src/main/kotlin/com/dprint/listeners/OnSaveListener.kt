@@ -3,6 +3,7 @@ package com.dprint.listeners
 import com.dprint.config.ProjectConfiguration
 import com.dprint.config.UserConfiguration
 import com.dprint.core.Bundle
+import com.dprint.core.LogUtils
 import com.dprint.services.FormatterService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -29,7 +30,7 @@ class OnSaveListener(private val project: Project) : BulkFileListener {
 
             event.file?.let {
                 if (FileEditorManager.getInstance(project).selectedFiles.contains(it)) {
-                    LOGGER.info(Bundle.message("save.action.run", it.path))
+                    LogUtils.info(Bundle.message("save.action.run", it.path), project, LOGGER)
                     formatterService.format(it)
                 }
             }

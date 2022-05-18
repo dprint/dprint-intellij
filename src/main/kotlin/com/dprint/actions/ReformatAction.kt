@@ -2,6 +2,7 @@ package com.dprint.actions
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.core.Bundle
+import com.dprint.core.LogUtils
 import com.dprint.services.FormatterService
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -29,12 +30,12 @@ class ReformatAction : AnAction() {
 
             if (editor != null) {
                 PsiDocumentManager.getInstance(project).getPsiFile(editor.document)?.virtualFile?.let { virtualFile ->
-                    LOGGER.info(Bundle.message("reformat.action.run", virtualFile.path))
+                    LogUtils.info(Bundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
                     formatterService.format(virtualFile)
                 }
             } else {
                 event.getData(PlatformDataKeys.VIRTUAL_FILE)?.let { virtualFile ->
-                    LOGGER.info(Bundle.message("reformat.action.run", virtualFile.path))
+                    LogUtils.info(Bundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
                     formatterService.format(virtualFile)
                 }
             }

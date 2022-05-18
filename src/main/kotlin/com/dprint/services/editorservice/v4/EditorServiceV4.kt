@@ -2,7 +2,7 @@ package com.dprint.services.editorservice.v4
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.core.Bundle
-import com.dprint.services.NotificationService
+import com.dprint.core.LogUtils
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
@@ -23,11 +23,16 @@ private val LOGGER = logger<EditorServiceV4>()
 @Service
 class EditorServiceV4(private val project: Project) : EditorService {
     private var editorProcess = EditorProcess(project)
-    private val notificationService = project.service<NotificationService>()
+
     override fun initialiseEditorService() {
         // If not enabled we don't start the editor service
         if (!project.service<ProjectConfiguration>().state.enabled) return
         editorProcess.initialize()
+        LogUtils.info(
+            Bundle.message("editor.service.initialize", getName()),
+            project,
+            LOGGER
+        )
     }
 
     override fun dispose() {
@@ -35,12 +40,13 @@ class EditorServiceV4(private val project: Project) : EditorService {
     }
 
     override fun destroyEditorService() {
+        LogUtils.info(Bundle.message("editor.service.destroy", getName()), project, LOGGER)
         editorProcess.destroy()
     }
 
     override fun canFormat(filePath: String): Boolean {
         var status = 0
-        LOGGER.info(Bundle.message("formatting.checking.can.format", filePath))
+        LogUtils.info(Bundle.message("formatting.checking.can.format", filePath), project, LOGGER)
 
         try {
             synchronized(this) {
@@ -54,15 +60,18 @@ class EditorServiceV4(private val project: Project) : EditorService {
                 editorProcess.readAndAssertSuccess()
             }
         } catch (e: ProcessUnavailableException) {
-            val message = Bundle.message("editor.service.unable.to.determine.if.can.format", filePath)
-            notificationService.notifyOfFormatFailure(message)
-            LOGGER.info(message, e)
+            LogUtils.error(
+                Bundle.message("editor.service.unable.to.determine.if.can.format", filePath),
+                e,
+                project,
+                LOGGER
+            )
         }
 
         val result = status == 1
         when (result) {
-            true -> LOGGER.info(Bundle.message("formatting.can.format", filePath))
-            false -> LOGGER.info(Bundle.message("formatting.cannot.format", filePath))
+            true -> LogUtils.info(Bundle.message("formatting.can.format", filePath), project, LOGGER)
+            false -> LogUtils.info(Bundle.message("formatting.cannot.format", filePath), project, LOGGER)
         }
 
         return result
@@ -82,7 +91,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
     override fun fmt(filePath: String, content: String, onFinished: (FormatResult) -> Unit): Int? {
         val result = FormatResult()
 
-        LOGGER.info(Bundle.message("formatting.file", filePath))
+        LogUtils.info(Bundle.message("formatting.file", filePath), project, LOGGER)
 
         try {
             synchronized(this) {
@@ -94,15 +103,26 @@ class EditorServiceV4(private val project: Project) : EditorService {
                 when (editorProcess.readInt()) {
                     0 -> Unit // no-op as content didn't change
                     1 -> result.formattedContent = editorProcess.readString()
-                    2 -> result.error = editorProcess.readString()
+                    2 -> {
+                        val error = editorProcess.readString()
+                        result.error = error
+                        LogUtils.warn(
+                            Bundle.message("editor.service.format.failed", filePath, error),
+                            project,
+                            LOGGER
+                        )
+                    }
                 }
 
                 editorProcess.readAndAssertSuccess()
             }
         } catch (e: ProcessUnavailableException) {
-            val message = Bundle.message("editor.service.unable.to.determine.if.can.format", filePath)
-            notificationService.notifyOfFormatFailure(message)
-            LOGGER.info(message, e)
+            LogUtils.error(
+                Bundle.message("editor.service.unable.to.determine.if.can.format", filePath),
+                e,
+                project,
+                LOGGER
+            )
         }
 
         onFinished(result)
@@ -123,5 +143,9 @@ class EditorServiceV4(private val project: Project) : EditorService {
 
     override fun canCancelFormat(): Boolean {
         return false
+    }
+
+    private fun getName(): String {
+        return this::class.java.simpleName
     }
 }

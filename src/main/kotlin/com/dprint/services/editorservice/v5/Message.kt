@@ -1,12 +1,19 @@
 package com.dprint.services.editorservice.v5
 
+import com.dprint.core.Bundle
 import com.dprint.services.editorservice.exceptions.UnsupportedMessagePartException
 import java.nio.ByteBuffer
+import java.util.concurrent.atomic.AtomicInteger
 
 // Dprint uses unsigned bytes of 4x255 for the success message and that translates
 // to 4x-1 in the jvm's signed bytes.
 val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
 private const val U32_BYTE_SIZE = 4
+private var messageId = AtomicInteger(0)
+
+fun createNewMessage(type: MessageType): Message {
+    return Message(messageId.incrementAndGet(), type)
+}
 
 class Message(val id: Int, val type: MessageType) {
     private var parts = mutableListOf<Any>()
@@ -51,7 +58,7 @@ class Message(val id: Int, val type: MessageType) {
                 }
                 else -> {
                     throw UnsupportedMessagePartException(
-                        "${part.javaClass.name} is not a supported message part type."
+                        Bundle.message("editor.service.unsupported.message.type", part::class.java.simpleName)
                     )
                 }
             }
@@ -60,7 +67,8 @@ class Message(val id: Int, val type: MessageType) {
         buffer.put(SUCCESS_MESSAGE)
 
         if (buffer.hasRemaining()) {
-            val message = "Incorrect message size, expected $byteLength and got ${byteLength - buffer.remaining()}"
+            val message =
+                Bundle.message("editor.service.incorrect.message.size", byteLength, byteLength - buffer.remaining())
             throw UnsupportedMessagePartException(message)
         }
         return buffer.array()
