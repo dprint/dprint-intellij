@@ -12,6 +12,10 @@
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.dprint.config.ProjectConfiguration"/>
         <projectService serviceImplementation="com.dprint.config.UserConfiguration"/>
+        <projectService serviceImplementation="com.dprint.services.FormatterService"/>
+        <projectService serviceImplementation="com.dprint.services.editorservice.EditorServiceManager"/>
+        <projectService serviceImplementation="com.dprint.services.editorservice.v4.EditorServiceV4"/>
+        <projectService serviceImplementation="com.dprint.services.editorservice.v5.EditorServiceV5"/>
         <projectConfigurable parentId="tools"
                              instance="com.dprint.config.ProjectConfigurable"
                              id="com.dprint.config.ProjectConfigurable"

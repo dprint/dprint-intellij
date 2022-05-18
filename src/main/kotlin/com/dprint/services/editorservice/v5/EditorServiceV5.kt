@@ -82,7 +82,11 @@ class EditorServiceV5(val project: Project) : EditorService {
             if (result.type == MessageType.CanFormatResponse && result.data is Boolean) {
                 result.data
             } else if (result.type == MessageType.ErrorResponse && result.data is String) {
-                LogUtils.info(result.data, project, LOGGER)
+                LogUtils.info(
+                    Bundle.message("editor.service.format.check.failed", filePath, result.data),
+                    project,
+                    LOGGER
+                )
                 false
             } else if (result.type === MessageType.Dropped) {
                 false

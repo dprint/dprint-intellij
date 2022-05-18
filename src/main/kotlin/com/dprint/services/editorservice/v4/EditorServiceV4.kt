@@ -103,7 +103,15 @@ class EditorServiceV4(private val project: Project) : EditorService {
                 when (editorProcess.readInt()) {
                     0 -> Unit // no-op as content didn't change
                     1 -> result.formattedContent = editorProcess.readString()
-                    2 -> result.error = editorProcess.readString()
+                    2 -> {
+                        val error = editorProcess.readString()
+                        result.error = error
+                        LogUtils.warn(
+                            Bundle.message("editor.service.format.failed", filePath, error),
+                            project,
+                            LOGGER
+                        )
+                    }
                 }
 
                 editorProcess.readAndAssertSuccess()
