@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.3.0]
 - Introduced support for v5 of the dprint schema
 - Added a dprint tool window to provide better output of the formatting process
 - Added the `Restart Dprint` action so the underlying editor service can be restarted without needed to go to preferences
