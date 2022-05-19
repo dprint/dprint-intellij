@@ -3,6 +3,7 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+- Fix versioning to allow for 2021.3.x installs
 
 ## [0.3.0]
 - Introduced support for v5 of the dprint schema
