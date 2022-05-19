@@ -3,6 +3,10 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+- Introduced support for v5 of the dprint schema
+- Added a dprint tool window to provide better output of the formatting process
+- Added the `Restart Dprint` action so the underlying editor service can be restarted without needed to go to preferences
+- Removed the default key command of `cmd/ctrl+shift+option+D`, it clashed with too many other key commands. Users can still map this manually should they want it.
 
 ## [0.2.3]
 - Support all future versions of IntelliJ
