@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.3.1]
 - Fix versioning to allow for 2021.3.x installs
 
 ## [0.3.0]
