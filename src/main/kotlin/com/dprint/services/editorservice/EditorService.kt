@@ -26,6 +26,8 @@ interface EditorService : Disposable {
      * @param filePath The path of the file being formatted. This is needed so the correct dprint configuration file
      * located.
      * @param content The content of the file as a string. This is formatted via Dprint and returned via the result.
+     * @param onFinished A callback that is called when the formatting job has finished. The only param to this callback
+     * will be the result of the formatting job. The class providing this should handle timeouts themselves.
      * @return A result object containing the formatted content is successful or an error.
      */
     fun fmt(filePath: String, content: String, onFinished: (FormatResult) -> Unit): Int? {

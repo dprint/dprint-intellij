@@ -19,7 +19,7 @@ import kotlin.concurrent.thread
 
 private val LOGGER = logger<EditorServiceV5>()
 private const val FORCE_DESTROY_DELAY = 1000L
-private const val FORMATTING_TIMEOUT_SECONDS = 10L
+private const val CAN_FORMAT_TIMEOUT_SECONDS = 4L
 
 @Service
 class EditorServiceV5(val project: Project) : EditorService {
@@ -78,7 +78,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         editorProcess.writeBuffer(message.build())
 
         return try {
-            val result = future.get(FORMATTING_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            val result = future.get(CAN_FORMAT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             if (result.type == MessageType.CanFormatResponse && result.data is Boolean) {
                 result.data
             } else if (result.type == MessageType.ErrorResponse && result.data is String) {
@@ -129,6 +129,11 @@ class EditorServiceV5(val project: Project) : EditorService {
         val handler: (PendingMessages.Result) -> Unit = {
             val formatResult = FormatResult()
             if (it.type == MessageType.FormatFileResponse && it.data is String?) {
+                val successMessage = when (it.data) {
+                    null -> Bundle.message("editor.service.format.not.needed", filePath)
+                    else -> Bundle.message("editor.service.format.succeeded", filePath)
+                }
+                LogUtils.info(successMessage, project, LOGGER)
                 formatResult.formattedContent = it.data
             } else if (it.type == MessageType.ErrorResponse && it.data is String) {
                 LogUtils.warn(Bundle.message("editor.service.format.failed", filePath, it.data), project, LOGGER)

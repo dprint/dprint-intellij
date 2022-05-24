@@ -129,6 +129,11 @@ class FormatterService(private val project: Project) {
             override fun run(indicator: ProgressIndicator) {
                 handler(indicator)
             }
+
+            override fun onCancel() {
+                val editorServiceInstance = editorServiceManager.maybeGetEditorService()
+                editorServiceInstance?.initialiseEditorService()
+            }
         }
         this.formatTaskQueue.run(task)
     }

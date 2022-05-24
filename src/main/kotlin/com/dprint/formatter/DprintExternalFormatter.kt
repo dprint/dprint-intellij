@@ -106,12 +106,12 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                     return
                 }
 
-                result.formattedContent?.let {
-                    formattingRequest.onTextReady(it)
-                }
-
-                result.error?.let {
-                    formattingRequest.onError(Bundle.message("formatting.error"), it)
+                val error = result.error
+                if (error != null) {
+                    formattingRequest.onError(Bundle.message("formatting.error"), error)
+                } else {
+                    // If the result is a no op it will be null, in which case we pass the original content back in
+                    formattingRequest.onTextReady(result.formattedContent ?: content)
                 }
             }
 
