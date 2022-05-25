@@ -11,15 +11,9 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 
 private const val CHECK_COMMAND = 1
 private const val FORMAT_COMMAND = 2
-private const val CAN_FORMAT_TIMEOUT = 4_000L
-private const val FORMAT_TIMEOUT = 10_000L
 
 private val LOGGER = logger<EditorServiceV4>()
 
@@ -47,43 +41,28 @@ class EditorServiceV4(private val project: Project) : EditorService {
         editorProcess.destroy()
     }
 
+    @Synchronized
     override fun canFormat(filePath: String): Boolean {
         var status = 0
         LogUtils.info(Bundle.message("formatting.checking.can.format", filePath), project, LOGGER)
 
-        runBlocking {
-            launch {
-                try {
-                    withTimeout(CAN_FORMAT_TIMEOUT) {
-                        synchronized(editorProcess) {
-                            editorProcess.writeInt(CHECK_COMMAND)
-                            editorProcess.writeString(filePath)
-                            editorProcess.writeSuccess()
+        try {
+            editorProcess.writeInt(CHECK_COMMAND)
+            editorProcess.writeString(filePath)
+            editorProcess.writeSuccess()
 
-                            // https://github.com/dprint/dprint/blob/main/docs/editor-extension-development.md
-                            // this command sequence returns 1 if the file can be formatted
-                            status = editorProcess.readInt()
-                            editorProcess.readAndAssertSuccess()
-                        }
-                    }
-                } catch (e: ProcessUnavailableException) {
-                    LogUtils.error(
-                        Bundle.message("editor.service.unable.to.determine.if.can.format", filePath),
-                        e,
-                        project,
-                        LOGGER
-                    )
-                    initialiseEditorService()
-                } catch (e: TimeoutCancellationException) {
-                    LogUtils.error(
-                        Bundle.message("editor.service.timed.out.checking.if.can.format", filePath),
-                        e,
-                        project,
-                        LOGGER
-                    )
-                    initialiseEditorService()
-                }
-            }
+            // https://github.com/dprint/dprint/blob/main/docs/editor-extension-development.md
+            // this command sequence returns 1 if the file can be formatted
+            status = editorProcess.readInt()
+            editorProcess.readAndAssertSuccess()
+        } catch (e: ProcessUnavailableException) {
+            LogUtils.error(
+                Bundle.message("editor.service.unable.to.determine.if.can.format", filePath),
+                e,
+                project,
+                LOGGER
+            )
+            initialiseEditorService()
         }
 
         val result = status == 1
@@ -99,73 +78,57 @@ class EditorServiceV4(private val project: Project) : EditorService {
         return false
     }
 
+    @Synchronized
     override fun fmt(filePath: String, content: String, onFinished: (FormatResult) -> Unit): Int? {
         val result = FormatResult()
 
         LogUtils.info(Bundle.message("formatting.file", filePath), project, LOGGER)
+        try {
+            editorProcess.writeInt(FORMAT_COMMAND)
+            editorProcess.writeString(filePath)
+            editorProcess.writeString(content)
+            editorProcess.writeSuccess()
 
-        runBlocking {
-            launch {
-                try {
-                    withTimeout(FORMAT_TIMEOUT) {
-                        synchronized(editorProcess) {
-                            editorProcess.writeInt(FORMAT_COMMAND)
-                            editorProcess.writeString(filePath)
-                            editorProcess.writeString(content)
-                            editorProcess.writeSuccess()
-
-                            when (editorProcess.readInt()) {
-                                0 -> {
-                                    LogUtils.info(
-                                        Bundle.message("editor.service.format.not.needed", filePath),
-                                        project,
-                                        LOGGER
-                                    )
-                                } // no-op as content didn't change
-                                1 -> {
-                                    result.formattedContent = editorProcess.readString()
-                                    LogUtils.info(
-                                        Bundle.message("editor.service.format.succeeded", filePath),
-                                        project,
-                                        LOGGER
-                                    )
-                                }
-                                2 -> {
-                                    val error = editorProcess.readString()
-                                    result.error = error
-                                    LogUtils.warn(
-                                        Bundle.message("editor.service.format.failed", filePath, error),
-                                        project,
-                                        LOGGER
-                                    )
-                                }
-                            }
-
-                            editorProcess.readAndAssertSuccess()
-                        }
-                    }
-                } catch (e: ProcessUnavailableException) {
-                    LogUtils.error(
-                        Bundle.message(
-                            "editor.service.format.failed.internal",
-                            filePath,
-                            e.message ?: "Process unavailable"
-                        ),
-                        e,
+            when (editorProcess.readInt()) {
+                0 -> {
+                    LogUtils.info(
+                        Bundle.message("editor.service.format.not.needed", filePath),
                         project,
                         LOGGER
                     )
-                    initialiseEditorService()
-                } catch (e: TimeoutCancellationException) {
-                    LogUtils.error(
-                        Bundle.message("editor.service.format.failed.internal", filePath, e.message ?: "Timeout"),
-                        e,
+                } // no-op as content didn't change
+                1 -> {
+                    result.formattedContent = editorProcess.readString()
+                    LogUtils.info(
+                        Bundle.message("editor.service.format.succeeded", filePath),
                         project,
                         LOGGER
                     )
-                    initialiseEditorService()
+                }
+                2 -> {
+                    val error = editorProcess.readString()
+                    result.error = error
+                    LogUtils.warn(
+                        Bundle.message("editor.service.format.failed", filePath, error),
+                        project,
+                        LOGGER
+                    )
                 }
             }
+
+            editorProcess.readAndAssertSuccess()
+        } catch (e: ProcessUnavailableException) {
+            LogUtils.error(
+                Bundle.message(
+                    "editor.service.format.failed.internal",
+                    filePath,
+                    e.message ?: "Process unavailable"
+                ),
+                e,
+                project,
+                LOGGER
+            )
+            initialiseEditorService()
         }
 
         onFinished(result)
