@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.3.2]
 - Fix intermittent lock up when running format
 
 ## [0.3.1]
