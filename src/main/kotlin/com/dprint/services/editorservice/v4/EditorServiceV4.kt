@@ -17,9 +17,6 @@ private const val FORMAT_COMMAND = 2
 
 private val LOGGER = logger<EditorServiceV4>()
 
-/**
- * A command line wrapper to run Dprint.
- */
 @Service
 class EditorServiceV4(private val project: Project) : EditorService {
     private var editorProcess = EditorProcess(project)
@@ -44,21 +41,20 @@ class EditorServiceV4(private val project: Project) : EditorService {
         editorProcess.destroy()
     }
 
+    @Synchronized
     override fun canFormat(filePath: String): Boolean {
         var status = 0
         LogUtils.info(Bundle.message("formatting.checking.can.format", filePath), project, LOGGER)
 
         try {
-            synchronized(this) {
-                editorProcess.writeInt(CHECK_COMMAND)
-                editorProcess.writeString(filePath)
-                editorProcess.writeSuccess()
+            editorProcess.writeInt(CHECK_COMMAND)
+            editorProcess.writeString(filePath)
+            editorProcess.writeSuccess()
 
-                // https://github.com/dprint/dprint/blob/main/docs/editor-extension-development.md
-                // this command sequence returns 1 if the file can be formatted
-                status = editorProcess.readInt()
-                editorProcess.readAndAssertSuccess()
-            }
+            // https://github.com/dprint/dprint/blob/main/docs/editor-extension-development.md
+            // this command sequence returns 1 if the file can be formatted
+            status = editorProcess.readInt()
+            editorProcess.readAndAssertSuccess()
         } catch (e: ProcessUnavailableException) {
             LogUtils.error(
                 Bundle.message("editor.service.unable.to.determine.if.can.format", filePath),
@@ -66,6 +62,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
                 project,
                 LOGGER
             )
+            initialiseEditorService()
         }
 
         val result = status == 1
@@ -81,48 +78,57 @@ class EditorServiceV4(private val project: Project) : EditorService {
         return false
     }
 
-    /**
-     * This runs dprint using the editor service with the supplied file path and content as stdin.
-     * @param filePath The path of the file being formatted. This is needed so the correct dprint configuration file
-     * located.
-     * @param content The content of the file as a string. This is formatted via Dprint and returned via the result.
-     * @return A result object containing the formatted content is successful or an error.
-     */
+    @Synchronized
     override fun fmt(filePath: String, content: String, onFinished: (FormatResult) -> Unit): Int? {
         val result = FormatResult()
 
         LogUtils.info(Bundle.message("formatting.file", filePath), project, LOGGER)
-
         try {
-            synchronized(this) {
-                editorProcess.writeInt(FORMAT_COMMAND)
-                editorProcess.writeString(filePath)
-                editorProcess.writeString(content)
-                editorProcess.writeSuccess()
+            editorProcess.writeInt(FORMAT_COMMAND)
+            editorProcess.writeString(filePath)
+            editorProcess.writeString(content)
+            editorProcess.writeSuccess()
 
-                when (editorProcess.readInt()) {
-                    0 -> Unit // no-op as content didn't change
-                    1 -> result.formattedContent = editorProcess.readString()
-                    2 -> {
-                        val error = editorProcess.readString()
-                        result.error = error
-                        LogUtils.warn(
-                            Bundle.message("editor.service.format.failed", filePath, error),
-                            project,
-                            LOGGER
-                        )
-                    }
+            when (editorProcess.readInt()) {
+                0 -> {
+                    LogUtils.info(
+                        Bundle.message("editor.service.format.not.needed", filePath),
+                        project,
+                        LOGGER
+                    )
+                } // no-op as content didn't change
+                1 -> {
+                    result.formattedContent = editorProcess.readString()
+                    LogUtils.info(
+                        Bundle.message("editor.service.format.succeeded", filePath),
+                        project,
+                        LOGGER
+                    )
                 }
-
-                editorProcess.readAndAssertSuccess()
+                2 -> {
+                    val error = editorProcess.readString()
+                    result.error = error
+                    LogUtils.warn(
+                        Bundle.message("editor.service.format.failed", filePath, error),
+                        project,
+                        LOGGER
+                    )
+                }
             }
+
+            editorProcess.readAndAssertSuccess()
         } catch (e: ProcessUnavailableException) {
             LogUtils.error(
-                Bundle.message("editor.service.unable.to.determine.if.can.format", filePath),
+                Bundle.message(
+                    "editor.service.format.failed.internal",
+                    filePath,
+                    e.message ?: "Process unavailable"
+                ),
                 e,
                 project,
                 LOGGER
             )
+            initialiseEditorService()
         }
 
         onFinished(result)

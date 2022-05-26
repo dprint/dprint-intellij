@@ -12,9 +12,12 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.psi.PsiFile
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 private val LOGGER = logger<DprintExternalFormatter>()
 private const val NAME = "dprintfmt"
+private const val CAN_FORMAT_TIMEOUT = 4L
 
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun getFeatures(): MutableSet<FormattingService.Feature> {
@@ -24,10 +27,28 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
     }
 
     override fun canFormat(file: PsiFile): Boolean {
-        val editorService = file.project.service<EditorServiceManager>().maybeGetEditorService()
-        return editorService != null && file.virtualFile != null &&
-            file.project.service<ProjectConfiguration>().state.enabled &&
-            editorService.canFormat(file.virtualFile.path)
+        try {
+            val future = CompletableFuture.supplyAsync {
+                val editorService = file.project.service<EditorServiceManager>().maybeGetEditorService()
+                editorService != null &&
+                    file.virtualFile != null &&
+                    file.project.service<ProjectConfiguration>().state.enabled &&
+                    editorService.canFormat(file.virtualFile.path)
+            }.orTimeout(CAN_FORMAT_TIMEOUT, TimeUnit.SECONDS)
+            return future.get()
+        } catch (e: TimeoutException) {
+            LogUtils.error(
+                Bundle.message(
+                    "editor.service.timed.out.checking.if.can.format",
+                    file.virtualFile?.path ?: "Unknown file path"
+                ),
+                e,
+                file.project,
+                LOGGER
+            )
+        }
+
+        return false
     }
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
@@ -75,14 +96,13 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                                 nextFuture.complete(nextResult)
                             }
                             if (resultContent != null) {
-                                formattingId =
-                                    editorService.fmt(
-                                        path,
-                                        resultContent,
-                                        range.startOffset,
-                                        range.endOffset,
-                                        nextHandler
-                                    )
+                                formattingId = editorService.fmt(
+                                    path,
+                                    resultContent,
+                                    range.startOffset,
+                                    range.endOffset,
+                                    nextHandler
+                                )
                             }
                             nextFuture.get()
                         }
@@ -106,12 +126,12 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                     return
                 }
 
-                result.formattedContent?.let {
-                    formattingRequest.onTextReady(it)
-                }
-
-                result.error?.let {
-                    formattingRequest.onError(Bundle.message("formatting.error"), it)
+                val error = result.error
+                if (error != null) {
+                    formattingRequest.onError(Bundle.message("formatting.error"), error)
+                } else {
+                    // If the result is a no op it will be null, in which case we pass the original content back in
+                    formattingRequest.onTextReady(result.formattedContent ?: content)
                 }
             }
 
