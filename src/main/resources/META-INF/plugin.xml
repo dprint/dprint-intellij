@@ -26,11 +26,11 @@
         <formattingService implementation="com.dprint.formatter.DprintExternalFormatter"/>
         <documentMerger implementation="com.dprint.formatter.DprintDocumentMerger"/>
         <toolWindow factoryClass="com.dprint.toolwindow.ConsoleToolWindowFactory" id="Dprint" anchor="bottom"/>
+        <actionOnSave id="DprintActionOnSave"
+                      implementation="com.dprint.actions.OnSaveAction"
+                      order="after FormatOnSaveAction"/>
     </extensions>
-
-    <projectListeners>
-        <listener class="com.dprint.listeners.OnSaveListener" topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
-    </projectListeners>
+    
     <actions>
         <action id="com.dprint.actions.ReformatAction" class="com.dprint.actions.ReformatAction">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
