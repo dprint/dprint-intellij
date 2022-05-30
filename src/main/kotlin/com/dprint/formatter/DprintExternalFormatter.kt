@@ -47,8 +47,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 file.project,
                 LOGGER
             )
-        }
-        catch (e: ExecutionException) {
+        } catch (e: ExecutionException) {
             LogUtils.error(
                 Bundle.message(
                     "editor.service.timed.out.checking.if.can.format",

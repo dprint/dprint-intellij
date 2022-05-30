@@ -4,6 +4,7 @@
 
 ## [Unreleased]
 - Handle execution exceptions when running can format
+- Ensure on save action is only run when on user triggered saves
 
 ## [0.3.2]
 - Fix intermittent lock up when running format
