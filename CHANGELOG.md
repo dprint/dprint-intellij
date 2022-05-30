@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.3.3]
 - Handle execution exceptions when running can format
 - Ensure on save action is only run when on user triggered saves
 
