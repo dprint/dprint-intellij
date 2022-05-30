@@ -12,6 +12,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.psi.PsiFile
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
@@ -37,6 +38,17 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             }.orTimeout(CAN_FORMAT_TIMEOUT, TimeUnit.SECONDS)
             return future.get()
         } catch (e: TimeoutException) {
+            LogUtils.error(
+                Bundle.message(
+                    "editor.service.timed.out.checking.if.can.format",
+                    file.virtualFile?.path ?: "Unknown file path"
+                ),
+                e,
+                file.project,
+                LOGGER
+            )
+        }
+        catch (e: ExecutionException) {
             LogUtils.error(
                 Bundle.message(
                     "editor.service.timed.out.checking.if.can.format",
