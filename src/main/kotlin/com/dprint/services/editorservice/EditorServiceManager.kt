@@ -8,14 +8,16 @@ import com.dprint.services.editorservice.v4.EditorServiceV4
 import com.dprint.services.editorservice.v5.EditorServiceV5
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.progress.BackgroundTaskQueue
 import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
@@ -28,6 +30,7 @@ private const val SCHEMA_V5 = 5
 @Service
 class EditorServiceManager(private val project: Project) {
     private var editorService: EditorService? = null
+    private val taskQueue = BackgroundTaskQueue(project, "Dprint manager task queue")
 
     init {
         maybeInitialiseEditorService()
@@ -88,8 +91,21 @@ class EditorServiceManager(private val project: Project) {
             }
         }
 
-        ProgressManager.getInstance()
-            .runProcessWithProgressAsynchronously(init, BackgroundableProcessIndicator(init))
+        // Clear can format requests if we are restarting the editor service
+        taskQueue.clear()
+        taskQueue.run(init, ModalityState.defaultModalityState(), BackgroundableProcessIndicator(init))
+    }
+
+    fun primeCanFormatCacheForFile(virtualFile: VirtualFile) {
+        val primeCache =
+            object : Task.Backgroundable(project, "Priming can format cache for ${virtualFile.path}", false) {
+                override fun run(indicator: ProgressIndicator) {
+                    indicator.text = "Priming can format cache for ${virtualFile.path}"
+                    LogUtils.info(indicator.text, project, LOGGER)
+                    editorService?.canFormat(virtualFile.path)
+                }
+            }
+        taskQueue.run(primeCache)
     }
 
     fun maybeGetEditorService(): EditorService? {

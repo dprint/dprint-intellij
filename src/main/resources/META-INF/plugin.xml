@@ -22,7 +22,8 @@
                              bundle="messages.Bundle"
                              key="config.name"
                              nonDefaultProject="true"/>
-        <notificationGroup id="Dprint" displayType="STICKY_BALLOON" key="notification.group.name" isLogByDefault="false"/>
+        <notificationGroup id="Dprint" displayType="STICKY_BALLOON" key="notification.group.name"
+                           isLogByDefault="false"/>
         <formattingService implementation="com.dprint.formatter.DprintExternalFormatter"/>
         <documentMerger implementation="com.dprint.formatter.DprintDocumentMerger"/>
         <toolWindow factoryClass="com.dprint.toolwindow.ConsoleToolWindowFactory" id="Dprint" anchor="bottom"/>
@@ -30,8 +31,11 @@
                       implementation="com.dprint.actions.OnSaveAction"
                       order="after FormatOnSaveAction"/>
     </extensions>
-    
+
     <actions>
+        <action id="com.dprint.actions.ClearCacheAction" class="com.dprint.actions.ClearCacheAction">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
         <action id="com.dprint.actions.ReformatAction" class="com.dprint.actions.ReformatAction">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
@@ -39,4 +43,9 @@
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
     </actions>
+
+    <projectListeners>
+        <listener class="com.dprint.listeners.FileOpenedListener"
+                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+    </projectListeners>
 </idea-plugin>

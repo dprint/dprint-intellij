@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+- Reduce timeout when checking if a file can be formatted in the external formatter
+- Cache whether files can be formatted by dprint and create an action to clear this
 
 ## [0.3.3]
 - Handle execution exceptions when running can format

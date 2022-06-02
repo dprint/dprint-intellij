@@ -18,7 +18,8 @@ import java.util.concurrent.TimeoutException
 
 private val LOGGER = logger<DprintExternalFormatter>()
 private const val NAME = "dprintfmt"
-private const val CAN_FORMAT_TIMEOUT = 4L
+// The UI seems to hang if this takes longer than 1sec
+private const val CAN_FORMAT_TIMEOUT = 8L
 
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun getFeatures(): MutableSet<FormattingService.Feature> {
@@ -35,8 +36,8 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                     file.virtualFile != null &&
                     file.project.service<ProjectConfiguration>().state.enabled &&
                     editorService.canFormat(file.virtualFile.path)
-            }.orTimeout(CAN_FORMAT_TIMEOUT, TimeUnit.SECONDS)
-            return future.get()
+            }
+            return future.get(CAN_FORMAT_TIMEOUT, TimeUnit.MILLISECONDS)
         } catch (e: TimeoutException) {
             LogUtils.error(
                 Bundle.message(

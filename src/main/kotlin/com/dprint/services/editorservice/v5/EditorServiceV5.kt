@@ -11,6 +11,7 @@ import com.intellij.openapi.project.Project
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.apache.commons.collections4.map.LRUMap
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
@@ -27,6 +28,7 @@ class EditorServiceV5(val project: Project) : EditorService {
     private var editorProcess = EditorProcess(project)
     private var stdoutListener: Thread? = null
     private val pendingMessages = PendingMessages()
+    private var canFormatCache = LRUMap<String, Boolean>()
 
     private fun createStdoutListener(): Thread {
         if (stdoutListener != null) {
@@ -66,7 +68,15 @@ class EditorServiceV5(val project: Project) : EditorService {
         }
     }
 
+    override fun clearCanFormatCache() {
+        this.canFormatCache.clear()
+    }
+
     override fun canFormat(filePath: String): Boolean {
+        if (canFormatCache.containsKey(filePath)) {
+            LogUtils.info(Bundle.message("editor.service.using.can.format.cache.value", filePath), project, LOGGER)
+            return canFormatCache[filePath, true]
+        }
         LogUtils.info(Bundle.message("formatting.checking.can.format", filePath), project, LOGGER)
         val message = createNewMessage(MessageType.CanFormat)
         message.addString(filePath)
@@ -77,7 +87,7 @@ class EditorServiceV5(val project: Project) : EditorService {
 
         editorProcess.writeBuffer(message.build())
 
-        return try {
+        val result = try {
             val result = future.get(CAN_FORMAT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             if (result.type == MessageType.CanFormatResponse && result.data is Boolean) {
                 result.data
@@ -105,6 +115,10 @@ class EditorServiceV5(val project: Project) : EditorService {
             initialiseEditorService()
             false
         }
+
+        canFormatCache[filePath] = result
+
+        return result
     }
 
     override fun canRangeFormat(): Boolean {

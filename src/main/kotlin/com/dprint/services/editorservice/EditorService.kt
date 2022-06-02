@@ -14,6 +14,9 @@ interface EditorService : Disposable {
      */
     fun destroyEditorService()
 
+    /** Clears the cache that holds canFormat results */
+    fun clearCanFormatCache()
+
     /**
      * Returns whether dprint can format the given file path based on the config used in the editor service.
      */

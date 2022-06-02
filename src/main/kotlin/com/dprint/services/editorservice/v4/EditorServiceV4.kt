@@ -11,6 +11,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import org.apache.commons.collections4.map.LRUMap
 
 private const val CHECK_COMMAND = 1
 private const val FORMAT_COMMAND = 2
@@ -20,6 +21,7 @@ private val LOGGER = logger<EditorServiceV4>()
 @Service
 class EditorServiceV4(private val project: Project) : EditorService {
     private var editorProcess = EditorProcess(project)
+    private var canFormatCache = LRUMap<String, Boolean>()
 
     override fun initialiseEditorService() {
         // If not enabled we don't start the editor service
@@ -41,8 +43,17 @@ class EditorServiceV4(private val project: Project) : EditorService {
         editorProcess.destroy()
     }
 
+    override fun clearCanFormatCache() {
+        this.canFormatCache.clear()
+    }
+
     @Synchronized
     override fun canFormat(filePath: String): Boolean {
+        if (canFormatCache.containsKey(filePath)) {
+            LogUtils.info(Bundle.message("editor.service.using.can.format.cache.value", filePath), project, LOGGER)
+            return canFormatCache[filePath, true]
+        }
+
         var status = 0
         LogUtils.info(Bundle.message("formatting.checking.can.format", filePath), project, LOGGER)
 
@@ -70,6 +81,8 @@ class EditorServiceV4(private val project: Project) : EditorService {
             true -> LogUtils.info(Bundle.message("formatting.can.format", filePath), project, LOGGER)
             false -> LogUtils.info(Bundle.message("formatting.cannot.format", filePath), project, LOGGER)
         }
+
+        canFormatCache[filePath] = result
 
         return result
     }
