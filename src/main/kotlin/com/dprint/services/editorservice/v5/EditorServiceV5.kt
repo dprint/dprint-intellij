@@ -45,7 +45,9 @@ class EditorServiceV5(val project: Project) : EditorService {
             Bundle.message("editor.service.initialize", getName()), project, LOGGER
         )
         dropMessages()
-        editorProcess.initialize()
+        synchronized(editorProcess) {
+            editorProcess.initialize()
+        }
         stdoutListener = createStdoutListener()
     }
 
@@ -56,27 +58,36 @@ class EditorServiceV5(val project: Project) : EditorService {
     override fun destroyEditorService() {
         LogUtils.info(Bundle.message("editor.service.destroy", getName()), project, LOGGER)
         val message = createNewMessage(MessageType.ShutDownProcess)
-        editorProcess.writeBuffer(message.build())
+        synchronized(editorProcess) {
+            editorProcess.writeBuffer(message.build())
+        }
         stdoutListener?.interrupt()
         dropMessages()
 
         runBlocking {
             launch {
                 delay(FORCE_DESTROY_DELAY)
-                editorProcess.destroy()
+                synchronized(editorProcess) {
+                    editorProcess.destroy()
+                }
             }
         }
     }
 
     override fun clearCanFormatCache() {
-        this.canFormatCache.clear()
+        synchronized(canFormatCache) {
+            canFormatCache.clear()
+        }
     }
 
     override fun canFormat(filePath: String): Boolean {
-        if (canFormatCache.containsKey(filePath)) {
-            LogUtils.info(Bundle.message("editor.service.using.can.format.cache.value", filePath), project, LOGGER)
-            return canFormatCache[filePath, true]
+        synchronized(canFormatCache) {
+            if (canFormatCache.containsKey(filePath)) {
+                LogUtils.info(Bundle.message("editor.service.using.can.format.cache.value", filePath), project, LOGGER)
+                return canFormatCache[filePath, true]
+            }
         }
+
         LogUtils.info(Bundle.message("formatting.checking.can.format", filePath), project, LOGGER)
         val message = createNewMessage(MessageType.CanFormat)
         message.addString(filePath)
@@ -85,7 +96,9 @@ class EditorServiceV5(val project: Project) : EditorService {
         val handler: (PendingMessages.Result) -> Unit = { future.complete(it) }
         pendingMessages.store(message.id, handler)
 
-        editorProcess.writeBuffer(message.build())
+        synchronized(editorProcess) {
+            editorProcess.writeBuffer(message.build())
+        }
 
         val result = try {
             val result = future.get(CAN_FORMAT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -116,7 +129,9 @@ class EditorServiceV5(val project: Project) : EditorService {
             false
         }
 
-        canFormatCache[filePath] = result
+        synchronized(canFormatCache) {
+            canFormatCache[filePath] = result
+        }
 
         return result
     }
@@ -161,7 +176,9 @@ class EditorServiceV5(val project: Project) : EditorService {
         }
         pendingMessages.store(message.id, handler)
 
-        editorProcess.writeBuffer(message.build())
+        synchronized(editorProcess) {
+            editorProcess.writeBuffer(message.build())
+        }
 
         LogUtils.info(Bundle.message("editor.service.created.formatting.task", filePath, message.id), project, LOGGER)
 
@@ -176,7 +193,9 @@ class EditorServiceV5(val project: Project) : EditorService {
         val message = createNewMessage(MessageType.CancelFormat)
         LogUtils.info(Bundle.message("editor.service.cancel.format", formatId), project, LOGGER)
         message.addInt(formatId)
-        editorProcess.writeBuffer(message.build())
+        synchronized(editorProcess) {
+            editorProcess.writeBuffer(message.build())
+        }
         pendingMessages.take(formatId)
     }
 

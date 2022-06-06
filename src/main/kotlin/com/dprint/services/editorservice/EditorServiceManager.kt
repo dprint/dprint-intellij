@@ -22,10 +22,13 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 
 private val LOGGER = logger<EditorServiceManager>()
 private const val SCHEMA_V4 = 4
 private const val SCHEMA_V5 = 5
+private const val PRIME_CACHE_TIMEOUT = 2L
 
 @Service
 class EditorServiceManager(private val project: Project) {
@@ -100,9 +103,11 @@ class EditorServiceManager(private val project: Project) {
         val primeCache =
             object : Task.Backgroundable(project, "Priming can format cache for ${virtualFile.path}", false) {
                 override fun run(indicator: ProgressIndicator) {
-                    indicator.text = "Priming can format cache for ${virtualFile.path}"
-                    LogUtils.info(indicator.text, project, LOGGER)
-                    editorService?.canFormat(virtualFile.path)
+                    CompletableFuture<Boolean>().completeAsync {
+                        indicator.text = "Priming can format cache for ${virtualFile.path}"
+                        LogUtils.info(indicator.text, project, LOGGER)
+                        editorService?.canFormat(virtualFile.path)
+                    }.orTimeout(PRIME_CACHE_TIMEOUT, TimeUnit.SECONDS)
                 }
             }
         taskQueue.run(primeCache)

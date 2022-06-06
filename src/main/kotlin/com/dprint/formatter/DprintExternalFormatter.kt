@@ -5,9 +5,11 @@ import com.dprint.core.Bundle
 import com.dprint.core.LogUtils
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
+import com.intellij.codeInsight.actions.ReformatCodeProcessor
 import com.intellij.formatting.service.AsyncDocumentFormattingService
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
+import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.psi.PsiFile
@@ -18,6 +20,7 @@ import java.util.concurrent.TimeoutException
 
 private val LOGGER = logger<DprintExternalFormatter>()
 private const val NAME = "dprintfmt"
+
 // The UI seems to hang if this takes longer than 1sec
 private const val CAN_FORMAT_TIMEOUT = 8L
 
@@ -34,6 +37,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 val editorService = file.project.service<EditorServiceManager>().maybeGetEditorService()
                 editorService != null &&
                     file.virtualFile != null &&
+                    CommandProcessor.getInstance().currentCommandName == ReformatCodeProcessor.getCommandName() &&
                     file.project.service<ProjectConfiguration>().state.enabled &&
                     editorService.canFormat(file.virtualFile.path)
             }
@@ -168,7 +172,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             formattingRequest.formattingRanges.size > 1 -> true
             formattingRequest.formattingRanges.size == 1 -> {
                 val range = formattingRequest.formattingRanges[0]
-                return range.startOffset != 0 || range.endOffset != formattingRequest.documentText.length
+                return range.startOffset > 0 || range.endOffset < formattingRequest.documentText.length
             }
             else -> false
         }

@@ -20,13 +20,10 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
 import java.util.Collections
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
 private val LOGGER = logger<FormatterService>()
-private const val FORMATTING_TIMEOUT_SECONDS = 10L
 
 /**
  * A project service that handles reading virtual files, formatting their contents and writing the formatted result.
@@ -73,21 +70,15 @@ class FormatterService(private val project: Project) {
 
                     if (editorServiceInstance.canFormat(filePathRef.get())) {
                         val filePath = filePathRef.get()
-                        val resultFuture = CompletableFuture<FormatResult>()
                         val formatHandler: (FormatResult) -> Unit = {
-                            resultFuture.complete(it)
+                            it.formattedContent?.let {
+                                WriteCommandAction.runWriteCommandAction(project) {
+                                    getDocument(project, virtualFile)?.setText(it)
+                                }
+                            }
                         }
 
                         editorServiceInstance.fmt(filePath, content, formatHandler)
-
-                        val result = resultFuture.get(FORMATTING_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-
-                        // Error logging is handled in the EditorService
-                        result.formattedContent?.let {
-                            WriteCommandAction.runWriteCommandAction(project) {
-                                getDocument(project, virtualFile)?.setText(it)
-                            }
-                        }
                     } else {
                         Bundle.message("formatting.cannot.format", filePathRef.get())
                     }
