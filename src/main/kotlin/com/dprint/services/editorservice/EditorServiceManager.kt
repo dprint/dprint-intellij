@@ -1,5 +1,6 @@
 package com.dprint.services.editorservice
 
+import com.dprint.config.ProjectConfiguration
 import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
 import com.dprint.core.LogUtils
@@ -8,32 +9,35 @@ import com.dprint.services.editorservice.v4.EditorServiceV4
 import com.dprint.services.editorservice.v5.EditorServiceV5
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
-import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.BackgroundTaskQueue
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
-import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import io.ktor.utils.io.CancellationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.apache.commons.collections4.map.LRUMap
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 private val LOGGER = logger<EditorServiceManager>()
 private const val SCHEMA_V4 = 4
 private const val SCHEMA_V5 = 5
-private const val PRIME_CACHE_TIMEOUT = 2L
+private const val TIMEOUT = 10L
 
 @Service
 class EditorServiceManager(private val project: Project) {
     private var editorService: EditorService? = null
     private val taskQueue = BackgroundTaskQueue(project, "Dprint manager task queue")
+    private var canFormatCache = LRUMap<String, Boolean>()
 
     init {
         maybeInitialiseEditorService()
@@ -67,54 +71,124 @@ class EditorServiceManager(private val project: Project) {
     }
 
     private fun maybeInitialiseEditorService() {
-        val init = object : Task.Backgroundable(project, "Initializing dprint service", false) {
-            override fun run(indicator: ProgressIndicator) {
-                indicator.text = "Getting schema version"
-                val schemaVersion = getSchemaVersion()
-                indicator.text = "Attempting to initialize editor service"
-                LogUtils.info("Received schema version $schemaVersion", project, LOGGER)
-                when {
-                    schemaVersion == null -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                        .info(
-                            Bundle.message("config.dprint.schemaVersion.not.found")
-                        )
-                    schemaVersion < SCHEMA_V4 -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                        .info(
-                            Bundle.message("config.dprint.schemaVersion.older")
-                        )
-                    schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
-                    schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
-                    schemaVersion > SCHEMA_V5 -> LogUtils.info(
-                        Bundle.message("config.dprint.schemaVersion.newer"),
-                        project,
-                        LOGGER
+        if (!project.service<ProjectConfiguration>().state.enabled) {
+            return
+        }
+        createTaskWithTimeout("Initialising editor service") {
+            val schemaVersion = getSchemaVersion()
+            LogUtils.info("Received schema version $schemaVersion", project, LOGGER)
+            when {
+                schemaVersion == null -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                    .info(
+                        Bundle.message("config.dprint.schemaVersion.not.found")
                     )
-                }
-                editorService?.initialiseEditorService()
+                schemaVersion < SCHEMA_V4 -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                    .info(
+                        Bundle.message("config.dprint.schemaVersion.older")
+                    )
+                schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
+                schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
+                schemaVersion > SCHEMA_V5 -> LogUtils.info(
+                    Bundle.message("config.dprint.schemaVersion.newer"),
+                    project,
+                    LOGGER
+                )
             }
+            editorService?.initialiseEditorService()
+        }
+    }
+
+    /**
+     * Gets a cached canFormat result. If a result doesn't exist this will return null and start a request to fill the
+     * value in the cache.
+     */
+    fun canFormatCached(path: String): Boolean? {
+        val result = canFormatCache[path]
+
+        if (result == null) {
+            LogUtils.warn("Did not find cached can format result for $path.", project, LOGGER)
+            primeCanFormatCache(path)
         }
 
-        // Clear can format requests if we are restarting the editor service
-        taskQueue.clear()
-        taskQueue.run(init, ModalityState.defaultModalityState(), BackgroundableProcessIndicator(init))
+        return result
     }
 
+    /**
+     * Primes the canFormat result cache for the passed in virtual file.
+     */
     fun primeCanFormatCacheForFile(virtualFile: VirtualFile) {
-        val primeCache =
-            object : Task.Backgroundable(project, "Priming can format cache for ${virtualFile.path}", false) {
-                override fun run(indicator: ProgressIndicator) {
-                    CompletableFuture<Boolean>().completeAsync {
-                        indicator.text = "Priming can format cache for ${virtualFile.path}"
-                        LogUtils.info(indicator.text, project, LOGGER)
-                        editorService?.canFormat(virtualFile.path)
-                    }.orTimeout(PRIME_CACHE_TIMEOUT, TimeUnit.SECONDS)
+        primeCanFormatCache(virtualFile.path)
+    }
+
+    private fun primeCanFormatCache(path: String) {
+        createTaskWithTimeout("Priming can format cache for $path") {
+            editorService?.canFormat(path) {
+                canFormatCache[path] = it
+            }
+        }
+    }
+
+    private fun createTaskWithTimeout(title: String, operation: () -> Unit) {
+        createTaskWithTimeout(title, operation, null)
+    }
+
+    private fun createTaskWithTimeout(title: String, operation: () -> Unit, onFailure: (() -> Unit)?) {
+        val future = CompletableFuture<Unit>()
+        val task = object : Task.Backgroundable(project, title, true) {
+            override fun run(indicator: ProgressIndicator) {
+                indicator.text = title
+                LogUtils.info(indicator.text, project, LOGGER)
+                try {
+                    future.completeAsync(operation)
+                    future.get(TIMEOUT, TimeUnit.SECONDS)
+                } catch (e: TimeoutException) {
+                    if (onFailure != null) onFailure()
+                    LogUtils.error("Dprint timeout: $title", e, project, LOGGER)
+                } catch (e: ExecutionException) {
+                    if (onFailure != null) onFailure()
+                    LogUtils.error("Dprint execution exception: $title", e, project, LOGGER)
+                } catch (e: InterruptedException) {
+                    if (onFailure != null) onFailure()
+                    LogUtils.error("Dprint interruption: $title", e, project, LOGGER)
+                } catch (e: CancellationException) {
+                    if (onFailure != null) onFailure()
+                    LogUtils.error("Dprint cancellation: $title", e, project, LOGGER)
                 }
             }
-        taskQueue.run(primeCache)
+
+            override fun onCancel() {
+                super.onCancel()
+                future.cancel(true)
+            }
+        }
+        taskQueue.run(task)
     }
 
-    fun maybeGetEditorService(): EditorService? {
-        return editorService
+    /**
+     * Formats the given file in a background thread and runs the onFinished callback once complete.
+     * See [com.dprint.services.editorservice.EditorService.fmt] for more info on the parameters.
+     */
+    fun format(path: String, content: String, onFinished: (FormatResult) -> Unit) {
+        format(editorService?.maybeGetFormatId(), path, content, null, null, onFinished)
+    }
+
+    /**
+     * Formats the given file in a background thread and runs the onFinished callback once complete.
+     * See [com.dprint.services.editorservice.EditorService.fmt] for more info on the parameters.
+     */
+    fun format(
+        formatId: Int?,
+        path: String,
+        content: String,
+        startIndex: Int?,
+        endIndex: Int?,
+        onFinished: (FormatResult) -> Unit
+    ) {
+        createTaskWithTimeout(
+            "Creating formatting task for $path",
+            { editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished) },
+            { onFinished(FormatResult()) }
+        )
     }
 
     fun restartEditorService() {
@@ -125,5 +199,25 @@ class EditorServiceManager(private val project: Project) {
 
     fun destroyEditorService() {
         editorService?.destroyEditorService()
+    }
+
+    fun canRangeFormat(): Boolean {
+        return editorService?.canRangeFormat() == true
+    }
+
+    fun maybeGetFormatId(): Int? {
+        return editorService?.maybeGetFormatId()
+    }
+
+    fun cancelFormat(formatId: Int) {
+        editorService?.cancelFormat(formatId)
+    }
+
+    fun canCancelFormat(): Boolean {
+        return editorService?.canCancelFormat() == true
+    }
+
+    fun clearCanFormatCache() {
+        canFormatCache.clear()
     }
 }

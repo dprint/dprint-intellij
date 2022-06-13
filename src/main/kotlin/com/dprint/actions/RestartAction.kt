@@ -9,12 +9,11 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 
+private val LOGGER = logger<RestartAction>()
+
 /**
  * This action will restart the editor service when invoked
  */
-
-private val LOGGER = logger<RestartAction>()
-
 class RestartAction : AnAction() {
     override fun actionPerformed(event: AnActionEvent) {
         event.project?.let { project ->

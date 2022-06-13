@@ -5,8 +5,10 @@ complexity:
   LongMethod:
     threshold: 80
   TooManyFunctions:
-    thresholdInFiles: 15
-    thresholdInClasses: 15
+    thresholdInFiles: 17
+    thresholdInClasses: 17
+  LongParameterList:
+    functionThreshold: 7
   ComplexMethod:
     threshold: 25
 formatting:

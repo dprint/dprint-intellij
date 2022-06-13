@@ -15,6 +15,9 @@ import com.intellij.openapi.project.Project
 
 private val LOGGER = logger<OnSaveAction>()
 
+/**
+ * This action sets up format on save functionality.
+ */
 class OnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
 
     override fun isEnabledForProject(project: Project): Boolean {
@@ -30,7 +33,7 @@ class OnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
         for (document in documents) {
             manager.getFile(document)?.let {
                 LogUtils.info(Bundle.message("save.action.run", it.path), project, LOGGER)
-                formatterService.format(it)
+                formatterService.format(it.path, document)
             }
         }
     }

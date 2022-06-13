@@ -11,12 +11,15 @@ import com.intellij.openapi.diagnostic.logger
 
 private val LOGGER = logger<ClearCacheAction>()
 
+/**
+ * This action clears the cache of canFormat results. Useful if config changes have been made.
+ */
 class ClearCacheAction : AnAction() {
     override fun actionPerformed(event: AnActionEvent) {
         event.project?.let { project ->
             if (!project.service<ProjectConfiguration>().state.enabled) return@let
             LogUtils.info(Bundle.message("clear.cache.action.run"), project, LOGGER)
-            project.service<EditorServiceManager>().maybeGetEditorService()?.clearCanFormatCache()
+            project.service<EditorServiceManager>().clearCanFormatCache()
         }
     }
 }

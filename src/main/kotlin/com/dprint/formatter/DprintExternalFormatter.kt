@@ -5,24 +5,16 @@ import com.dprint.core.Bundle
 import com.dprint.core.LogUtils
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
-import com.intellij.codeInsight.actions.ReformatCodeProcessor
 import com.intellij.formatting.service.AsyncDocumentFormattingService
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
-import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.psi.PsiFile
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 private val LOGGER = logger<DprintExternalFormatter>()
 private const val NAME = "dprintfmt"
-
-// The UI seems to hang if this takes longer than 1sec
-private const val CAN_FORMAT_TIMEOUT = 8L
 
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun getFeatures(): MutableSet<FormattingService.Feature> {
@@ -32,39 +24,15 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
     }
 
     override fun canFormat(file: PsiFile): Boolean {
-        try {
-            val future = CompletableFuture.supplyAsync {
-                val editorService = file.project.service<EditorServiceManager>().maybeGetEditorService()
-                editorService != null &&
-                    file.virtualFile != null &&
-                    CommandProcessor.getInstance().currentCommandName == ReformatCodeProcessor.getCommandName() &&
-                    file.project.service<ProjectConfiguration>().state.enabled &&
-                    editorService.canFormat(file.virtualFile.path)
-            }
-            return future.get(CAN_FORMAT_TIMEOUT, TimeUnit.MILLISECONDS)
-        } catch (e: TimeoutException) {
-            LogUtils.error(
-                Bundle.message(
-                    "editor.service.timed.out.checking.if.can.format",
-                    file.virtualFile?.path ?: "Unknown file path"
-                ),
-                e,
-                file.project,
-                LOGGER
-            )
-        } catch (e: ExecutionException) {
-            LogUtils.error(
-                Bundle.message(
-                    "editor.service.timed.out.checking.if.can.format",
-                    file.virtualFile?.path ?: "Unknown file path"
-                ),
-                e,
-                file.project,
-                LOGGER
-            )
+        if (!file.project.service<ProjectConfiguration>().state.enabled) {
+            return false
         }
-
-        return false
+        // If we don't have a cached can format response then we return true and let the formatting task figure that
+        // out. Worse case scenario is that a file that cannot be formatted by dprint won't trigger the default IntelliJ
+        // formatter. This is a minor issue and should be resolved if they run it again.
+        //
+        // We need to take this approach as it appears that blocking the
+        return file.project.service<EditorServiceManager>().canFormatCached(file.virtualFile.path) != false
     }
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
@@ -74,26 +42,24 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             return null
         }
 
-        val editorService = project.service<EditorServiceManager>().maybeGetEditorService()
+        val editorServiceManager = project.service<EditorServiceManager>()
         val path = formattingRequest.ioFile?.path
 
         if (path == null) {
             LogUtils.info(Bundle.message("formatting.cannot.determine.file.path"), project, LOGGER)
-            LOGGER.info(formattingRequest.documentText)
             return null
         }
 
-        if (editorService == null) {
-            LogUtils.info(Bundle.message("formatting.service.editor.service.uninitialized"), project, LOGGER)
+        if (project.service<EditorServiceManager>().canFormatCached(path) != true) {
             return null
         }
 
-        if (!editorService.canRangeFormat() && isRangeFormat(formattingRequest)) {
+        if (!editorServiceManager.canRangeFormat() && isRangeFormat(formattingRequest)) {
             return null
         }
 
         return object : FormattingTask {
-            private var formattingId: Int? = null
+            private var formattingId: Int? = editorServiceManager.maybeGetFormatId()
             private var isCancelled = false
 
             override fun run() {
@@ -112,7 +78,10 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                                 nextFuture.complete(nextResult)
                             }
                             if (resultContent != null) {
-                                formattingId = editorService.fmt(
+                                // Need to update the formatting id so the correct job would be cancelled
+                                formattingId = editorServiceManager.maybeGetFormatId()
+                                editorServiceManager.format(
+                                    formattingId,
                                     path,
                                     resultContent,
                                     range.startOffset,
@@ -120,6 +89,8 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                                     nextHandler
                                 )
                             }
+                            // Timeouts are handled at the EditorServiceManager level and an empty result will be
+                            // returned if something goes wrong
                             nextFuture.get()
                         }
                     }
@@ -129,13 +100,16 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 val initialHandler: (FormatResult) -> Unit = {
                     future.complete(it)
                 }
-                formattingId = editorService.fmt(
+                editorServiceManager.format(
+                    formattingId,
                     path,
                     content,
                     initialRange?.startOffset ?: 0,
                     initialRange?.endOffset ?: content.length,
                     initialHandler
                 )
+                // Timeouts are handled at the EditorServiceManager level and an empty result will be
+                // returned if something goes wrong
                 val result = future.get()
 
                 if (isCancelled) {
@@ -152,13 +126,14 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             }
 
             override fun cancel(): Boolean {
-                if (editorService.canCancelFormat()) {
-                    formattingId?.let { editorService.cancelFormat(it) }
-                    isCancelled = true
-                    return true
+                if (!editorServiceManager.canCancelFormat()) {
+                    return false
                 }
 
-                return false
+                val formatId = formattingId
+                isCancelled = true
+                if (formatId != null) editorServiceManager.cancelFormat(formatId)
+                return true
             }
 
             override fun isRunUnderProgress(): Boolean {

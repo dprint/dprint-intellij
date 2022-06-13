@@ -11,7 +11,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
-import org.apache.commons.collections4.map.LRUMap
 
 private const val CHECK_COMMAND = 1
 private const val FORMAT_COMMAND = 2
@@ -21,7 +20,6 @@ private val LOGGER = logger<EditorServiceV4>()
 @Service
 class EditorServiceV4(private val project: Project) : EditorService {
     private var editorProcess = EditorProcess(project)
-    private var canFormatCache = LRUMap<String, Boolean>()
 
     override fun initialiseEditorService() {
         // If not enabled we don't start the editor service
@@ -47,19 +45,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
         }
     }
 
-    override fun clearCanFormatCache() {
-        synchronized(canFormatCache) {
-            this.canFormatCache.clear()
-        }
-    }
-
-    override fun canFormat(filePath: String): Boolean {
-        synchronized(canFormatCache) {
-            if (canFormatCache.containsKey(filePath)) {
-                LogUtils.info(Bundle.message("editor.service.using.can.format.cache.value", filePath), project, LOGGER)
-                return canFormatCache[filePath, true]
-            }
-        }
+    override fun canFormat(filePath: String, onFinished: (Boolean) -> Unit) {
 
         var status = 0
         LogUtils.info(Bundle.message("formatting.checking.can.format", filePath), project, LOGGER)
@@ -90,12 +76,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
             true -> LogUtils.info(Bundle.message("formatting.can.format", filePath), project, LOGGER)
             false -> LogUtils.info(Bundle.message("formatting.cannot.format", filePath), project, LOGGER)
         }
-
-        synchronized(canFormatCache) {
-            canFormatCache[filePath] = result
-        }
-
-        return result
+        onFinished(result)
     }
 
     override fun canRangeFormat(): Boolean {
@@ -163,6 +144,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
     }
 
     override fun fmt(
+        formatId: Int?,
         filePath: String,
         content: String,
         startIndex: Int?,
@@ -174,6 +156,10 @@ class EditorServiceV4(private val project: Project) : EditorService {
 
     override fun canCancelFormat(): Boolean {
         return false
+    }
+
+    override fun maybeGetFormatId(): Int? {
+        return null
     }
 
     private fun getName(): String {
