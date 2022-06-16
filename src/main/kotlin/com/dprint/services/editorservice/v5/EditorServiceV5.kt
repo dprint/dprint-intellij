@@ -39,9 +39,7 @@ class EditorServiceV5(val project: Project) : EditorService {
             Bundle.message("editor.service.initialize", getName()), project, LOGGER
         )
         dropMessages()
-        synchronized(editorProcess) {
-            editorProcess.initialize()
-        }
+        editorProcess.initialize()
         stdoutListener = createStdoutListener()
     }
 
@@ -57,9 +55,7 @@ class EditorServiceV5(val project: Project) : EditorService {
             runBlocking {
                 withTimeout(SHUTDOWN_TIMEOUT) {
                     launch {
-                        synchronized(editorProcess) {
-                            editorProcess.writeBuffer(message.build())
-                        }
+                        editorProcess.writeBuffer(message.build())
                     }
                 }
             }
@@ -95,9 +91,7 @@ class EditorServiceV5(val project: Project) : EditorService {
 
         pendingMessages.store(message.id, handler)
 
-        synchronized(editorProcess) {
-            editorProcess.writeBuffer(message.build())
-        }
+        editorProcess.writeBuffer(message.build())
     }
 
     override fun canRangeFormat(): Boolean {
@@ -141,9 +135,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         }
         pendingMessages.store(message.id, handler)
 
-        synchronized(editorProcess) {
-            editorProcess.writeBuffer(message.build())
-        }
+        editorProcess.writeBuffer(message.build())
 
         LogUtils.info(Bundle.message("editor.service.created.formatting.task", filePath, message.id), project, LOGGER)
 
@@ -162,9 +154,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         val message = createNewMessage(MessageType.CancelFormat)
         LogUtils.info(Bundle.message("editor.service.cancel.format", formatId), project, LOGGER)
         message.addInt(formatId)
-        synchronized(editorProcess) {
-            editorProcess.writeBuffer(message.build())
-        }
+        editorProcess.writeBuffer(message.build())
         pendingMessages.take(formatId)
     }
 

@@ -61,10 +61,7 @@ class EditorServiceManager(private val project: Project) {
             Json.parseToJsonElement(jsonText).jsonObject["schemaVersion"]?.jsonPrimitive?.int
         } catch (e: RuntimeException) {
             LogUtils.error(
-                Bundle.message("error.failed.to.parse.json.schema", result.stdout, result.stderr),
-                e,
-                project,
-                LOGGER
+                Bundle.message("error.failed.to.parse.json.schema", result.stdout, result.stderr), e, project, LOGGER
             )
             null
         }
@@ -74,28 +71,29 @@ class EditorServiceManager(private val project: Project) {
         if (!project.service<ProjectConfiguration>().state.enabled) {
             return
         }
-        createTaskWithTimeout("Initialising editor service") {
-            val schemaVersion = getSchemaVersion()
-            LogUtils.info("Received schema version $schemaVersion", project, LOGGER)
-            when {
-                schemaVersion == null -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                    .info(
+        createTaskWithTimeout(
+            "Initialising editor service",
+            {
+                val schemaVersion = getSchemaVersion()
+                LogUtils.info("Received schema version $schemaVersion", project, LOGGER)
+                when {
+                    schemaVersion == null -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).info(
                         Bundle.message("config.dprint.schemaVersion.not.found")
                     )
-                schemaVersion < SCHEMA_V4 -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                    .info(
-                        Bundle.message("config.dprint.schemaVersion.older")
+                    schemaVersion < SCHEMA_V4 -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                        .info(
+                            Bundle.message("config.dprint.schemaVersion.older")
+                        )
+                    schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
+                    schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
+                    schemaVersion > SCHEMA_V5 -> LogUtils.info(
+                        Bundle.message("config.dprint.schemaVersion.newer"), project, LOGGER
                     )
-                schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
-                schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
-                schemaVersion > SCHEMA_V5 -> LogUtils.info(
-                    Bundle.message("config.dprint.schemaVersion.newer"),
-                    project,
-                    LOGGER
-                )
-            }
-            editorService?.initialiseEditorService()
-        }
+                }
+                editorService?.initialiseEditorService()
+            },
+            true
+        )
     }
 
     /**
@@ -121,18 +119,27 @@ class EditorServiceManager(private val project: Project) {
     }
 
     private fun primeCanFormatCache(path: String) {
-        createTaskWithTimeout("Priming can format cache for $path") {
-            editorService?.canFormat(path) {
-                canFormatCache[path] = it
-            }
-        }
+        createTaskWithTimeout(
+            "Priming can format cache for $path",
+            {
+                editorService?.canFormat(path) {
+                    canFormatCache[path] = it
+                }
+            },
+            true
+        )
     }
 
-    private fun createTaskWithTimeout(title: String, operation: () -> Unit) {
-        createTaskWithTimeout(title, operation, null)
+    private fun createTaskWithTimeout(title: String, operation: () -> Unit, restartOnFailure: Boolean) {
+        createTaskWithTimeout(title, operation, restartOnFailure, null)
     }
 
-    private fun createTaskWithTimeout(title: String, operation: () -> Unit, onFailure: (() -> Unit)?) {
+    private fun createTaskWithTimeout(
+        title: String,
+        operation: () -> Unit,
+        restartOnFailure: Boolean,
+        onFailure: (() -> Unit)?
+    ) {
         val future = CompletableFuture<Unit>()
         val task = object : Task.Backgroundable(project, title, true) {
             override fun run(indicator: ProgressIndicator) {
@@ -144,15 +151,19 @@ class EditorServiceManager(private val project: Project) {
                 } catch (e: TimeoutException) {
                     if (onFailure != null) onFailure()
                     LogUtils.error("Dprint timeout: $title", e, project, LOGGER)
+                    if (restartOnFailure) maybeInitialiseEditorService()
                 } catch (e: ExecutionException) {
                     if (onFailure != null) onFailure()
                     LogUtils.error("Dprint execution exception: $title", e, project, LOGGER)
+                    if (restartOnFailure) maybeInitialiseEditorService()
                 } catch (e: InterruptedException) {
                     if (onFailure != null) onFailure()
                     LogUtils.error("Dprint interruption: $title", e, project, LOGGER)
+                    if (restartOnFailure) maybeInitialiseEditorService()
                 } catch (e: CancellationException) {
                     if (onFailure != null) onFailure()
                     LogUtils.error("Dprint cancellation: $title", e, project, LOGGER)
+                    if (restartOnFailure) maybeInitialiseEditorService()
                 }
             }
 
@@ -187,6 +198,7 @@ class EditorServiceManager(private val project: Project) {
         createTaskWithTimeout(
             "Creating formatting task for $path",
             { editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished) },
+            true,
             { onFinished(FormatResult()) }
         )
     }
