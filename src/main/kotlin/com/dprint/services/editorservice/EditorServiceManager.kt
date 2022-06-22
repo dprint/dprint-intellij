@@ -226,7 +226,11 @@ class EditorServiceManager(private val project: Project) {
     }
 
     fun cancelFormat(formatId: Int) {
-        editorService?.cancelFormat(formatId)
+        createTaskWithTimeout(
+            "Cancelling format $formatId",
+            { editorService?.cancelFormat(formatId) },
+            true
+        )
     }
 
     fun canCancelFormat(): Boolean {

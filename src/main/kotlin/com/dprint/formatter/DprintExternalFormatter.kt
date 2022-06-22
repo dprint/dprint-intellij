@@ -11,7 +11,11 @@ import com.intellij.formatting.service.FormattingService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.psi.PsiFile
+import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 private val LOGGER = logger<DprintExternalFormatter>()
 private const val NAME = "dprintfmt"
@@ -59,21 +63,24 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         }
 
         return object : FormattingTask {
+            private var timeout = 10L
             private var formattingId: Int? = editorServiceManager.maybeGetFormatId()
             private var isCancelled = false
+            private val baseFormatFuture = CompletableFuture<FormatResult>()
+            private var activeFormatFuture: CompletableFuture<FormatResult>? = null
 
             override fun run() {
                 val content = formattingRequest.documentText
                 val ranges = formattingRequest.formattingRanges
-                val future = CompletableFuture<FormatResult>()
 
                 for (range in ranges.subList(1, ranges.size)) {
-                    future.thenApply {
+                    baseFormatFuture.thenApply {
                         if (isCancelled) {
                             it
                         } else {
                             val resultContent = it.formattedContent
                             val nextFuture = CompletableFuture<FormatResult>()
+                            activeFormatFuture = nextFuture
                             val nextHandler: (FormatResult) -> Unit = { nextResult ->
                                 nextFuture.complete(nextResult)
                             }
@@ -89,16 +96,15 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                                     nextHandler
                                 )
                             }
-                            // Timeouts are handled at the EditorServiceManager level and an empty result will be
-                            // returned if something goes wrong
-                            nextFuture.get()
+
+                            getFuture(nextFuture)
                         }
                     }
                 }
 
                 val initialRange = if (ranges.size > 0) ranges.first() else null
                 val initialHandler: (FormatResult) -> Unit = {
-                    future.complete(it)
+                    baseFormatFuture.complete(it)
                 }
                 editorServiceManager.format(
                     formattingId,
@@ -110,9 +116,9 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 )
                 // Timeouts are handled at the EditorServiceManager level and an empty result will be
                 // returned if something goes wrong
-                val result = future.get()
+                val result = getFuture(baseFormatFuture)
 
-                if (isCancelled) {
+                if (isCancelled || result == null) {
                     return
                 }
 
@@ -125,6 +131,30 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 }
             }
 
+            private fun getFuture(future: CompletableFuture<FormatResult>): FormatResult? {
+                return try {
+                    future.get(timeout, TimeUnit.SECONDS)
+                } catch (e: CancellationException) {
+                    LogUtils.error("External format process cancelled", e, project, LOGGER)
+                    null
+                } catch (e: TimeoutException) {
+                    LogUtils.error("External format process timed out", e, project, LOGGER)
+                    formattingRequest.onError("Dprint external formatter", "Format process timed out")
+                    editorServiceManager.restartEditorService()
+                    null
+                } catch (e: ExecutionException) {
+                    LogUtils.error("External format process failed", e, project, LOGGER)
+                    formattingRequest.onError("Dprint external formatter", "Format process failed")
+                    editorServiceManager.restartEditorService()
+                    null
+                } catch (e: InterruptedException) {
+                    LogUtils.error("External format process interrupted", e, project, LOGGER)
+                    formattingRequest.onError("Dprint external formatter", "Format process interrupted")
+                    editorServiceManager.restartEditorService()
+                    null
+                }
+            }
+
             override fun cancel(): Boolean {
                 if (!editorServiceManager.canCancelFormat()) {
                     return false
@@ -133,6 +163,9 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 val formatId = formattingId
                 isCancelled = true
                 if (formatId != null) editorServiceManager.cancelFormat(formatId)
+                // Clean up state so process can complete
+                baseFormatFuture.cancel(true)
+                activeFormatFuture?.cancel(true)
                 return true
             }
 

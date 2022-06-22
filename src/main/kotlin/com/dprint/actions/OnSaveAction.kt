@@ -1,6 +1,7 @@
 package com.dprint.actions
 
 import com.dprint.config.ProjectConfiguration
+import com.dprint.config.UserConfiguration
 import com.dprint.core.Bundle
 import com.dprint.core.LogUtils
 import com.dprint.services.FormatterService
@@ -21,7 +22,8 @@ private val LOGGER = logger<OnSaveAction>()
 class OnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
 
     override fun isEnabledForProject(project: Project): Boolean {
-        return project.service<ProjectConfiguration>().state.enabled
+        return project.service<ProjectConfiguration>().state.enabled &&
+            project.service<UserConfiguration>().state.runOnSave
     }
 
     override fun processDocuments(project: Project, documents: Array<out Document>) {
