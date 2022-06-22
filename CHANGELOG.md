@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.3.4]
 - Reduce timeout when checking if a file can be formatted in the external formatter
 - Cache whether files can be formatted by dprint and create an action to clear this
 - Remove custom synchronization and move to an IntelliJ background task queue for dprint tasks (this appears to solve the hard to reproduce lock up issues)
