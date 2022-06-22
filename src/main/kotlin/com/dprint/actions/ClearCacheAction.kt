@@ -9,17 +9,17 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 
-private val LOGGER = logger<RestartAction>()
+private val LOGGER = logger<ClearCacheAction>()
 
 /**
- * This action will restart the editor service when invoked
+ * This action clears the cache of canFormat results. Useful if config changes have been made.
  */
-class RestartAction : AnAction() {
+class ClearCacheAction : AnAction() {
     override fun actionPerformed(event: AnActionEvent) {
         event.project?.let { project ->
             if (!project.service<ProjectConfiguration>().state.enabled) return@let
-            LogUtils.info(Bundle.message("restart.action.run"), project, LOGGER)
-            project.service<EditorServiceManager>().restartEditorService()
+            LogUtils.info(Bundle.message("clear.cache.action.run"), project, LOGGER)
+            project.service<EditorServiceManager>().clearCanFormatCache()
         }
     }
 }

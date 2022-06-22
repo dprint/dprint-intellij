@@ -34,12 +34,10 @@ class EditorProcess(private val project: Project) {
 
         when {
             configPath.isNullOrBlank() -> {
-
                 project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
                     .info(Bundle.message("error.config.path"))
             }
             executablePath.isNullOrBlank() -> {
-
                 project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
                     .info(Bundle.message("error.executable.path"))
             }
@@ -51,17 +49,10 @@ class EditorProcess(private val project: Project) {
      * Shuts down the editor service and destroys the process.
      */
     fun destroy() {
-        val stdout = this.process?.inputStream
-        val stdin = this.process?.outputStream
-        val stderr = this.process?.errorStream
-        LOGGER.info(Bundle.message("editor.service.shutting.down"))
-        stdin?.close()
-        LOGGER.debug(stdout?.bufferedReader().use { it?.readText() })
-        stdout?.close()
-        LOGGER.debug(stderr?.bufferedReader().use { it?.readText() })
-        stderr?.close()
-        this.process?.destroy()
-        this.process = null
+        // TODO find some way to read what we an from the process without blocking, currently if we fail to do this
+        //  restarts are impossible
+        process?.destroy()
+        process = null
     }
 
     private fun createEditorService(executablePath: String, configPath: String): Process {
@@ -82,15 +73,11 @@ class EditorProcess(private val project: Project) {
             workingDir != null -> {
                 commandLine.withWorkDirectory(workingDir)
                 LogUtils.info(
-                    Bundle.message("editor.service.starting", executablePath, configPath, workingDir),
-                    project,
-                    LOGGER
+                    Bundle.message("editor.service.starting", executablePath, configPath, workingDir), project, LOGGER
                 )
             }
             else -> LogUtils.info(
-                Bundle.message("editor.service.starting.working.dir", executablePath, configPath),
-                project,
-                LOGGER
+                Bundle.message("editor.service.starting.working.dir", executablePath, configPath), project, LOGGER
             )
         }
 

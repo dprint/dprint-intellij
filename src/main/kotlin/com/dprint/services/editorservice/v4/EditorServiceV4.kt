@@ -41,8 +41,8 @@ class EditorServiceV4(private val project: Project) : EditorService {
         editorProcess.destroy()
     }
 
-    @Synchronized
-    override fun canFormat(filePath: String): Boolean {
+    override fun canFormat(filePath: String, onFinished: (Boolean) -> Unit) {
+
         var status = 0
         LogUtils.info(Bundle.message("formatting.checking.can.format", filePath), project, LOGGER)
 
@@ -70,15 +70,13 @@ class EditorServiceV4(private val project: Project) : EditorService {
             true -> LogUtils.info(Bundle.message("formatting.can.format", filePath), project, LOGGER)
             false -> LogUtils.info(Bundle.message("formatting.cannot.format", filePath), project, LOGGER)
         }
-
-        return result
+        onFinished(result)
     }
 
     override fun canRangeFormat(): Boolean {
         return false
     }
 
-    @Synchronized
     override fun fmt(filePath: String, content: String, onFinished: (FormatResult) -> Unit): Int? {
         val result = FormatResult()
 
@@ -138,6 +136,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
     }
 
     override fun fmt(
+        formatId: Int?,
         filePath: String,
         content: String,
         startIndex: Int?,
@@ -149,6 +148,10 @@ class EditorServiceV4(private val project: Project) : EditorService {
 
     override fun canCancelFormat(): Boolean {
         return false
+    }
+
+    override fun maybeGetFormatId(): Int? {
+        return null
     }
 
     private fun getName(): String {

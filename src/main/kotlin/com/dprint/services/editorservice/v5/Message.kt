@@ -12,7 +12,11 @@ private const val U32_BYTE_SIZE = 4
 private var messageId = AtomicInteger(0)
 
 fun createNewMessage(type: MessageType): Message {
-    return Message(messageId.incrementAndGet(), type)
+    return Message(getNextMessageId(), type)
+}
+
+fun getNextMessageId(): Int {
+    return messageId.incrementAndGet()
 }
 
 class Message(val id: Int, val type: MessageType) {
