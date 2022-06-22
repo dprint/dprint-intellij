@@ -19,6 +19,7 @@ import java.util.concurrent.TimeoutException
 
 private val LOGGER = logger<DprintExternalFormatter>()
 private const val NAME = "dprintfmt"
+private const val FORMATTING_TIMEOUT = 10L
 
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun getFeatures(): MutableSet<FormattingService.Feature> {
@@ -63,7 +64,6 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         }
 
         return object : FormattingTask {
-            private var timeout = 10L
             private var formattingId: Int? = editorServiceManager.maybeGetFormatId()
             private var isCancelled = false
             private val baseFormatFuture = CompletableFuture<FormatResult>()
@@ -133,7 +133,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
 
             private fun getFuture(future: CompletableFuture<FormatResult>): FormatResult? {
                 return try {
-                    future.get(timeout, TimeUnit.SECONDS)
+                    future.get(FORMATTING_TIMEOUT, TimeUnit.SECONDS)
                 } catch (e: CancellationException) {
                     LogUtils.error("External format process cancelled", e, project, LOGGER)
                     null
