@@ -72,10 +72,14 @@ class EditorServiceManager(private val project: Project) {
             return
         }
         createTaskWithTimeout(
-            "Initialising editor service",
+            Bundle.message("editor.service.manager.initialising.editor.service"),
             {
                 val schemaVersion = getSchemaVersion()
-                LogUtils.info("Received schema version $schemaVersion", project, LOGGER)
+                LogUtils.info(
+                    Bundle.message("editor.service.manager.received.schema.version", schemaVersion ?: "none"),
+                    project,
+                    LOGGER
+                )
                 when {
                     schemaVersion == null -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).info(
                         Bundle.message("config.dprint.schemaVersion.not.found")
@@ -92,7 +96,7 @@ class EditorServiceManager(private val project: Project) {
                 }
                 editorService?.initialiseEditorService()
             },
-            true
+            false
         )
     }
 
@@ -104,7 +108,7 @@ class EditorServiceManager(private val project: Project) {
         val result = canFormatCache[path]
 
         if (result == null) {
-            LogUtils.warn("Did not find cached can format result for $path.", project, LOGGER)
+            LogUtils.warn(Bundle.message("editor.service.manager.no.cached.can.format", path), project, LOGGER)
             primeCanFormatCache(path)
         }
 
@@ -120,7 +124,7 @@ class EditorServiceManager(private val project: Project) {
 
     private fun primeCanFormatCache(path: String) {
         createTaskWithTimeout(
-            "Priming can format cache for $path",
+            Bundle.message("editor.service.manager.priming.can.format.cache", path),
             {
                 editorService?.canFormat(path) {
                     canFormatCache[path] = it
@@ -196,7 +200,7 @@ class EditorServiceManager(private val project: Project) {
         onFinished: (FormatResult) -> Unit
     ) {
         createTaskWithTimeout(
-            "Creating formatting task for $path",
+            Bundle.message("editor.service.manager.creating.formatting.task", path),
             { editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished) },
             true,
             { onFinished(FormatResult()) }

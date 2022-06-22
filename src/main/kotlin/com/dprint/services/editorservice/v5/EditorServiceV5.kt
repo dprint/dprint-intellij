@@ -60,7 +60,7 @@ class EditorServiceV5(val project: Project) : EditorService {
                 }
             }
         } catch (e: TimeoutCancellationException) {
-            LogUtils.error("Timed out shitting down editor process", e, project, LOGGER)
+            LogUtils.error(Bundle.message("editor.service.shutting.down.timed.out"), e, project, LOGGER)
         } finally {
             stdoutListener?.interrupt()
             dropMessages()
