@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.3.5]
 - Fix issue when performing code refactoring
 
 ## [0.3.4]
