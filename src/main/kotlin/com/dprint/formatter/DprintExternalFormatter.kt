@@ -37,7 +37,8 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         // formatter. This is a minor issue and should be resolved if they run it again.
         //
         // We need to take this approach as it appears that blocking the
-        return file.project.service<EditorServiceManager>().canFormatCached(file.virtualFile.path) != false
+        return file.virtualFile != null && file.project.service<EditorServiceManager>()
+            .canFormatCached(file.virtualFile.path) != false
     }
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
