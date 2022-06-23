@@ -3,6 +3,7 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+- Fix issue when performing code refactoring
 
 ## [0.3.4]
 - Reduce timeout when checking if a file can be formatted in the external formatter
