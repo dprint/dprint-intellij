@@ -25,10 +25,6 @@ class EditorServiceV5(val project: Project) : EditorService {
     private val pendingMessages = PendingMessages()
 
     private fun createStdoutListener(): Thread {
-        if (stdoutListener != null) {
-            stdoutListener?.interrupt()
-        }
-
         return thread {
             StdoutListener(editorProcess, pendingMessages).run()
         }
@@ -39,6 +35,11 @@ class EditorServiceV5(val project: Project) : EditorService {
             Bundle.message("editor.service.initialize", getName()), project, LOGGER
         )
         dropMessages()
+        if (stdoutListener != null) {
+            stdoutListener?.interrupt()
+            stdoutListener = null
+        }
+
         editorProcess.initialize()
         stdoutListener = createStdoutListener()
     }

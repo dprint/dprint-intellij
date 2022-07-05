@@ -10,6 +10,7 @@ import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
@@ -37,8 +38,9 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         // formatter. This is a minor issue and should be resolved if they run it again.
         //
         // We need to take this approach as it appears that blocking the
-        return file.virtualFile != null && file.project.service<EditorServiceManager>()
-            .canFormatCached(file.virtualFile.path) != false
+        val virtualFile = file.virtualFile ?: file.originalFile.virtualFile
+        return virtualFile != null && file.project.service<EditorServiceManager>()
+            .canFormatCached(virtualFile.path) != false
     }
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
@@ -73,6 +75,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             override fun run() {
                 val content = formattingRequest.documentText
                 val ranges = formattingRequest.formattingRanges
+                editorServiceManager.primeCanFormatCache(path)
 
                 for (range in ranges.subList(1, ranges.size)) {
                     baseFormatFuture.thenApply {
@@ -93,7 +96,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                                     path,
                                     resultContent,
                                     range.startOffset,
-                                    range.endOffset,
+                                    getEndOfRange(content, range),
                                     nextHandler
                                 )
                             }
@@ -103,16 +106,18 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                     }
                 }
 
-                val initialRange = if (ranges.size > 0) ranges.first() else null
+                val initialRange =
+                    if (editorServiceManager.canRangeFormat() && ranges.size > 0) ranges.first() else null
                 val initialHandler: (FormatResult) -> Unit = {
                     baseFormatFuture.complete(it)
                 }
+
                 editorServiceManager.format(
                     formattingId,
                     path,
                     content,
                     initialRange?.startOffset ?: 0,
-                    initialRange?.endOffset ?: content.length,
+                    getEndOfRange(content, initialRange),
                     initialHandler
                 )
                 // Timeouts are handled at the EditorServiceManager level and an empty result will be
@@ -173,6 +178,18 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             override fun isRunUnderProgress(): Boolean {
                 return true
             }
+        }
+    }
+
+    /**
+     * This function gets around an issue where IntelliJ will sometimes send in a formatting range that
+     * is greater than the actual length of the file. Doing this will cause a no-op in dprint for a format.
+     */
+    private fun getEndOfRange(content: String, range: TextRange?): Int {
+        return when {
+            range == null -> content.length
+            range.endOffset > content.length -> content.length
+            else -> range.endOffset
         }
     }
 

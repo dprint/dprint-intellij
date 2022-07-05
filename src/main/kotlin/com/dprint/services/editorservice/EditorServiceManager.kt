@@ -122,12 +122,13 @@ class EditorServiceManager(private val project: Project) {
         primeCanFormatCache(virtualFile.path)
     }
 
-    private fun primeCanFormatCache(path: String) {
+    fun primeCanFormatCache(path: String) {
         createTaskWithTimeout(
             Bundle.message("editor.service.manager.priming.can.format.cache", path),
             {
                 editorService?.canFormat(path) {
                     canFormatCache[path] = it
+                    LogUtils.info("Dprint: $path ${if (it) "can" else "cannot"} be formatted", project, LOGGER)
                 }
             },
             true

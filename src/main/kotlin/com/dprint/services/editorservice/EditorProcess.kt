@@ -10,6 +10,7 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import java.io.File
 import java.nio.ByteBuffer
+import kotlin.concurrent.thread
 
 private const val BUFFER_SIZE = 1024
 private const val ZERO = 0
@@ -23,6 +24,7 @@ private val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
 
 class EditorProcess(private val project: Project) {
     private var process: Process? = null
+    private var stdErrListener: Thread? = null
 
     fun initialize() {
         val executablePath = FileUtils.getValidExecutablePath(this.project)
@@ -41,7 +43,10 @@ class EditorProcess(private val project: Project) {
                 project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
                     .info(Bundle.message("error.executable.path"))
             }
-            else -> process = createEditorService(executablePath, configPath)
+            else -> {
+                process = createEditorService(executablePath, configPath)
+                createStdErrListener()
+            }
         }
     }
 
@@ -49,10 +54,27 @@ class EditorProcess(private val project: Project) {
      * Shuts down the editor service and destroys the process.
      */
     fun destroy() {
-        // TODO find some way to read what we an from the process without blocking, currently if we fail to do this
-        //  restarts are impossible
+        stdErrListener?.interrupt()
         process?.destroy()
         process = null
+    }
+
+    private fun createStdErrListener() {
+        val listener = Runnable {
+            while(true) {
+                val stderrReader = process?.errorStream?.bufferedReader()
+                try {
+                    if(stderrReader?.ready() == true) {
+                        LogUtils.error("Dprint: ${stderrReader.readLine() }}", project, LOGGER)
+                    }
+                } catch (e: Exception) {
+                    LogUtils.error("Dprint: stderr reader failed",e, project, LOGGER)
+                }
+            }
+        }
+        stdErrListener = thread {
+            listener.run()
+        }
     }
 
     private fun createEditorService(executablePath: String, configPath: String): Process {
