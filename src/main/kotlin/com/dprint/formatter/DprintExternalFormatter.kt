@@ -75,7 +75,6 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             override fun run() {
                 val content = formattingRequest.documentText
                 val ranges = formattingRequest.formattingRanges
-                editorServiceManager.primeCanFormatCache(path)
 
                 for (range in ranges.subList(1, ranges.size)) {
                     baseFormatFuture.thenApply {

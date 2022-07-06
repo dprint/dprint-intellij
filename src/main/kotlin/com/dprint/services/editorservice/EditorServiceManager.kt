@@ -36,6 +36,7 @@ private const val TIMEOUT = 10L
 @Service
 class EditorServiceManager(private val project: Project) {
     private var editorService: EditorService? = null
+    private var configPath: String? = null
     private val taskQueue = BackgroundTaskQueue(project, "Dprint manager task queue")
     private var canFormatCache = LRUMap<String, Boolean>()
 
@@ -75,6 +76,7 @@ class EditorServiceManager(private val project: Project) {
             Bundle.message("editor.service.manager.initialising.editor.service"),
             {
                 val schemaVersion = getSchemaVersion()
+                configPath = FileUtils.getValidConfigPath(project)
                 LogUtils.info(
                     Bundle.message("editor.service.manager.received.schema.version", schemaVersion ?: "none"),
                     project,
@@ -122,7 +124,7 @@ class EditorServiceManager(private val project: Project) {
         primeCanFormatCache(virtualFile.path)
     }
 
-    fun primeCanFormatCache(path: String) {
+    private fun primeCanFormatCache(path: String) {
         createTaskWithTimeout(
             Bundle.message("editor.service.manager.priming.can.format.cache", path),
             {
@@ -216,6 +218,10 @@ class EditorServiceManager(private val project: Project) {
 
     fun destroyEditorService() {
         editorService?.destroyEditorService()
+    }
+
+    fun getConfigPath(): String? {
+        return configPath
     }
 
     fun canRangeFormat(): Boolean {
