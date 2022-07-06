@@ -96,6 +96,8 @@ class EditorServiceV5(val project: Project) : EditorService {
     }
 
     override fun canRangeFormat(): Boolean {
+        // TODO before we can enable this we need to ensure that the formatting indexes passed into fmt are converted
+        //  from string index to byte index correctly
         return false
     }
 
@@ -110,6 +112,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         LogUtils.info(Bundle.message("formatting.file", filePath), project, LOGGER)
         val message = Message(formatId ?: getNextMessageId(), MessageType.FormatFile)
         message.addString(filePath)
+        // TODO We need to properly handle string index to byte index here
         message.addInt(startIndex ?: 0) // for range formatting add starting index
         message.addInt(endIndex ?: content.encodeToByteArray().size) // add ending index
         message.addInt(0) // Override config
