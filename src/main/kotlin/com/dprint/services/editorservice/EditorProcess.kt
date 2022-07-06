@@ -9,6 +9,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import java.io.File
+import java.nio.BufferUnderflowException
 import java.nio.ByteBuffer
 import kotlin.concurrent.thread
 
@@ -55,6 +56,8 @@ class EditorProcess(private val project: Project) {
      */
     fun destroy() {
         stdErrListener?.interrupt()
+        // Ensure that we read whatever is left in the error stream before shutting down
+        LOGGER.info(process?.errorStream?.bufferedReader().use { if (it?.ready() == true) it.readText() else "" })
         process?.destroy()
         process = null
     }
@@ -68,6 +71,9 @@ class EditorProcess(private val project: Project) {
                     if (stderrReader?.ready() == true) {
                         LogUtils.error("Dprint: ${stderrReader.readLine()}}", project, LOGGER)
                     }
+                } catch (e: BufferUnderflowException) {
+                    // Happens when the editor service is shut down while this thread is waiting to read output
+                    LOGGER.info(e)
                 } catch (e: Exception) {
                     LogUtils.error("Dprint: stderr reader failed", e, project, LOGGER)
                 }
