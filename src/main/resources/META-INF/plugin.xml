@@ -28,8 +28,10 @@
         <documentMerger implementation="com.dprint.formatter.DprintDocumentMerger"/>
         <toolWindow factoryClass="com.dprint.toolwindow.ConsoleToolWindowFactory" id="Dprint" anchor="bottom"/>
         <actionOnSave id="DprintActionOnSave"
-                      implementation="com.dprint.actions.OnSaveAction"
+                      implementation="com.dprint.listeners.OnSaveAction"
                       order="after FormatOnSaveAction"/>
+        <actionOnSave id="DprintConfigChangedAction" implementation="com.dprint.listeners.ConfigChangedAction"
+                      order="before DprintActionOnSave"/>
     </extensions>
 
     <actions>

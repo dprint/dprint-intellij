@@ -1,4 +1,4 @@
-package com.dprint.actions
+package com.dprint.listeners
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.config.UserConfiguration
@@ -17,7 +17,7 @@ import com.intellij.openapi.project.Project
 private val LOGGER = logger<OnSaveAction>()
 
 /**
- * This action sets up format on save functionality.
+ * This listener sets up format on save functionality.
  */
 class OnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
 

@@ -15,7 +15,7 @@ To use this plugin:
 
 If a file can be formatted via dprint, the default IntelliJ formatter will be overridden and dprint will be run in its place when using <kbd>Option+Shift+Cmd+L</kbd> on macOS or <kbd>Alt+Shift+Ctrl+L</kbd> on Windows and Linux.
 
-This plugin uses a long-running process known as the `editor-service`. If you change your `dprint.json` file or dprint is not formatting as expected, run the `Restart Dprint` action or in `Preferences` -> `Tools` -> `Dprint` click the `Reload` button. This will force the editor service to close down and reload.
+This plugin uses a long-running process known as the `editor-service`. If you change your `dprint.json` file outside of IntelliJ or dprint is not formatting as expected, run the `Restart Dprint` action or in `Preferences` -> `Tools` -> `Dprint` click the `Reload` button. This will force the editor service to close down and reload.
 
 Please report any issues with this Intellij plugin to the [github repository](https://github.com/dprint/dprint-intellij/issues).
 <!-- Plugin description end -->

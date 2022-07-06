@@ -3,6 +3,11 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+- Fix issue where using the IntelliJ formatter would result in a no-op on every second format, IntelliJ is reporting larger formatting ranges that content length and dprint would not format these files
+- Better handling of virtual files
+- Silence an error that is thrown when restarting dprint
+- Improve verbose logging in the console
+- Add a listener to detect config changes, note this only detects changes made inside IntelliJ
 
 ## [0.3.5]
 - Fix issue when performing code refactoring
