@@ -105,6 +105,9 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                     }
                 }
 
+                // If the version can't range format we always return null, in this case the underlying process will
+                // extract the start byte position (0) and end byte position (content.encodeToByteArray().size) for the
+                // whole file
                 val initialRange =
                     if (editorServiceManager.canRangeFormat() && ranges.size > 0) ranges.first() else null
                 val initialHandler: (FormatResult) -> Unit = {
@@ -115,7 +118,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                     formattingId,
                     path,
                     content,
-                    initialRange?.startOffset ?: 0,
+                    initialRange?.startOffset,
                     getEndOfRange(content, initialRange),
                     initialHandler
                 )
@@ -184,9 +187,9 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
      * This function gets around an issue where IntelliJ will sometimes send in a formatting range that
      * is greater than the actual length of the file. Doing this will cause a no-op in dprint for a format.
      */
-    private fun getEndOfRange(content: String, range: TextRange?): Int {
+    private fun getEndOfRange(content: String, range: TextRange?): Int? {
         return when {
-            range == null -> content.length
+            range == null -> null
             range.endOffset > content.length -> content.length
             else -> range.endOffset
         }
