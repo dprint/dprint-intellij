@@ -59,16 +59,17 @@ class EditorProcess(private val project: Project) {
         process = null
     }
 
+    @Suppress("TooGenericExceptionCaught")
     private fun createStdErrListener() {
         val listener = Runnable {
-            while(true) {
+            while (true) {
                 val stderrReader = process?.errorStream?.bufferedReader()
                 try {
-                    if(stderrReader?.ready() == true) {
-                        LogUtils.error("Dprint: ${stderrReader.readLine() }}", project, LOGGER)
+                    if (stderrReader?.ready() == true) {
+                        LogUtils.error("Dprint: ${stderrReader.readLine()}}", project, LOGGER)
                     }
                 } catch (e: Exception) {
-                    LogUtils.error("Dprint: stderr reader failed",e, project, LOGGER)
+                    LogUtils.error("Dprint: stderr reader failed", e, project, LOGGER)
                 }
             }
         }
