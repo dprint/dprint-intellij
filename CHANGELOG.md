@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.3.7]
 - Performance improvements
 - Invalidate cache on restart
 
