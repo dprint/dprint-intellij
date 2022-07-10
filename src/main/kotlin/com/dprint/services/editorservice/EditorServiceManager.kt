@@ -12,6 +12,7 @@ import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.progress.BackgroundTaskQueue
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
@@ -130,7 +131,7 @@ class EditorServiceManager(private val project: Project) {
             {
                 editorService?.canFormat(path) {
                     canFormatCache[path] = it
-                    LogUtils.info("Dprint: $path ${if (it) "can" else "cannot"} be formatted", project, LOGGER)
+                    LogUtils.info("$path ${if (it) "can" else "cannot"} be formatted", project, LOGGER)
                 }
             },
             true
@@ -214,6 +215,10 @@ class EditorServiceManager(private val project: Project) {
         // TODO rather than restarting we should try and see if it is healthy, cancel the pending format, and drain
         //  pending messages if we are on schema version 5
         maybeInitialiseEditorService()
+        clearCanFormatCache()
+        for (virtualFile in FileEditorManager.getInstance(project).openFiles) {
+            primeCanFormatCacheForFile(virtualFile)
+        }
     }
 
     fun destroyEditorService() {

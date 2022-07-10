@@ -3,7 +3,6 @@ package com.dprint.services.editorservice.v5
 import com.dprint.core.Bundle
 import com.dprint.services.editorservice.EditorProcess
 import com.intellij.openapi.diagnostic.logger
-import org.apache.lucene.util.ThreadInterruptedException
 import java.nio.BufferUnderflowException
 
 private const val SLEEP_TIME = 500L
@@ -21,7 +20,7 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
             }
             try {
                 handleStdout()
-            } catch (e: ThreadInterruptedException) {
+            } catch (e: InterruptedException) {
                 LOGGER.info(e)
                 return
             } catch (e: BufferUnderflowException) {
