@@ -3,6 +3,7 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+- Performance improvements
 
 ## [0.3.6]
 - Fix issue where using the IntelliJ formatter would result in a no-op on every second format, IntelliJ is reporting larger formatting ranges that content length and dprint would not format these files
