@@ -8,7 +8,6 @@ import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
-import org.apache.lucene.util.ThreadInterruptedException
 import java.io.File
 import java.nio.BufferUnderflowException
 import java.nio.ByteBuffer
@@ -58,8 +57,6 @@ class EditorProcess(private val project: Project) {
      */
     fun destroy() {
         stderrListener?.interrupt()
-        // Ensure that we read whatever is left in the error stream before shutting down
-        LOGGER.info(process?.errorStream?.bufferedReader().use { if (it?.ready() == true) it.readText() else "" })
         process?.destroy()
         process = null
     }
@@ -73,10 +70,10 @@ class EditorProcess(private val project: Project) {
                 }
 
                 try {
-                    process?.errorStream?.bufferedReader()?.let {
-                        LogUtils.error("Dprint: ${it.readLine()}}", project, LOGGER)
+                    process?.errorStream?.bufferedReader()?.readLine()?.let {
+                        LogUtils.error("Dprint daemon ${process?.pid()}: $it", project, LOGGER)
                     }
-                } catch (e: ThreadInterruptedException) {
+                } catch (e: InterruptedException) {
                     LOGGER.info(e)
                     return@Runnable
                 } catch (e: BufferUnderflowException) {
