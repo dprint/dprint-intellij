@@ -3,6 +3,7 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+- Fix issue causing IntelliJ to hang on shutdown
 
 ## [0.3.7]
 - Performance improvements
