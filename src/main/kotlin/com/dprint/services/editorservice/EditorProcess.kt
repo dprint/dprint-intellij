@@ -16,7 +16,6 @@ import kotlin.concurrent.thread
 private const val BUFFER_SIZE = 1024
 private const val ZERO = 0
 private const val U32_BYTE_SIZE = 4
-private const val SLEEP_TIME = 500L
 
 private val LOGGER = logger<EditorProcess>()
 
@@ -79,9 +78,10 @@ class EditorProcess(private val project: Project) {
                 } catch (e: BufferUnderflowException) {
                     // Happens when the editor service is shut down while this thread is waiting to read output
                     LOGGER.info(e)
+                    return@Runnable
                 } catch (e: Exception) {
                     LogUtils.error("Dprint: stderr reader failed", e, project, LOGGER)
-                    Thread.sleep(SLEEP_TIME)
+                    return@Runnable
                 }
             }
         }
