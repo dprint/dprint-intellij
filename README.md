@@ -1,7 +1,7 @@
 # dprint-intellij-plugin
 
 <!-- Plugin description -->
-This plugin adds support for dprint, a flexible and extensible code formatter ([dprint.dev](https://dprint.dev/)). It is in active early development, please report bugs and feature requests to the our [github](https://github.com/dprint/dprint-intellij/issues).
+This plugin adds support for dprint, a flexible and extensible code formatter ([dprint.dev](https://dprint.dev/)). It is in active early development, please report bugs and feature requests to our [github](https://github.com/dprint/dprint-intellij/issues).
 
 To use this plugin:
 - Install and configure dprint for your repository, [dprint.dev/setup](https://dprint.dev/setup/)
