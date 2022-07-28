@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.3.9]
 - Fix issue where windows systems reported invalid executables
 - Add automatic node module detection from the base project path
 - Add 2022.2 to supported versions
