@@ -1,17 +1,17 @@
 # dprint-intellij-plugin
 
 <!-- Plugin description -->
-This plugin adds support for dprint, a flexible and extensible code formatter ([dprint.dev](https://dprint.dev/)).
+This plugin adds support for dprint, a flexible and extensible code formatter ([dprint.dev](https://dprint.dev/)). It is in active early development, please report bugs and feature requests to our [github](https://github.com/dprint/dprint-intellij/issues).
 
 To use this plugin:
 - Install and configure dprint for your repository, [dprint.dev/setup](https://dprint.dev/setup/)
 - Configure this plugin at `Preferences` -> `Tools` -> `Dprint`.
   - Ensure `Enable Dprint` is checked
   - If your config file isn't at the base of your project, provide the absolute path to your config in the "Dprint configuration json file location" field, otherwise it will be detected automatically.
-  - If dprint isn't on your path, provide the absolute path to the dprint executable in the "Dprint executable location" field, otherwise it will be detected automatically.
+  - If dprint isn't on your path, provide the absolute path to the dprint executable in the "Dprint executable location" field, otherwise it will be detected automatically from your path or a node modules at the project base path.
   - To run dprint on save tick the "Run dprint formatter on save" config checkbox.
 - Use the "Reformat with dprint" action by using the "Find Action" popup (<kbd>Cmd/Ctrl+Shift+A</kbd>).
-- Output from the plugin will be displayed in the Dprint tool window. This includes any syntax errors that may be stopping your file from being formatted.
+- Output from the plugin will be displayed in the Dprint tool window. This includes config errors and any syntax errors that may be stopping your file from being formatted.
 
 If a file can be formatted via dprint, the default IntelliJ formatter will be overridden and dprint will be run in its place when using <kbd>Option+Shift+Cmd+L</kbd> on macOS or <kbd>Alt+Shift+Ctrl+L</kbd> on Windows and Linux.
 

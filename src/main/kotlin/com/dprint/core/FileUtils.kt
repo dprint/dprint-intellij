@@ -90,10 +90,10 @@ object FileUtils {
     }
 
     /**
-     * Validates a path ends with 'dprint' and is executable
+     * Validates a path ends with 'dprint' or 'dprint.exe' and is executable
      */
     fun validateExecutablePath(path: String): Boolean {
-        return path.endsWith("dprint") && File(path).canExecute()
+        return path.endsWith(getExecutableFile()) && File(path).canExecute()
     }
 
     /**
@@ -118,6 +118,24 @@ object FileUtils {
     }
 
     /**
+     * Attempts to get the dprint executable location by checking node modules
+     */
+    private fun getLocationFromTheNodeModules(basePath: String?): String? {
+        basePath?.let {
+            val path = "$it/node_modules/dprint/${getExecutableFile()}"
+            if (validateExecutablePath(path)) return path
+        }
+        return null
+    }
+
+    private fun getExecutableFile(): String {
+        return when (System.getProperty("os.name").lowercase().contains("win")) {
+            true -> "dprint.exe"
+            false -> "dprint"
+        }
+    }
+
+    /**
      * Gets a valid dprint executable path. It will try to use the configured path and will fall
      * back to a path that is discoverable via the command line
      *
@@ -134,8 +152,11 @@ object FileUtils {
         }
 
         project.basePath?.let { workingDirectory ->
-            getLocationFromThePath(workingDirectory)?.let { executablePath ->
-                return executablePath
+            getLocationFromTheNodeModules(project.basePath)?.let {
+                return it
+            }
+            getLocationFromThePath(workingDirectory)?.let {
+                return it
             }
         }
 
