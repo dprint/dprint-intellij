@@ -90,7 +90,7 @@ object FileUtils {
     }
 
     /**
-     * Validates a path ends with 'dprint' pr 'dprint.exe' and is executable
+     * Validates a path ends with 'dprint' or 'dprint.exe' and is executable
      */
     fun validateExecutablePath(path: String): Boolean {
         return path.endsWith(getExecutableFile()) && File(path).canExecute()
