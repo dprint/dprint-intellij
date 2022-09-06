@@ -147,7 +147,7 @@ class EditorServiceManager(private val project: Project) {
         operation: () -> Unit,
         restartOnFailure: Boolean,
         onFailure: (() -> Unit)?
-    ) {
+    ): CompletableFuture<Unit> {
         val future = CompletableFuture<Unit>()
         val task = object : Task.Backgroundable(project, title, true) {
             override fun run(indicator: ProgressIndicator) {
@@ -181,14 +181,15 @@ class EditorServiceManager(private val project: Project) {
             }
         }
         taskQueue.run(task)
+        return future
     }
 
     /**
      * Formats the given file in a background thread and runs the onFinished callback once complete.
      * See [com.dprint.services.editorservice.EditorService.fmt] for more info on the parameters.
      */
-    fun format(path: String, content: String, onFinished: (FormatResult) -> Unit) {
-        format(editorService?.maybeGetFormatId(), path, content, null, null, onFinished)
+    fun format(path: String, content: String, onFinished: (FormatResult) -> Unit): CompletableFuture<Unit> {
+        return format(editorService?.maybeGetFormatId(), path, content, null, null, onFinished)
     }
 
     /**
@@ -202,8 +203,8 @@ class EditorServiceManager(private val project: Project) {
         startIndex: Int?,
         endIndex: Int?,
         onFinished: (FormatResult) -> Unit
-    ) {
-        createTaskWithTimeout(
+    ): CompletableFuture<Unit> {
+        return createTaskWithTimeout(
             Bundle.message("editor.service.manager.creating.formatting.task", path),
             { editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished) },
             true,

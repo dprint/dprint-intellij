@@ -6,6 +6,7 @@
     <!-- Product and plugin compatibility requirements -->
     <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
 
     <resource-bundle>messages.Bundle</resource-bundle>
 
@@ -32,6 +33,8 @@
                       order="after FormatOnSaveAction"/>
         <actionOnSave id="DprintConfigChangedAction" implementation="com.dprint.listeners.ConfigChangedAction"
                       order="before DprintActionOnSave"/>
+        <lang.importOptimizer order="FIRST" language="JAVA"
+                              implementationClass="com.dprint.listeners.OptimizeJavaImports"/>
     </extensions>
 
     <actions>
