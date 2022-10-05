@@ -8,6 +8,7 @@ import com.dprint.services.editorservice.FormatResult
 import com.intellij.formatting.service.AsyncDocumentFormattingService
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
+import com.intellij.ide.scratch.ScratchUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.util.TextRange
@@ -30,25 +31,23 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
     }
 
     override fun canFormat(file: PsiFile): Boolean {
-        if (!file.project.service<ProjectConfiguration>().state.enabled) {
-            return false
-        }
+        if (!file.project.service<ProjectConfiguration>().state.enabled) return false
+
         // If we don't have a cached can format response then we return true and let the formatting task figure that
         // out. Worse case scenario is that a file that cannot be formatted by dprint won't trigger the default IntelliJ
-        // formatter. This is a minor issue and should be resolved if they run it again.
-        //
-        // We need to take this approach as it appears that blocking the
+        // formatter. This is a minor issue and should be resolved if they run it again. We need to take this approach
+        // as it appears that blocking the EDT here causes quite a few issues. Also, we ignore scratch files as a perf
+        // optimisation because they are not part of the project and thus never in config.
         val virtualFile = file.virtualFile ?: file.originalFile.virtualFile
-        return virtualFile != null && file.project.service<EditorServiceManager>()
-            .canFormatCached(virtualFile.path) != false
+        return virtualFile != null &&
+            ScratchUtil.isScratch(virtualFile) &&
+            file.project.service<EditorServiceManager>().canFormatCached(virtualFile.path) != false
     }
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
         val project = formattingRequest.context.project
         // As per the getFeatures comment we handle FORMAT_FRAGMENTS and AD_HOC_FORMATTING features as a no op.
-        if (!project.service<ProjectConfiguration>().state.enabled) {
-            return null
-        }
+        if (!project.service<ProjectConfiguration>().state.enabled) return null
 
         val editorServiceManager = project.service<EditorServiceManager>()
         val path = formattingRequest.ioFile?.path
@@ -58,13 +57,11 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             return null
         }
 
-        if (project.service<EditorServiceManager>().canFormatCached(path) != true) {
-            return null
-        }
+        // This exists as well as the condition in the canFormat method as that will prime the cache if
+        // the file hasn't already been checked. Should probably never happen but let's be safe.
+        if (project.service<EditorServiceManager>().canFormatCached(path) != true) return null
 
-        if (!editorServiceManager.canRangeFormat() && isRangeFormat(formattingRequest)) {
-            return null
-        }
+        if (!editorServiceManager.canRangeFormat() && isRangeFormat(formattingRequest)) return null
 
         return object : FormattingTask {
             private var formattingId: Int? = editorServiceManager.maybeGetFormatId()
@@ -126,9 +123,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 // returned if something goes wrong
                 val result = getFuture(baseFormatFuture)
 
-                if (isCancelled || result == null) {
-                    return
-                }
+                if (isCancelled || result == null) return
 
                 val error = result.error
                 if (error != null) {
@@ -164,9 +159,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             }
 
             override fun cancel(): Boolean {
-                if (!editorServiceManager.canCancelFormat()) {
-                    return false
-                }
+                if (!editorServiceManager.canCancelFormat()) return false
 
                 val formatId = formattingId
                 isCancelled = true
@@ -202,6 +195,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 val range = formattingRequest.formattingRanges[0]
                 return range.startOffset > 0 || range.endOffset < formattingRequest.documentText.length
             }
+
             else -> false
         }
     }

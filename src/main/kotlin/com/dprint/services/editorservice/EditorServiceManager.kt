@@ -9,6 +9,7 @@ import com.dprint.services.editorservice.v4.EditorServiceV4
 import com.dprint.services.editorservice.v5.EditorServiceV5
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
+import com.intellij.ide.scratch.ScratchUtil
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -87,10 +88,12 @@ class EditorServiceManager(private val project: Project) {
                     schemaVersion == null -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).info(
                         Bundle.message("config.dprint.schemaVersion.not.found")
                     )
+
                     schemaVersion < SCHEMA_V4 -> project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
                         .info(
                             Bundle.message("config.dprint.schemaVersion.older")
                         )
+
                     schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
                     schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
                     schemaVersion > SCHEMA_V5 -> LogUtils.info(
@@ -217,7 +220,9 @@ class EditorServiceManager(private val project: Project) {
         maybeInitialiseEditorService()
         clearCanFormatCache()
         for (virtualFile in FileEditorManager.getInstance(project).openFiles) {
-            primeCanFormatCacheForFile(virtualFile)
+            if (!ScratchUtil.isScratch(virtualFile)) {
+                primeCanFormatCacheForFile(virtualFile)
+            }
         }
     }
 
