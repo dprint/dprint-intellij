@@ -25,6 +25,9 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
 
         return panel {
             row {
+                comment(Bundle.message("config.description"))
+            }
+            row {
                 checkBox(
                     Bundle.message("config.enable"),
                     { projectConfig.state.enabled },
@@ -36,7 +39,8 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                         } else {
                             editorServiceManager.destroyEditorService()
                         }
-                    }
+                    },
+                    Bundle.message("config.enable.description")
                 )
             }
 
@@ -44,7 +48,26 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                 checkBox(
                     Bundle.message("config.run.on.save"),
                     { userConfig.state.runOnSave },
-                    { userConfig.state.runOnSave = it }
+                    { userConfig.state.runOnSave = it },
+                    Bundle.message("config.run.on.save.description")
+                )
+            }
+
+            row {
+                checkBox(
+                    Bundle.message("config.override.intellij.formatter"),
+                    { userConfig.state.overrideIntelliJFormatter },
+                    { userConfig.state.overrideIntelliJFormatter = it },
+                    Bundle.message("config.override.intellij.formatter.description"),
+                )
+            }
+
+            row {
+                checkBox(
+                    Bundle.message("config.verbose.logging"),
+                    { userConfig.state.runOnSave },
+                    { userConfig.state.runOnSave = it },
+                    Bundle.message("config.verbose.logging.description"),
                 )
             }
 
