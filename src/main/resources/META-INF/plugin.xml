@@ -5,6 +5,7 @@
 
     <!-- Product and plugin compatibility requirements -->
     <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends optional="true" config-file="./javascript-config.xml">JavaScript</depends>
     <depends>com.intellij.modules.platform</depends>
 
     <resource-bundle>messages.Bundle</resource-bundle>
