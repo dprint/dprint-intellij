@@ -5,6 +5,8 @@
 ## [Unreleased]
 - Run dprint after Eslint fixes have been applied
 - Ensure dprint doesn't attempt to check/format scratch files (perf optimisation)
+- Add verbose logging config
+- Add override default IntelliJ formatter config
 
 ## [0.3.9]
 - Fix issue where windows systems reported invalid executables
