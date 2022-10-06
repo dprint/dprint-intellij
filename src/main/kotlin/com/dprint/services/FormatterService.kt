@@ -1,15 +1,15 @@
 package com.dprint.services
 
 import com.dprint.core.Bundle
+import com.dprint.core.FileUtils
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
-import com.intellij.ide.scratch.ScratchUtil
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 
 /**
  * A project service that handles reading virtual files, formatting their contents and writing the formatted result.
@@ -21,10 +21,10 @@ class FormatterService(private val project: Project) {
     /**
      * Attempts to format and save a Document using Dprint.
      */
-    fun format(filePath: String, document: Document) {
+    fun format(virtualFile: VirtualFile, document: Document) {
         val content = document.text
-        val virtualFile = FileDocumentManager.getInstance().getFile(document)
-        if (content.isBlank() || ScratchUtil.isScratch(virtualFile)) return
+        val filePath = virtualFile.path
+        if (content.isBlank() || FileUtils.isScratch(project, virtualFile)) return
 
         if (editorServiceManager.canFormatCached(filePath) == true) {
             val formatHandler: (FormatResult) -> Unit = {

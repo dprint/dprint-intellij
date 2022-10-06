@@ -2,13 +2,13 @@ package com.dprint.formatter
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.core.Bundle
+import com.dprint.core.FileUtils
 import com.dprint.core.LogUtils
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
 import com.intellij.formatting.service.AsyncDocumentFormattingService
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
-import com.intellij.ide.scratch.ScratchUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.util.TextRange
@@ -40,7 +40,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         // optimisation because they are not part of the project and thus never in config.
         val virtualFile = file.virtualFile ?: file.originalFile.virtualFile
         return virtualFile != null &&
-            ScratchUtil.isScratch(virtualFile) &&
+            !FileUtils.isScratch(file.project, virtualFile) &&
             file.project.service<EditorServiceManager>().canFormatCached(virtualFile.path) != false
     }
 
