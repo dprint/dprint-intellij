@@ -5,9 +5,11 @@ import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
+import com.intellij.ide.scratch.ScratchUtil
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
 import java.io.FileReader
 
@@ -77,6 +79,14 @@ object FileUtils {
         LogUtils.info(Bundle.message("notification.config.not.found"), project, LOGGER)
 
         return null
+    }
+
+    fun isScratch(project: Project, virtualFile: VirtualFile): Boolean {
+        val isScratch = ScratchUtil.isScratch(virtualFile)
+        if (isScratch) {
+            LogUtils.info(Bundle.message("formatting.scratch.files", virtualFile.path), project, LOGGER)
+        }
+        return isScratch
     }
 
     private fun checkIsValidJson(project: Project, path: String): Boolean {

@@ -9,7 +9,6 @@ import com.dprint.services.editorservice.v4.EditorServiceV4
 import com.dprint.services.editorservice.v5.EditorServiceV5
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
-import com.intellij.ide.scratch.ScratchUtil
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -220,7 +219,7 @@ class EditorServiceManager(private val project: Project) {
         maybeInitialiseEditorService()
         clearCanFormatCache()
         for (virtualFile in FileEditorManager.getInstance(project).openFiles) {
-            if (!ScratchUtil.isScratch(virtualFile)) {
+            if (!FileUtils.isScratch(project, virtualFile)) {
                 primeCanFormatCacheForFile(virtualFile)
             }
         }

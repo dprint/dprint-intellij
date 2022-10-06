@@ -47,7 +47,7 @@ class ReformatAction : AnAction() {
         val formatterService = project.service<FormatterService>()
         PsiDocumentManager.getInstance(project).getPsiFile(document)?.virtualFile?.let { virtualFile ->
             LogUtils.info(Bundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
-            formatterService.format(virtualFile.path, document)
+            formatterService.format(virtualFile, document)
         }
     }
 
@@ -55,7 +55,7 @@ class ReformatAction : AnAction() {
         val formatterService = project.service<FormatterService>()
         LogUtils.info(Bundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
         getDocument(project, virtualFile)?.let {
-            formatterService.format(virtualFile.path, it)
+            formatterService.format(virtualFile, it)
         }
     }
 

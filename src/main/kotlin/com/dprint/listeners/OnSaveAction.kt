@@ -35,7 +35,7 @@ class OnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
         for (document in documents) {
             manager.getFile(document)?.let {
                 LogUtils.info(Bundle.message("save.action.run", it.path), project, LOGGER)
-                formatterService.format(it.path, document)
+                formatterService.format(it, document)
             }
         }
     }
