@@ -36,11 +36,6 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                 }
             }
 
-            // Settings files explanations
-            row {
-                rowComment(Bundle.message("config.description"))
-            }
-
             // Enabled checkbox
             row {
                 checkBox(Bundle.message("config.enable"))
