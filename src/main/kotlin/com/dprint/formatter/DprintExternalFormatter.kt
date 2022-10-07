@@ -1,6 +1,7 @@
 package com.dprint.formatter
 
 import com.dprint.config.ProjectConfiguration
+import com.dprint.config.UserConfiguration
 import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
 import com.dprint.core.LogUtils
@@ -31,7 +32,10 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
     }
 
     override fun canFormat(file: PsiFile): Boolean {
-        if (!file.project.service<ProjectConfiguration>().state.enabled) return false
+        val projectConfig = file.project.service<ProjectConfiguration>().state
+        val userConfig = file.project.service<UserConfiguration>().state
+
+        if (!projectConfig.enabled || !userConfig.overrideIntelliJFormatter) return false
 
         // If we don't have a cached can format response then we return true and let the formatting task figure that
         // out. Worse case scenario is that a file that cannot be formatted by dprint won't trigger the default IntelliJ

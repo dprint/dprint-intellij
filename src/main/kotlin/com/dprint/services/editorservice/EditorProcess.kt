@@ -1,11 +1,13 @@
 package com.dprint.services.editorservice
 
+import com.dprint.config.UserConfiguration
 import com.dprint.core.Bundle
 import com.dprint.core.FileUtils
 import com.dprint.core.LogUtils
 import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import java.io.File
@@ -40,10 +42,12 @@ class EditorProcess(private val project: Project) {
                 project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
                     .info(Bundle.message("error.config.path"))
             }
+
             executablePath.isNullOrBlank() -> {
                 project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
                     .info(Bundle.message("error.executable.path"))
             }
+
             else -> {
                 process = createEditorService(executablePath, configPath)
                 createStderrListener()
@@ -92,16 +96,20 @@ class EditorProcess(private val project: Project) {
 
     private fun createEditorService(executablePath: String, configPath: String): Process {
         val pid = ProcessHandle.current().pid()
-        val commandLine = GeneralCommandLine(
+        val userConfig = project.service<UserConfiguration>().state
+
+        val args = mutableListOf(
             executablePath,
             "editor-service",
             "--config",
             configPath,
             "--parent-pid",
-            pid.toString(),
-            "--verbose" // TODO Make this configurable
+            pid.toString()
         )
 
+        if (userConfig.enableEditorServiceVerboseLogging) args.add("--verbose")
+
+        val commandLine = GeneralCommandLine(args)
         val workingDir = File(configPath).parent
 
         when {
@@ -111,6 +119,7 @@ class EditorProcess(private val project: Project) {
                     Bundle.message("editor.service.starting", executablePath, configPath, workingDir), project, LOGGER
                 )
             }
+
             else -> LogUtils.info(
                 Bundle.message("editor.service.starting.working.dir", executablePath, configPath), project, LOGGER
             )

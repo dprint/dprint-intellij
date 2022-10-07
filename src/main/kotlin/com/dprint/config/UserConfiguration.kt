@@ -12,6 +12,8 @@ class UserConfiguration : PersistentStateComponent<UserConfiguration.State> {
 
     class State {
         var runOnSave = false
+        var overrideIntelliJFormatter = true
+        var enableEditorServiceVerboseLogging = true
     }
 
     private var internalState = State()
