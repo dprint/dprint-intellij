@@ -19,7 +19,7 @@ class FileOpenedListener : FileEditorManagerListener {
         if (!source.project.service<ProjectConfiguration>().state.enabled) return
 
         // We ignore scratch files as they are never part of config
-        if (FileUtils.isScratch(source.project, file)) return
+        if (!FileUtils.isFormattableFile(source.project, file)) return
 
         val manager = source.project.service<EditorServiceManager>()
         manager.primeCanFormatCacheForFile(file)

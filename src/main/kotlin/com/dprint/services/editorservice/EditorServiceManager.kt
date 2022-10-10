@@ -219,7 +219,7 @@ class EditorServiceManager(private val project: Project) {
         maybeInitialiseEditorService()
         clearCanFormatCache()
         for (virtualFile in FileEditorManager.getInstance(project).openFiles) {
-            if (!FileUtils.isScratch(project, virtualFile)) {
+            if (FileUtils.isFormattableFile(project, virtualFile)) {
                 primeCanFormatCacheForFile(virtualFile)
             }
         }

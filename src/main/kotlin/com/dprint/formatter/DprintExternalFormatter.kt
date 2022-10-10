@@ -44,7 +44,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         // optimisation because they are not part of the project and thus never in config.
         val virtualFile = file.virtualFile ?: file.originalFile.virtualFile
         return virtualFile != null &&
-            !FileUtils.isScratch(file.project, virtualFile) &&
+            FileUtils.isFormattableFile(file.project, virtualFile) &&
             file.project.service<EditorServiceManager>().canFormatCached(virtualFile.path) != false
     }
 
