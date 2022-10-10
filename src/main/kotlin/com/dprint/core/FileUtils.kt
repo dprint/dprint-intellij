@@ -3,6 +3,8 @@ package com.dprint.core
 import com.dprint.config.ProjectConfiguration
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
+import com.intellij.codeInsight.daemon.OutsidersPsiFileSupport
+import com.intellij.diff.util.DiffUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
 import com.intellij.ide.scratch.ScratchUtil
@@ -20,7 +22,7 @@ private val DEFAULT_CONFIG_NAMES = listOf(
 )
 
 /**
- * Utils for checking that dprint is configured correctly outside of intellij.
+ * Utils for checking that dprint is configured correctly outside intellij.
  */
 object FileUtils {
 
@@ -81,12 +83,20 @@ object FileUtils {
         return null
     }
 
-    fun isScratch(project: Project, virtualFile: VirtualFile): Boolean {
+    /**
+     * Helper function to find out if a given virtual file is formattable. Some files,
+     * such as scratch files and diff views will never be formattable by dprint, so
+     * we use this to identify them early and thus save the trip to the dprint daemon.
+     */
+    fun isFormattableFile(project: Project, virtualFile: VirtualFile): Boolean {
         val isScratch = ScratchUtil.isScratch(virtualFile)
         if (isScratch) {
             LogUtils.info(Bundle.message("formatting.scratch.files", virtualFile.path), project, LOGGER)
         }
-        return isScratch
+
+        val isOutsiderFile = OutsidersPsiFileSupport.isOutsiderFile(virtualFile)
+        val isDiffFile = DiffUtil.isFileWithoutContent(virtualFile)
+        return !isScratch && !isOutsiderFile && !isDiffFile
     }
 
     private fun checkIsValidJson(project: Project, path: String): Boolean {

@@ -24,7 +24,7 @@ class FormatterService(private val project: Project) {
     fun format(virtualFile: VirtualFile, document: Document) {
         val content = document.text
         val filePath = virtualFile.path
-        if (content.isBlank() || FileUtils.isScratch(project, virtualFile)) return
+        if (content.isBlank() || !FileUtils.isFormattableFile(project, virtualFile)) return
 
         if (editorServiceManager.canFormatCached(filePath) == true) {
             val formatHandler: (FormatResult) -> Unit = {
