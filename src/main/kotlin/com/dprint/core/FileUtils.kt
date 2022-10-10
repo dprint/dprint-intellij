@@ -3,7 +3,6 @@ package com.dprint.core
 import com.dprint.config.ProjectConfiguration
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
-import com.intellij.codeInsight.daemon.OutsidersPsiFileSupport
 import com.intellij.diff.util.DiffUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
@@ -94,9 +93,10 @@ object FileUtils {
             LogUtils.info(Bundle.message("formatting.scratch.files", virtualFile.path), project, LOGGER)
         }
 
-        val isOutsiderFile = OutsidersPsiFileSupport.isOutsiderFile(virtualFile)
-        val isDiffFile = DiffUtil.isFileWithoutContent(virtualFile)
-        return !isScratch && !isOutsiderFile && !isDiffFile
+        return virtualFile.isWritable &&
+            virtualFile.isInLocalFileSystem &&
+            !isScratch &&
+            !DiffUtil.isFileWithoutContent(virtualFile)
     }
 
     private fun checkIsValidJson(project: Project, path: String): Boolean {
