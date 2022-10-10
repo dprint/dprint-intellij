@@ -5,6 +5,7 @@ import com.dprint.core.LogUtils
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
+import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
@@ -56,7 +57,11 @@ class EditorServiceV5(val project: Project) : EditorService {
             runBlocking {
                 withTimeout(SHUTDOWN_TIMEOUT) {
                     launch {
-                        editorProcess.writeBuffer(message.build())
+                        try {
+                            editorProcess.writeBuffer(message.build())
+                        } catch (e: ProcessUnavailableException) {
+                            LOGGER.warn(e)
+                        }
                     }
                 }
             }
@@ -92,7 +97,11 @@ class EditorServiceV5(val project: Project) : EditorService {
 
         pendingMessages.store(message.id, handler)
 
-        editorProcess.writeBuffer(message.build())
+        try {
+            editorProcess.writeBuffer(message.build())
+        } catch (e: ProcessUnavailableException) {
+            LOGGER.warn(e)
+        }
     }
 
     override fun canRangeFormat(): Boolean {
@@ -139,7 +148,11 @@ class EditorServiceV5(val project: Project) : EditorService {
         }
         pendingMessages.store(message.id, handler)
 
-        editorProcess.writeBuffer(message.build())
+        try {
+            editorProcess.writeBuffer(message.build())
+        } catch (e: ProcessUnavailableException) {
+            LOGGER.warn(e)
+        }
 
         LogUtils.info(Bundle.message("editor.service.created.formatting.task", filePath, message.id), project, LOGGER)
 
@@ -158,7 +171,11 @@ class EditorServiceV5(val project: Project) : EditorService {
         val message = createNewMessage(MessageType.CancelFormat)
         LogUtils.info(Bundle.message("editor.service.cancel.format", formatId), project, LOGGER)
         message.addInt(formatId)
-        editorProcess.writeBuffer(message.build())
+        try {
+            editorProcess.writeBuffer(message.build())
+        } catch (e: ProcessUnavailableException) {
+            LOGGER.warn(e)
+        }
         pendingMessages.take(formatId)
     }
 
