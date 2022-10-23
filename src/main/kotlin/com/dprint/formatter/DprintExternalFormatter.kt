@@ -35,6 +35,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun canFormat(file: PsiFile): Boolean {
         val projectConfig = file.project.service<ProjectConfiguration>().state
         val userConfig = file.project.service<UserConfiguration>().state
+        val editorServiceManager = file.project.service<EditorServiceManager>()
 
         if (!projectConfig.enabled || !userConfig.overrideIntelliJFormatter) return false
 
@@ -44,10 +45,9 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         // as it appears that blocking the EDT here causes quite a few issues. Also, we ignore scratch files as a perf
         // optimisation because they are not part of the project and thus never in config.
         val virtualFile = file.virtualFile ?: file.originalFile.virtualFile
-        return virtualFile != null && isFormattableFile(
-            file.project,
-            virtualFile
-        ) && file.project.service<EditorServiceManager>().canFormatCached(virtualFile.path) != false
+        return virtualFile != null &&
+            isFormattableFile(file.project, virtualFile) &&
+            editorServiceManager.canFormatCached(virtualFile.path) != false
     }
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
@@ -65,7 +65,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
 
         // This exists as well as the condition in the canFormat method as that will prime the cache if
         // the file hasn't already been checked. Should probably never happen but let's be safe.
-        if (project.service<EditorServiceManager>().canFormatCached(path) != true) return null
+        if (editorServiceManager.canFormatCached(path) != true) return null
 
         if (!editorServiceManager.canRangeFormat() && isRangeFormat(formattingRequest)) return null
 

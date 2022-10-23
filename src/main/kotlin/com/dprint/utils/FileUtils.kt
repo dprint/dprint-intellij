@@ -2,8 +2,6 @@ package com.dprint.utils
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.i18n.DprintBundle
-import com.google.gson.JsonParser
-import com.google.gson.JsonSyntaxException
 import com.intellij.diff.util.DiffUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
@@ -12,6 +10,8 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileReader
 
@@ -97,9 +97,11 @@ fun isFormattableFile(project: Project, virtualFile: VirtualFile): Boolean {
 
 private fun checkIsValidJson(project: Project, path: String): Boolean {
     return try {
-        JsonParser.parseReader(FileReader(path))
+        val reader = FileReader(path)
+        Json.parseToJsonElement(reader.readText())
+        reader.close()
         true
-    } catch (e: JsonSyntaxException) {
+    } catch (e: SerializationException) {
         errorLogWithConsole(e.message ?: "Failed to parse config JSON", e, project, LOGGER)
         false
     }

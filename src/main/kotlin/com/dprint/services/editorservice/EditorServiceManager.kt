@@ -107,7 +107,8 @@ class EditorServiceManager(private val project: Project) {
                     )
                 }
                 editorService?.initialiseEditorService()
-            }, false
+            },
+            false
         )
     }
 
@@ -145,7 +146,8 @@ class EditorServiceManager(private val project: Project) {
                     canFormatCache[path] = it
                     infoLogWithConsole("$path ${if (it) "can" else "cannot"} be formatted", project, LOGGER)
                 }
-            }, true
+            },
+            true
         )
     }
 
@@ -252,7 +254,8 @@ class EditorServiceManager(private val project: Project) {
 
     fun cancelFormat(formatId: Int) {
         createTaskWithTimeout(
-            "Cancelling format $formatId", { editorService?.cancelFormat(formatId) }, true
+            "Cancelling format $formatId", { editorService?.cancelFormat(formatId) },
+            true
         )
     }
 

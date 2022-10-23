@@ -16,10 +16,11 @@ private val LOGGER = logger<ClearCacheAction>()
  */
 class ClearCacheAction : AnAction() {
     override fun actionPerformed(event: AnActionEvent) {
-        event.project?.let { project ->
-            if (!project.service<ProjectConfiguration>().state.enabled) return@let
-            infoLogWithConsole(DprintBundle.message("clear.cache.action.run"), project, LOGGER)
-            project.service<EditorServiceManager>().clearCanFormatCache()
+        event.project?.let {
+            val projectConfig = it.service<ProjectConfiguration>().state
+            if (!projectConfig.enabled) return@let
+            infoLogWithConsole(DprintBundle.message("clear.cache.action.run"), it, LOGGER)
+            it.service<EditorServiceManager>().clearCanFormatCache()
         }
     }
 }

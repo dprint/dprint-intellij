@@ -81,9 +81,7 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
                 }
 
                 else -> {
-                    val errorMessage = DprintBundle.message(
-                        "editor.service.unsupported.message.type", messageType
-                    )
+                    val errorMessage = DprintBundle.message("editor.service.unsupported.message.type", messageType)
                     LOGGER.info(errorMessage)
                     sendFailure(messageId, errorMessage)
                 }

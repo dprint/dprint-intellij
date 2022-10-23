@@ -16,10 +16,11 @@ private val LOGGER = logger<RestartAction>()
  */
 class RestartAction : AnAction() {
     override fun actionPerformed(event: AnActionEvent) {
-        event.project?.let { project ->
-            if (!project.service<ProjectConfiguration>().state.enabled) return@let
-            infoLogWithConsole(DprintBundle.message("restart.action.run"), project, LOGGER)
-            project.service<EditorServiceManager>().restartEditorService()
+        event.project?.let {
+            val enabled = it.service<ProjectConfiguration>().state.enabled
+            if (!enabled) return@let
+            infoLogWithConsole(DprintBundle.message("restart.action.run"), it, LOGGER)
+            it.service<EditorServiceManager>().restartEditorService()
         }
     }
 }

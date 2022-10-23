@@ -39,46 +39,52 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
 
             // Enabled checkbox
             row {
-                checkBox(DprintBundle.message("config.enable")).bindSelected(
-                    { projectConfig.state.enabled },
-                    { projectConfig.state.enabled = it }
-                ).comment(DprintBundle.message("config.enable.description"))
+                checkBox(DprintBundle.message("config.enable"))
+                    .bindSelected(
+                        { projectConfig.state.enabled },
+                        { projectConfig.state.enabled = it }
+                    )
+                    .comment(DprintBundle.message("config.enable.description"))
             }
 
             // Format on save checkbox
             row {
-                checkBox(DprintBundle.message("config.run.on.save")).bindSelected(
-                    { userConfig.state.runOnSave },
-                    { userConfig.state.runOnSave = it }
-                )
+                checkBox(DprintBundle.message("config.run.on.save"))
+                    .bindSelected(
+                        { userConfig.state.runOnSave },
+                        { userConfig.state.runOnSave = it }
+                    )
                     .comment(DprintBundle.message("config.run.on.save.description"))
             }
 
             // Default IJ override checkbox
             row {
-                checkBox(DprintBundle.message("config.override.intellij.formatter")).bindSelected(
-                    { userConfig.state.overrideIntelliJFormatter },
-                    { userConfig.state.overrideIntelliJFormatter = it }
-                )
+                checkBox(DprintBundle.message("config.override.intellij.formatter"))
+                    .bindSelected(
+                        { userConfig.state.overrideIntelliJFormatter },
+                        { userConfig.state.overrideIntelliJFormatter = it }
+                    )
                     .comment(DprintBundle.message("config.override.intellij.formatter.description"))
             }
 
             // Verbose logging checkbox
             row {
-                checkBox(DprintBundle.message("config.verbose.logging")).bindSelected(
-                    { userConfig.state.runOnSave },
-                    { userConfig.state.runOnSave = it }
-                )
+                checkBox(DprintBundle.message("config.verbose.logging"))
+                    .bindSelected(
+                        { userConfig.state.runOnSave },
+                        { userConfig.state.runOnSave = it }
+                    )
                     .comment(DprintBundle.message("config.verbose.logging.description"))
             }
 
             // dprint.json path input and file finder
             indent {
                 row {
-                    textFieldWithBrowseButton().bindText(
-                        { projectConfig.state.configLocation },
-                        { projectConfig.state.configLocation = it }
-                    )
+                    textFieldWithBrowseButton()
+                        .bindText(
+                            { projectConfig.state.configLocation },
+                            { projectConfig.state.configLocation = it }
+                        )
                         .label(DprintBundle.message("config.dprint.config.path"), LabelPosition.TOP)
                         .comment(DprintBundle.message("config.dprint.config.path.description")).validationOnInput {
                             if (it.text.isEmpty() || validateConfigFile(project, it.text)) {
@@ -93,10 +99,11 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
             // dprint executable input and file finder
             indent {
                 row {
-                    textFieldWithBrowseButton().bindText(
-                        { projectConfig.state.executableLocation },
-                        { projectConfig.state.executableLocation = it }
-                    )
+                    textFieldWithBrowseButton()
+                        .bindText(
+                            { projectConfig.state.executableLocation },
+                            { projectConfig.state.executableLocation = it }
+                        )
                         .label(DprintBundle.message("config.dprint.executable.path"), LabelPosition.TOP)
                         .comment(DprintBundle.message("config.dprint.executable.path.description")).validationOnInput {
                             if (it.text.isEmpty() || validateExecutablePath(it.text)) {

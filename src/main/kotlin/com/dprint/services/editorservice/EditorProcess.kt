@@ -101,7 +101,12 @@ class EditorProcess(private val project: Project) {
         val userConfig = project.service<UserConfiguration>().state
 
         val args = mutableListOf(
-            executablePath, "editor-service", "--config", configPath, "--parent-pid", pid.toString()
+            executablePath,
+            "editor-service",
+            "--config",
+            configPath,
+            "--parent-pid",
+            pid.toString()
         )
 
         if (userConfig.enableEditorServiceVerboseLogging) args.add("--verbose")

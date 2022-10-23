@@ -22,12 +22,14 @@ private val LOGGER = logger<OnSaveAction>()
 class OnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
 
     override fun isEnabledForProject(project: Project): Boolean {
-        return project.service<ProjectConfiguration>().state.enabled &&
-            project.service<UserConfiguration>().state.runOnSave
+        val projectConfig = project.service<ProjectConfiguration>().state
+        val userConfig = project.service<UserConfiguration>().state
+        return projectConfig.enabled && userConfig.runOnSave
     }
 
     override fun processDocuments(project: Project, documents: Array<out Document>) {
-        if (CommandProcessor.getInstance().currentCommandName == ReformatCodeProcessor.getCommandName()) {
+        val currentCommandName = CommandProcessor.getInstance().currentCommandName
+        if (currentCommandName == ReformatCodeProcessor.getCommandName()) {
             return
         }
         val formatterService = project.service<FormatterService>()
