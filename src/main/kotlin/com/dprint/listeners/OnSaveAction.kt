@@ -2,9 +2,9 @@ package com.dprint.listeners
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.config.UserConfiguration
-import com.dprint.core.Bundle
-import com.dprint.core.LogUtils
+import com.dprint.i18n.DprintBundle
 import com.dprint.services.FormatterService
+import com.dprint.utils.infoLogWithConsole
 import com.intellij.codeInsight.actions.ReformatCodeProcessor
 import com.intellij.ide.actionsOnSave.impl.ActionsOnSaveFileDocumentManagerListener
 import com.intellij.openapi.command.CommandProcessor
@@ -34,7 +34,7 @@ class OnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
         val manager = FileDocumentManager.getInstance()
         for (document in documents) {
             manager.getFile(document)?.let {
-                LogUtils.info(Bundle.message("save.action.run", it.path), project, LOGGER)
+                infoLogWithConsole(DprintBundle.message("save.action.run", it.path), project, LOGGER)
                 formatterService.format(it, document)
             }
         }

@@ -1,6 +1,6 @@
 package com.dprint.services.editorservice.v5
 
-import com.dprint.core.Bundle
+import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.intellij.openapi.diagnostic.logger
@@ -14,7 +14,7 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
     Runnable {
     @Suppress("TooGenericExceptionCaught")
     override fun run() {
-        LOGGER.info(Bundle.message("editor.service.started.stdout.listener"))
+        LOGGER.info(DprintBundle.message("editor.service.started.stdout.listener"))
         while (true) {
             if (Thread.interrupted()) {
                 return
@@ -29,7 +29,7 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
                 LOGGER.info(e)
                 return
             } catch (e: Exception) {
-                LOGGER.error(Bundle.message("editor.service.read.failed"), e)
+                LOGGER.error(DprintBundle.message("editor.service.read.failed"), e)
                 Thread.sleep(SLEEP_TIME)
             }
         }
@@ -49,22 +49,26 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
                     val result = PendingMessages.Result(MessageType.SuccessResponse, null)
                     pendingMessages.take(responseId)?.let { it(result) }
                 }
+
                 MessageType.ErrorResponse.intValue -> {
                     val responseId = body.readInt()
                     val errorMessage = body.readSizedString()
-                    LOGGER.info(Bundle.message("editor.service.received.error.response", errorMessage))
+                    LOGGER.info(DprintBundle.message("editor.service.received.error.response", errorMessage))
                     val result = PendingMessages.Result(MessageType.ErrorResponse, errorMessage)
                     pendingMessages.take(responseId)?.let { it(result) }
                 }
+
                 MessageType.Active.intValue -> {
                     sendSuccess(messageId)
                 }
+
                 MessageType.CanFormatResponse.intValue -> {
                     val responseId = body.readInt()
                     val canFormatResult = body.readInt()
                     val result = PendingMessages.Result(MessageType.CanFormatResponse, canFormatResult == 1)
                     pendingMessages.take(responseId)?.let { it(result) }
                 }
+
                 MessageType.FormatFileResponse.intValue -> {
                     val responseId = body.readInt()
                     val hasChanged = body.readInt()
@@ -75,10 +79,10 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
                     val result = PendingMessages.Result(MessageType.FormatFileResponse, text)
                     pendingMessages.take(responseId)?.let { it(result) }
                 }
+
                 else -> {
-                    val errorMessage = Bundle.message(
-                        "editor.service.unsupported.message.type",
-                        messageType
+                    val errorMessage = DprintBundle.message(
+                        "editor.service.unsupported.message.type", messageType
                     )
                     LOGGER.info(errorMessage)
                     sendFailure(messageId, errorMessage)

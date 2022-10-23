@@ -12,6 +12,5 @@ enum class MessageType(val intValue: Int) {
     CanFormat(4),
     CanFormatResponse(5),
     FormatFile(6),
-    FormatFileResponse(7),
-    CancelFormat(8),
+    FormatFileResponse(7), CancelFormat(8),
 }

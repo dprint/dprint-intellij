@@ -1,9 +1,9 @@
 package com.dprint.actions
 
 import com.dprint.config.ProjectConfiguration
-import com.dprint.core.Bundle
-import com.dprint.core.LogUtils
+import com.dprint.i18n.DprintBundle
 import com.dprint.services.FormatterService
+import com.dprint.utils.infoLogWithConsole
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
@@ -46,14 +46,14 @@ class ReformatAction : AnAction() {
     private fun formatDocument(project: Project, document: Document) {
         val formatterService = project.service<FormatterService>()
         PsiDocumentManager.getInstance(project).getPsiFile(document)?.virtualFile?.let { virtualFile ->
-            LogUtils.info(Bundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
+            infoLogWithConsole(DprintBundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
             formatterService.format(virtualFile, document)
         }
     }
 
     private fun formatVirtualFile(project: Project, virtualFile: VirtualFile) {
         val formatterService = project.service<FormatterService>()
-        LogUtils.info(Bundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
+        infoLogWithConsole(DprintBundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
         getDocument(project, virtualFile)?.let {
             formatterService.format(virtualFile, it)
         }
@@ -64,7 +64,9 @@ class ReformatAction : AnAction() {
         return !virtualFile.isDirectory &&
             virtualFile.isValid &&
             virtualFile.isInLocalFileSystem &&
-            !readonlyStatusHandler.ensureFilesWritable(Collections.singleton(virtualFile)).hasReadonlyFiles()
+            !readonlyStatusHandler.ensureFilesWritable(
+                Collections.singleton(virtualFile)
+            ).hasReadonlyFiles()
     }
 
     private fun getDocument(project: Project, virtualFile: VirtualFile): Document? {

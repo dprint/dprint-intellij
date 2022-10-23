@@ -1,9 +1,9 @@
 package com.dprint.listeners
 
 import com.dprint.config.ProjectConfiguration
-import com.dprint.core.Bundle
-import com.dprint.core.LogUtils
+import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorServiceManager
+import com.dprint.utils.infoLogWithConsole
 import com.intellij.ide.actionsOnSave.impl.ActionsOnSaveFileDocumentManagerListener
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -28,7 +28,7 @@ class ConfigChangedAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSav
         for (document in documents) {
             manager.getFile(document)?.let {
                 if (it.path == editorServiceManager.getConfigPath()) {
-                    LogUtils.info(Bundle.message("config.changed.run"), project, LOGGER)
+                    infoLogWithConsole(DprintBundle.message("config.changed.run"), project, LOGGER)
                     editorServiceManager.restartEditorService()
                 }
             }

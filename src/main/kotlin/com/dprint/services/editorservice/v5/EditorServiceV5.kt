@@ -1,11 +1,13 @@
 package com.dprint.services.editorservice.v5
 
-import com.dprint.core.Bundle
-import com.dprint.core.LogUtils
+import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
 import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
+import com.dprint.utils.errorLogWithConsole
+import com.dprint.utils.infoLogWithConsole
+import com.dprint.utils.warnLogWithConsole
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
@@ -32,8 +34,8 @@ class EditorServiceV5(val project: Project) : EditorService {
     }
 
     override fun initialiseEditorService() {
-        LogUtils.info(
-            Bundle.message("editor.service.initialize", getName()), project, LOGGER
+        infoLogWithConsole(
+            DprintBundle.message("editor.service.initialize", getName()), project, LOGGER
         )
         dropMessages()
         if (stdoutListener != null) {
@@ -50,7 +52,7 @@ class EditorServiceV5(val project: Project) : EditorService {
     }
 
     override fun destroyEditorService() {
-        LogUtils.info(Bundle.message("editor.service.destroy", getName()), project, LOGGER)
+        infoLogWithConsole(DprintBundle.message("editor.service.destroy", getName()), project, LOGGER)
         val message = createNewMessage(MessageType.ShutDownProcess)
 
         try {
@@ -66,7 +68,7 @@ class EditorServiceV5(val project: Project) : EditorService {
                 }
             }
         } catch (e: TimeoutCancellationException) {
-            LogUtils.error(Bundle.message("editor.service.shutting.down.timed.out"), e, project, LOGGER)
+            errorLogWithConsole(DprintBundle.message("editor.service.shutting.down.timed.out"), e, project, LOGGER)
         } finally {
             stdoutListener?.interrupt()
             dropMessages()
@@ -75,7 +77,7 @@ class EditorServiceV5(val project: Project) : EditorService {
     }
 
     override fun canFormat(filePath: String, onFinished: (Boolean) -> Unit) {
-        LogUtils.info(Bundle.message("formatting.checking.can.format", filePath), project, LOGGER)
+        infoLogWithConsole(DprintBundle.message("formatting.checking.can.format", filePath), project, LOGGER)
         val message = createNewMessage(MessageType.CanFormat)
         message.addString(filePath)
 
@@ -83,15 +85,17 @@ class EditorServiceV5(val project: Project) : EditorService {
             if (it.type == MessageType.CanFormatResponse && it.data is Boolean) {
                 onFinished(it.data)
             } else if (it.type == MessageType.ErrorResponse && it.data is String) {
-                LogUtils.info(
-                    Bundle.message("editor.service.format.check.failed", filePath, it.data),
-                    project,
-                    LOGGER
+                infoLogWithConsole(
+                    DprintBundle.message("editor.service.format.check.failed", filePath, it.data), project, LOGGER
                 )
             } else if (it.type === MessageType.Dropped) {
                 // do nothing
             } else {
-                LogUtils.info(Bundle.message("editor.service.unsupported.message.type", it.type), project, LOGGER)
+                infoLogWithConsole(
+                    DprintBundle.message("editor.service.unsupported.message.type", it.type),
+                    project,
+                    LOGGER
+                )
             }
         }
 
@@ -118,7 +122,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         endIndex: Int?,
         onFinished: (FormatResult) -> Unit
     ): Int {
-        LogUtils.info(Bundle.message("formatting.file", filePath), project, LOGGER)
+        infoLogWithConsole(DprintBundle.message("formatting.file", filePath), project, LOGGER)
         val message = Message(formatId ?: getNextMessageId(), MessageType.FormatFile)
         message.addString(filePath)
         // TODO We need to properly handle string index to byte index here
@@ -131,17 +135,25 @@ class EditorServiceV5(val project: Project) : EditorService {
             val formatResult = FormatResult()
             if (it.type == MessageType.FormatFileResponse && it.data is String?) {
                 val successMessage = when (it.data) {
-                    null -> Bundle.message("editor.service.format.not.needed", filePath)
-                    else -> Bundle.message("editor.service.format.succeeded", filePath)
+                    null -> DprintBundle.message("editor.service.format.not.needed", filePath)
+                    else -> DprintBundle.message("editor.service.format.succeeded", filePath)
                 }
-                LogUtils.info(successMessage, project, LOGGER)
+                infoLogWithConsole(successMessage, project, LOGGER)
                 formatResult.formattedContent = it.data
             } else if (it.type == MessageType.ErrorResponse && it.data is String) {
-                LogUtils.warn(Bundle.message("editor.service.format.failed", filePath, it.data), project, LOGGER)
+                warnLogWithConsole(
+                    DprintBundle.message("editor.service.format.failed", filePath, it.data),
+                    project,
+                    LOGGER
+                )
                 formatResult.error = it.data
             } else if (it.type != MessageType.Dropped) {
-                val errorMessage = Bundle.message("editor.service.unsupported.message.type", it.type)
-                LogUtils.warn(Bundle.message("editor.service.format.failed", filePath, errorMessage), project, LOGGER)
+                val errorMessage = DprintBundle.message("editor.service.unsupported.message.type", it.type)
+                warnLogWithConsole(
+                    DprintBundle.message("editor.service.format.failed", filePath, errorMessage),
+                    project,
+                    LOGGER
+                )
                 formatResult.error = errorMessage
             }
             onFinished(formatResult)
@@ -154,7 +166,11 @@ class EditorServiceV5(val project: Project) : EditorService {
             LOGGER.warn(e)
         }
 
-        LogUtils.info(Bundle.message("editor.service.created.formatting.task", filePath, message.id), project, LOGGER)
+        infoLogWithConsole(
+            DprintBundle.message("editor.service.created.formatting.task", filePath, message.id),
+            project,
+            LOGGER
+        )
 
         return message.id
     }
@@ -169,7 +185,7 @@ class EditorServiceV5(val project: Project) : EditorService {
 
     override fun cancelFormat(formatId: Int) {
         val message = createNewMessage(MessageType.CancelFormat)
-        LogUtils.info(Bundle.message("editor.service.cancel.format", formatId), project, LOGGER)
+        infoLogWithConsole(DprintBundle.message("editor.service.cancel.format", formatId), project, LOGGER)
         message.addInt(formatId)
         try {
             editorProcess.writeBuffer(message.build())
@@ -181,7 +197,7 @@ class EditorServiceV5(val project: Project) : EditorService {
 
     private fun dropMessages() {
         for (message in pendingMessages.drain()) {
-            LogUtils.info(Bundle.message("editor.service.clearing.message", message.key), project, LOGGER)
+            infoLogWithConsole(DprintBundle.message("editor.service.clearing.message", message.key), project, LOGGER)
             message.value(PendingMessages.Result(MessageType.Dropped, null))
         }
     }

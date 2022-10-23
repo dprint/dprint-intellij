@@ -2,11 +2,12 @@ package com.dprint.formatter
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.config.UserConfiguration
-import com.dprint.core.Bundle
-import com.dprint.core.FileUtils
-import com.dprint.core.LogUtils
+import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
+import com.dprint.utils.errorLogWithConsole
+import com.dprint.utils.infoLogWithConsole
+import com.dprint.utils.isFormattableFile
 import com.intellij.formatting.service.AsyncDocumentFormattingService
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
@@ -43,9 +44,10 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         // as it appears that blocking the EDT here causes quite a few issues. Also, we ignore scratch files as a perf
         // optimisation because they are not part of the project and thus never in config.
         val virtualFile = file.virtualFile ?: file.originalFile.virtualFile
-        return virtualFile != null &&
-            FileUtils.isFormattableFile(file.project, virtualFile) &&
-            file.project.service<EditorServiceManager>().canFormatCached(virtualFile.path) != false
+        return virtualFile != null && isFormattableFile(
+            file.project,
+            virtualFile
+        ) && file.project.service<EditorServiceManager>().canFormatCached(virtualFile.path) != false
     }
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
@@ -57,7 +59,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         val path = formattingRequest.ioFile?.path
 
         if (path == null) {
-            LogUtils.info(Bundle.message("formatting.cannot.determine.file.path"), project, LOGGER)
+            infoLogWithConsole(DprintBundle.message("formatting.cannot.determine.file.path"), project, LOGGER)
             return null
         }
 
@@ -131,7 +133,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
 
                 val error = result.error
                 if (error != null) {
-                    formattingRequest.onError(Bundle.message("formatting.error"), error)
+                    formattingRequest.onError(DprintBundle.message("formatting.error"), error)
                 } else {
                     // If the result is a no op it will be null, in which case we pass the original content back in
                     formattingRequest.onTextReady(result.formattedContent ?: content)
@@ -142,20 +144,20 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 return try {
                     future.get(FORMATTING_TIMEOUT, TimeUnit.SECONDS)
                 } catch (e: CancellationException) {
-                    LogUtils.error("External format process cancelled", e, project, LOGGER)
+                    errorLogWithConsole("External format process cancelled", e, project, LOGGER)
                     null
                 } catch (e: TimeoutException) {
-                    LogUtils.error("External format process timed out", e, project, LOGGER)
+                    errorLogWithConsole("External format process timed out", e, project, LOGGER)
                     formattingRequest.onError("Dprint external formatter", "Format process timed out")
                     editorServiceManager.restartEditorService()
                     null
                 } catch (e: ExecutionException) {
-                    LogUtils.error("External format process failed", e, project, LOGGER)
+                    errorLogWithConsole("External format process failed", e, project, LOGGER)
                     formattingRequest.onError("Dprint external formatter", "Format process failed")
                     editorServiceManager.restartEditorService()
                     null
                 } catch (e: InterruptedException) {
-                    LogUtils.error("External format process interrupted", e, project, LOGGER)
+                    errorLogWithConsole("External format process interrupted", e, project, LOGGER)
                     formattingRequest.onError("Dprint external formatter", "Format process interrupted")
                     editorServiceManager.restartEditorService()
                     null
