@@ -20,8 +20,7 @@ internal class MessageTest {
         val bodyLength = 4 + text.length
         // id + message type + body size + part size + part content + success message
         val expectedSize = 4 * 3 + 4 + text.length + SUCCESS_MESSAGE.size
-        val expected =
-            ByteBuffer.allocate(expectedSize)
+        val expected = ByteBuffer.allocate(expectedSize)
         expected.put(createIntBytes(id))
         expected.put(createIntBytes(type.intValue))
         expected.put(createIntBytes(bodyLength))
@@ -42,8 +41,7 @@ internal class MessageTest {
 
         // id + message type + body size + part content + success message
         val expectedSize = 4 * 3 + 4 + SUCCESS_MESSAGE.size
-        val expected =
-            ByteBuffer.allocate(expectedSize)
+        val expected = ByteBuffer.allocate(expectedSize)
         expected.put(createIntBytes(id))
         expected.put(createIntBytes(type.intValue))
         expected.put(createIntBytes(4)) // body length
@@ -68,8 +66,7 @@ internal class MessageTest {
         val bodyLength = 4 + 4 + text.length
         // id + message type + body size + int part + string part size + string part content + success message
         val expectedSize = 4 * 3 + 4 + 4 + text.length + SUCCESS_MESSAGE.size
-        val expected =
-            ByteBuffer.allocate(expectedSize)
+        val expected = ByteBuffer.allocate(expectedSize)
         expected.put(createIntBytes(id))
         expected.put(createIntBytes(type.intValue))
         expected.put(createIntBytes(bodyLength))

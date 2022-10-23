@@ -1,9 +1,9 @@
 package com.dprint.actions
 
 import com.dprint.config.ProjectConfiguration
-import com.dprint.core.Bundle
-import com.dprint.core.LogUtils
+import com.dprint.i18n.DprintBundle
 import com.dprint.services.FormatterService
+import com.dprint.utils.infoLogWithConsole
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
@@ -15,7 +15,6 @@ import com.intellij.openapi.vfs.ReadonlyStatusHandler
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
-import java.util.Collections
 
 private val LOGGER = logger<ReformatAction>()
 
@@ -29,15 +28,15 @@ private val LOGGER = logger<ReformatAction>()
 class ReformatAction : AnAction() {
     override fun actionPerformed(event: AnActionEvent) {
         event.project?.let { project ->
-            if (!project.service<ProjectConfiguration>().state.enabled) return@let
+            val projectConfig = project.service<ProjectConfiguration>().state
+            if (!projectConfig.enabled) return@let
 
             val editor = event.getData(PlatformDataKeys.EDITOR)
-
             if (editor != null) {
                 formatDocument(project, editor.document)
             } else {
-                event.getData(PlatformDataKeys.VIRTUAL_FILE)?.let {
-                    formatVirtualFile(project, it)
+                event.getData(PlatformDataKeys.VIRTUAL_FILE)?.let { virtualFile ->
+                    formatVirtualFile(project, virtualFile)
                 }
             }
         }
@@ -45,15 +44,16 @@ class ReformatAction : AnAction() {
 
     private fun formatDocument(project: Project, document: Document) {
         val formatterService = project.service<FormatterService>()
-        PsiDocumentManager.getInstance(project).getPsiFile(document)?.virtualFile?.let { virtualFile ->
-            LogUtils.info(Bundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
+        val documentManager = PsiDocumentManager.getInstance(project)
+        documentManager.getPsiFile(document)?.virtualFile?.let { virtualFile ->
+            infoLogWithConsole(DprintBundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
             formatterService.format(virtualFile, document)
         }
     }
 
     private fun formatVirtualFile(project: Project, virtualFile: VirtualFile) {
         val formatterService = project.service<FormatterService>()
-        LogUtils.info(Bundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
+        infoLogWithConsole(DprintBundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
         getDocument(project, virtualFile)?.let {
             formatterService.format(virtualFile, it)
         }
@@ -64,7 +64,7 @@ class ReformatAction : AnAction() {
         return !virtualFile.isDirectory &&
             virtualFile.isValid &&
             virtualFile.isInLocalFileSystem &&
-            !readonlyStatusHandler.ensureFilesWritable(Collections.singleton(virtualFile)).hasReadonlyFiles()
+            !readonlyStatusHandler.ensureFilesWritable(listOf(virtualFile)).hasReadonlyFiles()
     }
 
     private fun getDocument(project: Project, virtualFile: VirtualFile): Document? {

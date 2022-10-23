@@ -1,9 +1,9 @@
 package com.dprint.services
 
-import com.dprint.core.Bundle
-import com.dprint.core.FileUtils
+import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
+import com.dprint.utils.isFormattableFile
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -24,7 +24,7 @@ class FormatterService(private val project: Project) {
     fun format(virtualFile: VirtualFile, document: Document) {
         val content = document.text
         val filePath = virtualFile.path
-        if (content.isBlank() || !FileUtils.isFormattableFile(project, virtualFile)) return
+        if (content.isBlank() || !isFormattableFile(project, virtualFile)) return
 
         if (editorServiceManager.canFormatCached(filePath) == true) {
             val formatHandler: (FormatResult) -> Unit = {
@@ -37,7 +37,7 @@ class FormatterService(private val project: Project) {
 
             editorServiceManager.format(filePath, content, formatHandler)
         } else {
-            Bundle.message("formatting.cannot.format", filePath)
+            DprintBundle.message("formatting.cannot.format", filePath)
         }
     }
 }

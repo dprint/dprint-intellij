@@ -1,6 +1,6 @@
 package com.dprint.services.editorservice.v5
 
-import com.dprint.core.Bundle
+import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.exceptions.UnsupportedMessagePartException
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicInteger
@@ -57,12 +57,14 @@ class Message(val id: Int, val type: MessageType) {
                     buffer.put(intToFourByteArray(part.size))
                     buffer.put(part)
                 }
+
                 is Int -> {
                     buffer.put(intToFourByteArray(part))
                 }
+
                 else -> {
                     throw UnsupportedMessagePartException(
-                        Bundle.message("editor.service.unsupported.message.type", part::class.java.simpleName)
+                        DprintBundle.message("editor.service.unsupported.message.type", part::class.java.simpleName)
                     )
                 }
             }
@@ -71,8 +73,11 @@ class Message(val id: Int, val type: MessageType) {
         buffer.put(SUCCESS_MESSAGE)
 
         if (buffer.hasRemaining()) {
-            val message =
-                Bundle.message("editor.service.incorrect.message.size", byteLength, byteLength - buffer.remaining())
+            val message = DprintBundle.message(
+                "editor.service.incorrect.message.size",
+                byteLength,
+                byteLength - buffer.remaining()
+            )
             throw UnsupportedMessagePartException(message)
         }
         return buffer.array()

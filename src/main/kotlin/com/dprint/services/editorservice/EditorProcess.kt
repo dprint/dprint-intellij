@@ -1,11 +1,13 @@
 package com.dprint.services.editorservice
 
 import com.dprint.config.UserConfiguration
-import com.dprint.core.Bundle
-import com.dprint.core.FileUtils
-import com.dprint.core.LogUtils
+import com.dprint.i18n.DprintBundle
 import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
+import com.dprint.utils.errorLogWithConsole
+import com.dprint.utils.getValidConfigPath
+import com.dprint.utils.getValidExecutablePath
+import com.dprint.utils.infoLogWithConsole
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -30,8 +32,8 @@ class EditorProcess(private val project: Project) {
     private var stderrListener: Thread? = null
 
     fun initialize() {
-        val executablePath = FileUtils.getValidExecutablePath(this.project)
-        val configPath = FileUtils.getValidConfigPath(project)
+        val executablePath = getValidExecutablePath(this.project)
+        val configPath = getValidConfigPath(project)
 
         if (this.process != null) {
             destroy()
@@ -40,12 +42,12 @@ class EditorProcess(private val project: Project) {
         when {
             configPath.isNullOrBlank() -> {
                 project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                    .info(Bundle.message("error.config.path"))
+                    .info(DprintBundle.message("error.config.path"))
             }
 
             executablePath.isNullOrBlank() -> {
                 project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                    .info(Bundle.message("error.executable.path"))
+                    .info(DprintBundle.message("error.executable.path"))
             }
 
             else -> {
@@ -74,7 +76,7 @@ class EditorProcess(private val project: Project) {
 
                 try {
                     process?.errorStream?.bufferedReader()?.readLine()?.let {
-                        LogUtils.error("Dprint daemon ${process?.pid()}: $it", project, LOGGER)
+                        errorLogWithConsole("Dprint daemon ${process?.pid()}: $it", project, LOGGER)
                     }
                 } catch (e: InterruptedException) {
                     LOGGER.info(e)
@@ -84,7 +86,7 @@ class EditorProcess(private val project: Project) {
                     LOGGER.info(e)
                     return@Runnable
                 } catch (e: Exception) {
-                    LogUtils.error("Dprint: stderr reader failed", e, project, LOGGER)
+                    errorLogWithConsole("Dprint: stderr reader failed", e, project, LOGGER)
                     return@Runnable
                 }
             }
@@ -115,13 +117,15 @@ class EditorProcess(private val project: Project) {
         when {
             workingDir != null -> {
                 commandLine.withWorkDirectory(workingDir)
-                LogUtils.info(
-                    Bundle.message("editor.service.starting", executablePath, configPath, workingDir), project, LOGGER
+                infoLogWithConsole(
+                    DprintBundle.message("editor.service.starting", executablePath, configPath, workingDir),
+                    project,
+                    LOGGER
                 )
             }
 
-            else -> LogUtils.info(
-                Bundle.message("editor.service.starting.working.dir", executablePath, configPath), project, LOGGER
+            else -> infoLogWithConsole(
+                DprintBundle.message("editor.service.starting.working.dir", executablePath, configPath), project, LOGGER
             )
         }
 
@@ -129,12 +133,15 @@ class EditorProcess(private val project: Project) {
     }
 
     private fun getProcess(): Process {
-        return process
-            ?: throw ProcessUnavailableException(Bundle.message("editor.process.cannot.get.editor.service.process"))
+        return process ?: throw ProcessUnavailableException(
+            DprintBundle.message(
+                "editor.process.cannot.get.editor.service.process"
+            )
+        )
     }
 
     fun writeSuccess() {
-        LOGGER.debug(Bundle.message("formatting.sending.success.to.editor.service"))
+        LOGGER.debug(DprintBundle.message("formatting.sending.success.to.editor.service"))
         val stdin = getProcess().outputStream
         stdin.write(SUCCESS_MESSAGE)
         stdin.flush()
@@ -143,7 +150,7 @@ class EditorProcess(private val project: Project) {
     fun writeInt(i: Int) {
         val stdin = getProcess().outputStream
 
-        LOGGER.debug(Bundle.message("formatting.sending.to.editor.service", i))
+        LOGGER.debug(DprintBundle.message("formatting.sending.to.editor.service", i))
 
         val buffer = ByteBuffer.allocate(U32_BYTE_SIZE)
         buffer.putInt(i)
@@ -179,9 +186,9 @@ class EditorProcess(private val project: Project) {
             for (i in 0 until U32_BYTE_SIZE) {
                 assert(bytes[i] == SUCCESS_MESSAGE[i])
             }
-            LOGGER.debug(Bundle.message("formatting.received.success"))
+            LOGGER.debug(DprintBundle.message("formatting.received.success"))
         } else {
-            LOGGER.debug(Bundle.message("editor.process.cannot.get.editor.service.process"))
+            LOGGER.debug(DprintBundle.message("editor.process.cannot.get.editor.service.process"))
             initialize()
         }
     }
@@ -189,7 +196,7 @@ class EditorProcess(private val project: Project) {
     fun readInt(): Int {
         val stdout = getProcess().inputStream
         val result = ByteBuffer.wrap(stdout.readNBytes(U32_BYTE_SIZE)).int
-        LOGGER.debug(Bundle.message("formatting.received.value", result))
+        LOGGER.debug(DprintBundle.message("formatting.received.value", result))
         return result
     }
 
@@ -212,7 +219,7 @@ class EditorProcess(private val project: Project) {
         }
 
         val decodedResult = result.decodeToString()
-        LOGGER.debug(Bundle.message("formatting.received.value", decodedResult))
+        LOGGER.debug(DprintBundle.message("formatting.received.value", decodedResult))
         return decodedResult
     }
 
