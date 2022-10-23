@@ -89,9 +89,10 @@ fun isFormattableFile(project: Project, virtualFile: VirtualFile): Boolean {
         infoLogWithConsole(DprintBundle.message("formatting.scratch.files", virtualFile.path), project, LOGGER)
     }
 
-    return virtualFile.isWritable && virtualFile.isInLocalFileSystem && !isScratch && !DiffUtil.isFileWithoutContent(
-        virtualFile
-    )
+    return virtualFile.isWritable &&
+        virtualFile.isInLocalFileSystem &&
+        !isScratch &&
+        !DiffUtil.isFileWithoutContent(virtualFile)
 }
 
 private fun checkIsValidJson(project: Project, path: String): Boolean {
