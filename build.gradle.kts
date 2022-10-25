@@ -26,11 +26,17 @@ version = properties("pluginVersion")
 // Configure project's dependencies
 repositories {
     mavenCentral()
+    maven("https://cache-redirector.jetbrains.com/intellij-dependencies")
+    maven("https://www.jetbrains.com/intellij-repository/snapshots")
+    maven("https://www.jetbrains.com/intellij-repository/releases")
+    maven("https://packages.jetbrains.team/maven/p/grazi/grazie-platform-public")
+    maven("https://download.jetbrains.com/teamcity-repository")
 }
 dependencies {
     implementation("org.apache.commons:commons-collections4:4.4")
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.20.0")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")
     testImplementation(kotlin("test"))
+    testImplementation("com.jetbrains.intellij.javascript:javascript-test-framework:221.6008.13")
 }
 
 // Configure gradle-intellij-plugin plugin.
