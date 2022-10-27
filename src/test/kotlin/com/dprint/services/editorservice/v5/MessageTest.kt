@@ -1,9 +1,9 @@
 package com.dprint.services.editorservice.v5
 
 import com.intellij.util.io.toByteArray
-import org.junit.jupiter.api.Test
+import org.junit.Assert.assertArrayEquals
+import org.junit.Test
 import java.nio.ByteBuffer
-import kotlin.test.assertContentEquals
 
 internal class MessageTest {
 
@@ -28,7 +28,7 @@ internal class MessageTest {
         expected.put(textAsBytes)
         expected.put(SUCCESS_MESSAGE)
 
-        assertContentEquals(expected.array(), message.build())
+        assertArrayEquals(expected.array(), message.build())
     }
 
     @Test
@@ -48,7 +48,7 @@ internal class MessageTest {
         expected.put(createIntBytes(int))
         expected.put(SUCCESS_MESSAGE)
 
-        assertContentEquals(expected.array(), message.build())
+        assertArrayEquals(expected.array(), message.build())
     }
 
     @Test
@@ -75,7 +75,7 @@ internal class MessageTest {
         expected.put(textAsBytes)
         expected.put(SUCCESS_MESSAGE)
 
-        assertContentEquals(expected.array(), message.build())
+        assertArrayEquals(expected.array(), message.build())
     }
 
     private fun createIntBytes(int: Int): ByteArray {

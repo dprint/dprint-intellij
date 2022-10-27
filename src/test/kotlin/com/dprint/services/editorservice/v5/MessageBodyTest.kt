@@ -1,10 +1,10 @@
 package com.dprint.services.editorservice.v5
 
-import org.junit.jupiter.api.Test
+import junit.framework.TestCase
+import org.junit.Test
 import java.nio.ByteBuffer
-import kotlin.test.assertEquals
 
-internal class MessageBodyTest {
+class MessageBodyTest : TestCase() {
     @Test
     fun testItDecodesAnInt() {
         val int = 7

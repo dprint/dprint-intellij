@@ -26,17 +26,18 @@ version = properties("pluginVersion")
 // Configure project's dependencies
 repositories {
     mavenCentral()
+    maven("https://cache-redirector.jetbrains.com/download-pgp-verifier")
     maven("https://cache-redirector.jetbrains.com/intellij-dependencies")
-    maven("https://www.jetbrains.com/intellij-repository/snapshots")
-    maven("https://www.jetbrains.com/intellij-repository/releases")
-    maven("https://packages.jetbrains.team/maven/p/grazi/grazie-platform-public")
     maven("https://download.jetbrains.com/teamcity-repository")
+    maven("https://packages.jetbrains.team/maven/p/grazi/grazie-platform-public")
+    maven("https://www.jetbrains.com/intellij-repository/releases")
+    maven("https://www.jetbrains.com/intellij-repository/snapshots")
+    maven("https://maven.pkg.jetbrains.space/public/p/ktor/eap/")
 }
 dependencies {
     implementation("org.apache.commons:commons-collections4:4.4")
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")
-    testImplementation(kotlin("test"))
-    testImplementation("com.jetbrains.intellij.javascript:javascript-test-framework:221.6008.13")
+    testImplementation("com.jetbrains.intellij.javascript:javascript-test-framework:222.4345.14")
 }
 
 // Configure gradle-intellij-plugin plugin.
@@ -49,7 +50,7 @@ intellij {
     // Ensures all new builds will "just work" without an update. Obtained from thread in IntelliJ slack
     updateSinceUntilBuild.set(false)
     if (properties("platformType") == "IU") {
-        plugins.set(listOf("JavaScriptLanguage"))
+        plugins.set(listOf("JavaScript"))
     }
 }
 
@@ -67,19 +68,6 @@ detekt {
     buildUponDefaultConfig = true
 }
 
-sourceSets {
-    main {
-        java {
-            srcDir("src/main/kotlin")
-        }
-    }
-    test {
-        java {
-            srcDir("src/test/kotlin")
-        }
-    }
-}
-
 tasks {
     // Set the compatibility versions to 11
     withType<JavaCompile> {
@@ -92,10 +80,6 @@ tasks {
 
     withType<Detekt> {
         jvmTarget = "11"
-    }
-
-    test {
-        useJUnitPlatform()
     }
 
     runIde {
