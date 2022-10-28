@@ -37,6 +37,9 @@ repositories {
 dependencies {
     implementation("org.apache.commons:commons-collections4:4.4")
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")
+    testImplementation("com.jetbrains.intellij.javascript:javascript-test-framework:222.4345.14") {
+        exclude(group = "com.jetbrains.intellij.platform", module = "util")
+    }
 }
 
 // Configure gradle-intellij-plugin plugin.
