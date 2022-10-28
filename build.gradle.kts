@@ -37,7 +37,6 @@ repositories {
 dependencies {
     implementation("org.apache.commons:commons-collections4:4.4")
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.21.0")
-    testImplementation("com.jetbrains.intellij.javascript:javascript-test-framework:222.4345.14")
 }
 
 // Configure gradle-intellij-plugin plugin.
@@ -80,6 +79,12 @@ tasks {
 
     withType<Detekt> {
         jvmTarget = "11"
+    }
+
+    val test by getting(Test::class) {
+        setScanForTestClasses(false)
+        // Only run tests from classes that end with "Test"
+        include("**/*Test.class")
     }
 
     runIde {
