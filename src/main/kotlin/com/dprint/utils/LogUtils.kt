@@ -5,9 +5,13 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.messages.MessageBus
 
+fun infoConsole(message: String, project: Project) {
+    maybeGetMessageBus(project)?.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)?.info(message)
+}
+
 fun infoLogWithConsole(message: String, project: Project, logger: Logger) {
     logger.info(message)
-    maybeGetMessageBus(project)?.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)?.info(message)
+    infoConsole(message, project)
 }
 
 fun warnLogWithConsole(message: String, project: Project, logger: Logger) {
