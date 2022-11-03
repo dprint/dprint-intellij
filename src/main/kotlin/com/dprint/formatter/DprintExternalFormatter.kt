@@ -41,7 +41,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         if (!projectConfig.enabled) return false
 
         if (!userConfig.overrideIntelliJFormatter) {
-            infoConsole("Dprint is not configured to override the IntelliJ formatter.", file.project)
+            infoConsole(DprintBundle.message("external.formatter.not.configured.to.override"), file.project)
         }
 
         // If we don't have a cached can format response then we return true and let the formatting task figure that
@@ -55,8 +55,8 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             editorServiceManager.canFormatCached(virtualFile.path) != false
 
         val message =
-            if (canFormat) "Dprint can format ${virtualFile.path}, overriding default IntelliJ formatter"
-            else "Dprint cannot format ${virtualFile.path}, IntelliJ formatter will be used."
+            if (canFormat) DprintBundle.message("external.formatter.can.format", virtualFile.path)
+            else DprintBundle.message("external.formatter.cannot.format", virtualFile.path)
 
         infoLogWithConsole(message, file.project, LOGGER)
 
@@ -79,11 +79,11 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         if (editorServiceManager.canFormatCached(path) != true) return null
 
         if (!editorServiceManager.canRangeFormat() && isRangeFormat(formattingRequest)) {
-            infoLogWithConsole("Range formatting is not currently implemented, maybe soon.", project, LOGGER)
+            infoLogWithConsole(DprintBundle.message("external.formatter.range.formatting"), project, LOGGER)
             return null
         }
 
-        infoLogWithConsole("Creating IntelliJ CodeStyle Formatting Task for $path", project, LOGGER)
+        infoLogWithConsole(DprintBundle.message("external.formatter.creating.task", path), project, LOGGER)
 
         return object : FormattingTask {
             private var formattingId: Int? = editorServiceManager.maybeGetFormatId()
@@ -95,7 +95,11 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 val content = formattingRequest.documentText
                 val ranges = formattingRequest.formattingRanges
 
-                infoLogWithConsole("Running CodeStyle formatting task $formattingId", project, LOGGER)
+                infoLogWithConsole(
+                    DprintBundle.message("external.formatter.running.task", formattingId ?: path),
+                    project,
+                    LOGGER
+                )
 
                 for (range in ranges.subList(1, ranges.size)) {
                     baseFormatFuture.thenApply {
@@ -188,7 +192,11 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 val formatId = formattingId
                 isCancelled = true
                 if (formatId != null) {
-                    infoLogWithConsole("Cancelling CodeStyle formatting task $formatId", project, LOGGER)
+                    infoLogWithConsole(
+                        DprintBundle.message("external.formatter.cancelling.task", formattingId ?: path),
+                        project,
+                        LOGGER
+                    )
                     editorServiceManager.cancelFormat(formatId)
                 }
                 // Clean up state so process can complete
