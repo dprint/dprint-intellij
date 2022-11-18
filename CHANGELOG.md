@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 - Run dprint after Eslint fixes have been applied
-- Ensure dprint doesn't attempt to check/format scratch files (perf optimisation)
+- Ensure dprint doesn't attempt to check/format scratch files (perf optimisation) or diff views
 - Add verbose logging config
 - Add override default IntelliJ formatter config
 
