@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.4.0]
 - Run dprint after Eslint fixes have been applied
 - Ensure dprint doesn't attempt to check/format scratch files (perf optimisation) or diff views
 - Add verbose logging config
