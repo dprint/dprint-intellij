@@ -56,7 +56,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
 
         val message =
             if (canFormat) DprintBundle.message("external.formatter.can.format", virtualFile.path)
-            else DprintBundle.message("external.formatter.cannot.format", virtualFile.path)
+            else DprintBundle.message("external.formatter.cannot.format", virtualFile?.path ?: "no path")
 
         infoLogWithConsole(message, file.project, LOGGER)
 
