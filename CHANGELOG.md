@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.4.1]
 - Fix null pointer issue in external formatter
 
 ## [0.4.0]
