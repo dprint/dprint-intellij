@@ -3,6 +3,7 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+- Fix null pointer issue in external formatter
 
 ## [0.4.0]
 - Run dprint after Eslint fixes have been applied
