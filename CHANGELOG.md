@@ -3,6 +3,7 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+- Fix issue with run on save config not saving
 
 ## [0.4.1]
 - Fix null pointer issue in external formatter

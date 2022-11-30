@@ -71,8 +71,8 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
             row {
                 checkBox(DprintBundle.message("config.verbose.logging"))
                     .bindSelected(
-                        { userConfig.state.runOnSave },
-                        { userConfig.state.runOnSave = it }
+                        { userConfig.state.enableEditorServiceVerboseLogging },
+                        { userConfig.state.enableEditorServiceVerboseLogging = it }
                     )
                     .comment(DprintBundle.message("config.verbose.logging.description"))
             }
