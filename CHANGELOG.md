@@ -3,6 +3,7 @@
 # dprint-intellij-plugin Changelog
 
 ## [Unreleased]
+- Update to latest dependencies
 
 ## [0.4.2]
 - Fix issue with run on save config not saving

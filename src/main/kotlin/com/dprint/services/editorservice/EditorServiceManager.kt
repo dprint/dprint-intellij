@@ -57,7 +57,7 @@ class EditorServiceManager(private val project: Project) {
 
         val commandLine = GeneralCommandLine(
             executablePath,
-            "editor-info",
+            "editor-info"
         )
         val result = ExecUtil.execAndGetOutput(commandLine)
 
@@ -103,7 +103,9 @@ class EditorServiceManager(private val project: Project) {
                     schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
                     schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
                     schemaVersion > SCHEMA_V5 -> infoLogWithConsole(
-                        DprintBundle.message("config.dprint.schemaVersion.newer"), project, LOGGER
+                        DprintBundle.message("config.dprint.schemaVersion.newer"),
+                        project,
+                        LOGGER
                     )
                 }
                 editorService?.initialiseEditorService()
@@ -254,7 +256,8 @@ class EditorServiceManager(private val project: Project) {
 
     fun cancelFormat(formatId: Int) {
         createTaskWithTimeout(
-            "Cancelling format $formatId", { editorService?.cancelFormat(formatId) },
+            "Cancelling format $formatId",
+            { editorService?.cancelFormat(formatId) },
             true
         )
     }

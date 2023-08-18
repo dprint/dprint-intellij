@@ -12,7 +12,7 @@ import com.intellij.ui.content.ContentFactory
 class ConsoleToolWindowFactory : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val console = Console(project)
-        val contentFactory = ContentFactory.SERVICE.getInstance()
+        val contentFactory = ContentFactory.getInstance()
         val panel = SimpleToolWindowPanel(true, false)
         panel.setContent(console.consoleView.component)
         val content = contentFactory.createContent(panel, "", false)

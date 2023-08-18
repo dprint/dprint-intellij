@@ -20,7 +20,8 @@ private object FileUtils
 
 private val LOGGER = logger<FileUtils>()
 private val DEFAULT_CONFIG_NAMES = listOf(
-    "dprint.json", ".dprint.json"
+    "dprint.json",
+    ".dprint.json"
 )
 
 /**
@@ -45,7 +46,9 @@ fun getValidConfigPath(project: Project): String? {
     when {
         validateConfigFile(project, configuredPath) -> return configuredPath
         configuredPath.isNotBlank() -> infoLogWithConsole(
-            DprintBundle.message("notification.invalid.config.path"), project, LOGGER
+            DprintBundle.message("notification.invalid.config.path"),
+            project,
+            LOGGER
         )
     }
 
@@ -67,7 +70,9 @@ fun getValidConfigPath(project: Project): String? {
             when {
                 file.exists() && checkIsValidJson(project, file.path) -> return file.path
                 file.exists() -> warnLogWithConsole(
-                    DprintBundle.message("notification.invalid.default.config", file.path), project, LOGGER
+                    DprintBundle.message("notification.invalid.default.config", file.path),
+                    project,
+                    LOGGER
                 )
             }
         }
@@ -118,7 +123,8 @@ fun validateExecutablePath(path: String): Boolean {
  */
 private fun getLocationFromThePath(workingDirectory: String): String? {
     val commandLine = GeneralCommandLine(
-        if (System.getProperty("os.name").lowercase().contains("win")) "where" else "which", "dprint"
+        if (System.getProperty("os.name").lowercase().contains("win")) "where" else "which",
+        "dprint"
     )
     commandLine.withWorkDirectory(workingDirectory)
     val output = ExecUtil.execAndGetOutput(commandLine)
@@ -164,7 +170,9 @@ fun getValidExecutablePath(project: Project): String? {
     when {
         validateExecutablePath(configuredExecutablePath) -> return configuredExecutablePath
         configuredExecutablePath.isNotBlank() -> errorLogWithConsole(
-            DprintBundle.message("notification.invalid.executable.path"), project, LOGGER
+            DprintBundle.message("notification.invalid.executable.path"),
+            project,
+            LOGGER
         )
     }
 

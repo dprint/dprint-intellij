@@ -9,13 +9,8 @@ complexity:
     thresholdInClasses: 20
   LongParameterList:
     functionThreshold: 7
-  ComplexMethod:
+  CyclomaticComplexMethod:
     threshold: 25
-formatting:
-  Indentation:
-    continuationIndentSize: 8
-  ParameterListWrapping:
-    indentSize: 8
 style:
   ReturnCount:
     max: 5
