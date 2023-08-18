@@ -35,7 +35,9 @@ class EditorServiceV5(val project: Project) : EditorService {
 
     override fun initialiseEditorService() {
         infoLogWithConsole(
-            DprintBundle.message("editor.service.initialize", getName()), project, LOGGER
+            DprintBundle.message("editor.service.initialize", getName()),
+            project,
+            LOGGER
         )
         dropMessages()
         if (stdoutListener != null) {
@@ -86,7 +88,9 @@ class EditorServiceV5(val project: Project) : EditorService {
                 onFinished(it.data)
             } else if (it.type == MessageType.ErrorResponse && it.data is String) {
                 infoLogWithConsole(
-                    DprintBundle.message("editor.service.format.check.failed", filePath, it.data), project, LOGGER
+                    DprintBundle.message("editor.service.format.check.failed", filePath, it.data),
+                    project,
+                    LOGGER
                 )
             } else if (it.type === MessageType.Dropped) {
                 // do nothing

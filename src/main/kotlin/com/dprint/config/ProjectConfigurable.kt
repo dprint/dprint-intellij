@@ -19,7 +19,9 @@ private const val CONFIG_ID = "com.dprint.config"
  * Sets up the configuration panel for Dprint in the Tools section of preferences.
  */
 class ProjectConfigurable(private val project: Project) : BoundSearchableConfigurable(
-    DprintBundle.message("config.name"), "reference.settings.dprint", CONFIG_ID
+    DprintBundle.message("config.name"),
+    "reference.settings.dprint",
+    CONFIG_ID
 ) {
     @Suppress("LongMethod")
     override fun createPanel(): DialogPanel {

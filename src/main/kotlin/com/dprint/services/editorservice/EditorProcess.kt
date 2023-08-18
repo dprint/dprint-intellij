@@ -125,7 +125,9 @@ class EditorProcess(private val project: Project) {
             }
 
             else -> infoLogWithConsole(
-                DprintBundle.message("editor.service.starting.working.dir", executablePath, configPath), project, LOGGER
+                DprintBundle.message("editor.service.starting.working.dir", executablePath, configPath),
+                project,
+                LOGGER
             )
         }
 
