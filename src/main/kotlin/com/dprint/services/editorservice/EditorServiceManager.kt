@@ -28,6 +28,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.apache.commons.collections4.map.LRUMap
+import java.io.File
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
@@ -52,13 +53,17 @@ class EditorServiceManager(private val project: Project) {
     // The less generic error is kotlinx.serialization.json.internal.JsonDecodingException and is not accessible
     // unfortunately
     @Suppress("TooGenericExceptionCaught")
-    private fun getSchemaVersion(): Int? {
+    private fun getSchemaVersion(configPath: String?): Int? {
         val executablePath = getValidExecutablePath(project)
 
         val commandLine = GeneralCommandLine(
             executablePath,
             "editor-info"
         )
+        configPath?.let {
+            val workingDir = File(it).parent
+            commandLine.withWorkDirectory(workingDir)
+        }
         val result = ExecUtil.execAndGetOutput(commandLine)
 
         return try {
@@ -83,8 +88,8 @@ class EditorServiceManager(private val project: Project) {
         createTaskWithTimeout(
             DprintBundle.message("editor.service.manager.initialising.editor.service"),
             {
-                val schemaVersion = getSchemaVersion()
                 configPath = getValidConfigPath(project)
+                val schemaVersion = getSchemaVersion(configPath)
                 infoLogWithConsole(
                     DprintBundle.message("editor.service.manager.received.schema.version", schemaVersion ?: "none"),
                     project,
