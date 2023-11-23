@@ -6,8 +6,9 @@ typealias Handler = (PendingMessages.Result) -> Unit
 
 data class MessageInfo(val handler: Handler, val timeStored: Long)
 
+const val STALE_LENGTH_MS = 10_000
+
 class PendingMessages {
-    private val staleLengthMs = 10_000
     private val concurrentHashMap = ConcurrentHashMap<Int, MessageInfo>()
 
     /**
@@ -35,6 +36,6 @@ class PendingMessages {
 
     fun hasStaleMessages(): Boolean {
         val now = System.currentTimeMillis()
-        return concurrentHashMap.values.any { now - it.timeStored > staleLengthMs }
+        return concurrentHashMap.values.any { now - it.timeStored > STALE_LENGTH_MS }
     }
 }
