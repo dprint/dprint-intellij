@@ -54,17 +54,14 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             isFormattableFile(file.project, virtualFile) &&
             editorServiceManager.canFormatCached(virtualFile.path) != false
 
-        val message =
-            if (canFormat) {
-                DprintBundle.message("external.formatter.can.format", virtualFile.path)
-            } else {
-                DprintBundle.message(
-                    "external.formatter.cannot.format",
-                    virtualFile?.path ?: "an ephemeral virtual file"
-                )
-            }
-
-        infoConsole(message, file.project)
+        if (canFormat) {
+            infoConsole(DprintBundle.message("external.formatter.can.format", virtualFile.path), file.project)
+        } else if (virtualFile?.path != null) {
+            // If a virtual file path doesn't exist then it is an ephemeral file such as a scratch file. Dprint needs
+            // real files to work. I have tried to log this in the past but it seems to be called frequently resulting
+            // in log spam, so in the case the path doesn't exist, we just do nothing.
+            infoConsole(DprintBundle.message("external.formatter.cannot.format", virtualFile.path), file.project)
+        }
 
         return canFormat
     }
