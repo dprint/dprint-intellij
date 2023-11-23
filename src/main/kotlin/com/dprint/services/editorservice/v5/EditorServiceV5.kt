@@ -20,7 +20,7 @@ import kotlin.concurrent.thread
 private val LOGGER = logger<EditorServiceV5>()
 private const val SHUTDOWN_TIMEOUT = 1000L
 
-@Service
+@Service(Service.Level.PROJECT)
 class EditorServiceV5(val project: Project) : EditorService {
 
     private var editorProcess = EditorProcess(project)
@@ -79,6 +79,8 @@ class EditorServiceV5(val project: Project) : EditorService {
     }
 
     override fun canFormat(filePath: String, onFinished: (Boolean) -> Unit) {
+        handleStaleMessages()
+
         infoLogWithConsole(DprintBundle.message("formatting.checking.can.format", filePath), project, LOGGER)
         val message = createNewMessage(MessageType.CanFormat)
         message.addString(filePath)
@@ -109,6 +111,18 @@ class EditorServiceV5(val project: Project) : EditorService {
             editorProcess.writeBuffer(message.build())
         } catch (e: ProcessUnavailableException) {
             LOGGER.warn(e)
+        }
+    }
+
+    /**
+     * If we find stale messages we assume there is an issue with the underlying process and try restart. In the event
+     * that doesn't work, it is likely there is a problem with the underlying daemon and the IJ process that runs on top
+     * of it is not aware of its unhealthy state.
+     */
+    private fun handleStaleMessages() {
+        if (pendingMessages.hasStaleMessages()) {
+            infoLogWithConsole(DprintBundle.message("editor.service.stale.tasks"), project, LOGGER)
+            this.initialiseEditorService()
         }
     }
 
@@ -201,8 +215,8 @@ class EditorServiceV5(val project: Project) : EditorService {
 
     private fun dropMessages() {
         for (message in pendingMessages.drain()) {
-            infoLogWithConsole(DprintBundle.message("editor.service.clearing.message", message.key), project, LOGGER)
-            message.value(PendingMessages.Result(MessageType.Dropped, null))
+            infoLogWithConsole(DprintBundle.message("editor.service.clearing.message", message.first), project, LOGGER)
+            message.second(PendingMessages.Result(MessageType.Dropped, null))
         }
     }
 
