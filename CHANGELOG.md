@@ -3,6 +3,8 @@
 # dprint-intellij-plugin Changelog
 
 ## Unreleased
+
+## 0.4.4 - 2023-11-23
 - Fixed issue for plugins that require the underlying process to be running in the working projects git repository.
 
 ## 0.4.3 - 2023-10-11
