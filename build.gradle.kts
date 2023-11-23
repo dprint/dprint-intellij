@@ -9,16 +9,16 @@ plugins {
     // Java support
     id("java")
     // Kotlin support
-    kotlin("jvm") version "1.9.0"
-    kotlin("plugin.serialization") version "1.9.0"
+    kotlin("jvm") version "1.9.20"
+    kotlin("plugin.serialization") version "1.9.20"
     // gradle-intellij-plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
-    id("org.jetbrains.intellij") version "1.15.0"
+    id("org.jetbrains.intellij") version "1.16.0"
     // gradle-changelog-plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
-    id("org.jetbrains.changelog") version "2.1.2"
+    id("org.jetbrains.changelog") version "2.2.0"
     // detekt linter - read more: https://detekt.github.io/detekt/gradle.html
-    id("io.gitlab.arturbosch.detekt") version "1.23.1"
+    id("io.gitlab.arturbosch.detekt") version "1.23.3"
     // ktlint linter - read more: https://github.com/JLLeitschuh/ktlint-gradle
-    id("org.jlleitschuh.gradle.ktlint") version "11.5.1"
+    id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
 group = properties("pluginGroup")
@@ -78,15 +78,15 @@ sourceSets {
 tasks {
     // Set the compatibility versions to 11
     withType<JavaCompile> {
-        sourceCompatibility = "11"
-        targetCompatibility = "11"
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
     }
     withType<KotlinCompile> {
-        kotlinOptions.jvmTarget = "11"
+        kotlinOptions.jvmTarget = "17"
     }
 
     withType<Detekt> {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 
     test {
