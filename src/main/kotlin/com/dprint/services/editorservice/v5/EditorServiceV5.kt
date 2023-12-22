@@ -4,7 +4,6 @@ import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
-import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
@@ -60,16 +59,7 @@ class EditorServiceV5(val project: Project) : EditorService {
             runBlocking {
                 withTimeout(SHUTDOWN_TIMEOUT) {
                     launch {
-                        try {
-                            editorProcess.writeBuffer(message.build())
-                        } catch (e: ProcessUnavailableException) {
-                            warnLogWithConsole(
-                                DprintBundle.message("editor.service.process.is.dead"),
-                                e,
-                                project,
-                                LOGGER,
-                            )
-                        }
+                        editorProcess.writeBuffer(message.build())
                     }
                 }
             }
@@ -113,12 +103,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         }
 
         pendingMessages.store(message.id, handler)
-
-        try {
-            editorProcess.writeBuffer(message.build())
-        } catch (e: ProcessUnavailableException) {
-            warnLogWithConsole(DprintBundle.message("editor.service.process.is.dead"), e, project, LOGGER)
-        }
+        editorProcess.writeBuffer(message.build())
     }
 
     /**
@@ -185,12 +170,7 @@ class EditorServiceV5(val project: Project) : EditorService {
             onFinished(formatResult)
         }
         pendingMessages.store(message.id, handler)
-
-        try {
-            editorProcess.writeBuffer(message.build())
-        } catch (e: ProcessUnavailableException) {
-            warnLogWithConsole(DprintBundle.message("editor.service.process.is.dead"), e, project, LOGGER)
-        }
+        editorProcess.writeBuffer(message.build())
 
         infoLogWithConsole(
             DprintBundle.message("editor.service.created.formatting.task", filePath, message.id),
@@ -213,11 +193,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         val message = createNewMessage(MessageType.CancelFormat)
         infoLogWithConsole(DprintBundle.message("editor.service.cancel.format", formatId), project, LOGGER)
         message.addInt(formatId)
-        try {
-            editorProcess.writeBuffer(message.build())
-        } catch (e: ProcessUnavailableException) {
-            warnLogWithConsole(DprintBundle.message("editor.service.process.is.dead"), e, project, LOGGER)
-        }
+        editorProcess.writeBuffer(message.build())
         pendingMessages.take(formatId)
     }
 

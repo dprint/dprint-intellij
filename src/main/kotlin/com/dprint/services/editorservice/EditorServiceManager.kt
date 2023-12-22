@@ -3,6 +3,7 @@ package com.dprint.services.editorservice
 import com.dprint.config.ProjectConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.messages.DprintMessage
+import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.dprint.services.editorservice.v4.EditorServiceV4
 import com.dprint.services.editorservice.v5.EditorServiceV5
 import com.dprint.utils.errorLogWithConsole
@@ -191,6 +192,14 @@ class EditorServiceManager(private val project: Project) {
                         if (restartOnFailure) maybeInitialiseEditorService()
                     } catch (e: ExecutionException) {
                         if (onFailure != null) onFailure()
+                        if (e.cause is ProcessUnavailableException) {
+                            warnLogWithConsole(
+                                DprintBundle.message("editor.service.process.is.dead"),
+                                e.cause,
+                                project,
+                                LOGGER,
+                            )
+                        }
                         errorLogWithConsole("Dprint execution exception: $title", e, project, LOGGER)
                         if (restartOnFailure) maybeInitialiseEditorService()
                     } catch (e: InterruptedException) {
