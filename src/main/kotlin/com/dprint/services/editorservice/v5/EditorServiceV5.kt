@@ -63,7 +63,12 @@ class EditorServiceV5(val project: Project) : EditorService {
                         try {
                             editorProcess.writeBuffer(message.build())
                         } catch (e: ProcessUnavailableException) {
-                            LOGGER.warn(e)
+                            warnLogWithConsole(
+                                DprintBundle.message("editor.service.process.is.dead"),
+                                e,
+                                project,
+                                LOGGER,
+                            )
                         }
                     }
                 }
@@ -112,7 +117,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         try {
             editorProcess.writeBuffer(message.build())
         } catch (e: ProcessUnavailableException) {
-            LOGGER.warn(e)
+            warnLogWithConsole(DprintBundle.message("editor.service.process.is.dead"), e, project, LOGGER)
         }
     }
 
@@ -184,7 +189,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         try {
             editorProcess.writeBuffer(message.build())
         } catch (e: ProcessUnavailableException) {
-            LOGGER.warn(e)
+            warnLogWithConsole(DprintBundle.message("editor.service.process.is.dead"), e, project, LOGGER)
         }
 
         infoLogWithConsole(
@@ -211,7 +216,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         try {
             editorProcess.writeBuffer(message.build())
         } catch (e: ProcessUnavailableException) {
-            LOGGER.warn(e)
+            warnLogWithConsole(DprintBundle.message("editor.service.process.is.dead"), e, project, LOGGER)
         }
         pendingMessages.take(formatId)
     }

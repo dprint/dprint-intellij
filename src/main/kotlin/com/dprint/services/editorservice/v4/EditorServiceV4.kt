@@ -6,7 +6,6 @@ import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
 import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
-import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
 import com.intellij.openapi.components.Service
@@ -60,12 +59,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
             status = editorProcess.readInt()
             editorProcess.readAndAssertSuccess()
         } catch (e: ProcessUnavailableException) {
-            errorLogWithConsole(
-                DprintBundle.message("editor.service.unable.to.determine.if.can.format", filePath),
-                e,
-                project,
-                LOGGER,
-            )
+            warnLogWithConsole(DprintBundle.message("editor.service.process.is.dead"), e, project, LOGGER)
             initialiseEditorService()
         }
 
@@ -125,16 +119,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
 
             editorProcess.readAndAssertSuccess()
         } catch (e: ProcessUnavailableException) {
-            errorLogWithConsole(
-                DprintBundle.message(
-                    "editor.service.format.failed.internal",
-                    filePath,
-                    e.message ?: "Process unavailable",
-                ),
-                e,
-                project,
-                LOGGER,
-            )
+            warnLogWithConsole(DprintBundle.message("editor.service.process.is.dead"), e, project, LOGGER)
             initialiseEditorService()
         }
 

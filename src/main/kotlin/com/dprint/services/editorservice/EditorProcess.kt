@@ -52,6 +52,9 @@ class EditorProcess(private val project: Project) {
 
             else -> {
                 process = createEditorService(executablePath, configPath)
+                process?.let {
+                    it.onExit().thenApply { process = null }
+                }
                 createStderrListener()
             }
         }
@@ -64,6 +67,10 @@ class EditorProcess(private val project: Project) {
         stderrListener?.interrupt()
         process?.destroy()
         process = null
+    }
+
+    fun isAlive(): Boolean {
+        return process?.isAlive == true
     }
 
     @Suppress("TooGenericExceptionCaught")
