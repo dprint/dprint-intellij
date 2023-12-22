@@ -42,7 +42,10 @@ class ReformatAction : AnAction() {
         }
     }
 
-    private fun formatDocument(project: Project, document: Document) {
+    private fun formatDocument(
+        project: Project,
+        document: Document,
+    ) {
         val formatterService = project.service<FormatterService>()
         val documentManager = PsiDocumentManager.getInstance(project)
         documentManager.getPsiFile(document)?.virtualFile?.let { virtualFile ->
@@ -51,7 +54,10 @@ class ReformatAction : AnAction() {
         }
     }
 
-    private fun formatVirtualFile(project: Project, virtualFile: VirtualFile) {
+    private fun formatVirtualFile(
+        project: Project,
+        virtualFile: VirtualFile,
+    ) {
         val formatterService = project.service<FormatterService>()
         infoLogWithConsole(DprintBundle.message("reformat.action.run", virtualFile.path), project, LOGGER)
         getDocument(project, virtualFile)?.let {
@@ -59,7 +65,10 @@ class ReformatAction : AnAction() {
         }
     }
 
-    private fun isFileWriteable(project: Project, virtualFile: VirtualFile): Boolean {
+    private fun isFileWriteable(
+        project: Project,
+        virtualFile: VirtualFile,
+    ): Boolean {
         val readonlyStatusHandler = ReadonlyStatusHandler.getInstance(project)
         return !virtualFile.isDirectory &&
             virtualFile.isValid &&
@@ -67,7 +76,10 @@ class ReformatAction : AnAction() {
             !readonlyStatusHandler.ensureFilesWritable(listOf(virtualFile)).hasReadonlyFiles()
     }
 
-    private fun getDocument(project: Project, virtualFile: VirtualFile): Document? {
+    private fun getDocument(
+        project: Project,
+        virtualFile: VirtualFile,
+    ): Document? {
         if (isFileWriteable(project, virtualFile)) {
             PsiManager.getInstance(project).findFile(virtualFile)?.let {
                 return PsiDocumentManager.getInstance(project).getDocument(it)

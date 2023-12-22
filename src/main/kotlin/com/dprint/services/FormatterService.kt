@@ -21,7 +21,10 @@ class FormatterService(private val project: Project) {
     /**
      * Attempts to format and save a Document using Dprint.
      */
-    fun format(virtualFile: VirtualFile, document: Document) {
+    fun format(
+        virtualFile: VirtualFile,
+        document: Document,
+    ) {
         val content = document.text
         val filePath = virtualFile.path
         if (content.isBlank() || !isFormattableFile(project, virtualFile)) return

@@ -13,7 +13,10 @@ import com.intellij.openapi.vfs.VirtualFile
  * EditorServiceManager so we don't need to wait for background threads in the main EDT thread.
  */
 class FileOpenedListener : FileEditorManagerListener {
-    override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
+    override fun fileOpened(
+        source: FileEditorManager,
+        file: VirtualFile,
+    ) {
         super.fileOpened(source, file)
         val projectConfig = source.project.service<ProjectConfiguration>().state
         if (!projectConfig.enabled) return

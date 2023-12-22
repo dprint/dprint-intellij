@@ -6,7 +6,6 @@ import java.nio.ByteBuffer
 import kotlin.test.assertContentEquals
 
 internal class MessageTest {
-
     @Test
     fun testItBuildsAStringMessage() {
         val id = 1

@@ -10,7 +10,10 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 
 class ConsoleToolWindowFactory : ToolWindowFactory, DumbAware {
-    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+    override fun createToolWindowContent(
+        project: Project,
+        toolWindow: ToolWindow,
+    ) {
         val console = Console(project)
         val contentFactory = ContentFactory.getInstance()
         val panel = SimpleToolWindowPanel(true, false)

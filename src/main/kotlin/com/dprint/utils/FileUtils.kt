@@ -19,19 +19,23 @@ import java.io.FileReader
 private object FileUtils
 
 private val LOGGER = logger<FileUtils>()
-private val DEFAULT_CONFIG_NAMES = listOf(
-    "dprint.json",
-    ".dprint.json"
-)
+private val DEFAULT_CONFIG_NAMES =
+    listOf(
+        "dprint.json",
+        ".dprint.json",
+    )
 
-/**
+/*
  * Utils for checking that dprint is configured correctly outside intellij.
  */
 
 /**
  * Validates that a path is a valid json file
  */
-fun validateConfigFile(project: Project, path: String): Boolean {
+fun validateConfigFile(
+    project: Project,
+    path: String,
+): Boolean {
     val file = File(path)
     return file.exists() && file.extension == "json" && checkIsValidJson(project, path)
 }
@@ -45,11 +49,12 @@ fun getValidConfigPath(project: Project): String? {
 
     when {
         validateConfigFile(project, configuredPath) -> return configuredPath
-        configuredPath.isNotBlank() -> infoLogWithConsole(
-            DprintBundle.message("notification.invalid.config.path"),
-            project,
-            LOGGER
-        )
+        configuredPath.isNotBlank() ->
+            infoLogWithConsole(
+                DprintBundle.message("notification.invalid.config.path"),
+                project,
+                LOGGER,
+            )
     }
 
     val basePath = project.basePath
@@ -69,11 +74,12 @@ fun getValidConfigPath(project: Project): String? {
             val file = File(dir, fileName)
             when {
                 file.exists() && checkIsValidJson(project, file.path) -> return file.path
-                file.exists() -> warnLogWithConsole(
-                    DprintBundle.message("notification.invalid.default.config", file.path),
-                    project,
-                    LOGGER
-                )
+                file.exists() ->
+                    warnLogWithConsole(
+                        DprintBundle.message("notification.invalid.default.config", file.path),
+                        project,
+                        LOGGER,
+                    )
             }
         }
     }
@@ -88,7 +94,10 @@ fun getValidConfigPath(project: Project): String? {
  * such as scratch files and diff views will never be formattable by dprint, so
  * we use this to identify them early and thus save the trip to the dprint daemon.
  */
-fun isFormattableFile(project: Project, virtualFile: VirtualFile): Boolean {
+fun isFormattableFile(
+    project: Project,
+    virtualFile: VirtualFile,
+): Boolean {
     val isScratch = ScratchUtil.isScratch(virtualFile)
     if (isScratch) {
         infoLogWithConsole(DprintBundle.message("formatting.scratch.files", virtualFile.path), project, LOGGER)
@@ -100,7 +109,10 @@ fun isFormattableFile(project: Project, virtualFile: VirtualFile): Boolean {
         !DiffUtil.isFileWithoutContent(virtualFile)
 }
 
-private fun checkIsValidJson(project: Project, path: String): Boolean {
+private fun checkIsValidJson(
+    project: Project,
+    path: String,
+): Boolean {
     return try {
         // Need to use Gson here to handle json with comments
         JsonParser.parseReader(FileReader(path))
@@ -122,10 +134,11 @@ fun validateExecutablePath(path: String): Boolean {
  * Attempts to get the dprint executable location by checking to see if it is discoverable.
  */
 private fun getLocationFromThePath(workingDirectory: String): String? {
-    val commandLine = GeneralCommandLine(
-        if (System.getProperty("os.name").lowercase().contains("win")) "where" else "which",
-        "dprint"
-    )
+    val commandLine =
+        GeneralCommandLine(
+            if (System.getProperty("os.name").lowercase().contains("win")) "where" else "which",
+            "dprint",
+        )
     commandLine.withWorkDirectory(workingDirectory)
     val output = ExecUtil.execAndGetOutput(commandLine)
 
@@ -169,11 +182,12 @@ fun getValidExecutablePath(project: Project): String? {
 
     when {
         validateExecutablePath(configuredExecutablePath) -> return configuredExecutablePath
-        configuredExecutablePath.isNotBlank() -> errorLogWithConsole(
-            DprintBundle.message("notification.invalid.executable.path"),
-            project,
-            LOGGER
-        )
+        configuredExecutablePath.isNotBlank() ->
+            errorLogWithConsole(
+                DprintBundle.message("notification.invalid.executable.path"),
+                project,
+                LOGGER,
+            )
     }
 
     project.basePath?.let { workingDirectory ->

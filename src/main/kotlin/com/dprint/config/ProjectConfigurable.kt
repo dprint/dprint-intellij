@@ -21,7 +21,7 @@ private const val CONFIG_ID = "com.dprint.config"
 class ProjectConfigurable(private val project: Project) : BoundSearchableConfigurable(
     DprintBundle.message("config.name"),
     "reference.settings.dprint",
-    CONFIG_ID
+    CONFIG_ID,
 ) {
     @Suppress("LongMethod")
     override fun createPanel(): DialogPanel {
@@ -44,7 +44,7 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                 checkBox(DprintBundle.message("config.enable"))
                     .bindSelected(
                         { projectConfig.state.enabled },
-                        { projectConfig.state.enabled = it }
+                        { projectConfig.state.enabled = it },
                     )
                     .comment(DprintBundle.message("config.enable.description"))
             }
@@ -54,7 +54,7 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                 checkBox(DprintBundle.message("config.run.on.save"))
                     .bindSelected(
                         { userConfig.state.runOnSave },
-                        { userConfig.state.runOnSave = it }
+                        { userConfig.state.runOnSave = it },
                     )
                     .comment(DprintBundle.message("config.run.on.save.description"))
             }
@@ -64,7 +64,7 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                 checkBox(DprintBundle.message("config.override.intellij.formatter"))
                     .bindSelected(
                         { userConfig.state.overrideIntelliJFormatter },
-                        { userConfig.state.overrideIntelliJFormatter = it }
+                        { userConfig.state.overrideIntelliJFormatter = it },
                     )
                     .comment(DprintBundle.message("config.override.intellij.formatter.description"))
             }
@@ -74,7 +74,7 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                 checkBox(DprintBundle.message("config.verbose.logging"))
                     .bindSelected(
                         { userConfig.state.enableEditorServiceVerboseLogging },
-                        { userConfig.state.enableEditorServiceVerboseLogging = it }
+                        { userConfig.state.enableEditorServiceVerboseLogging = it },
                     )
                     .comment(DprintBundle.message("config.verbose.logging.description"))
             }
@@ -85,7 +85,7 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                     textFieldWithBrowseButton()
                         .bindText(
                             { projectConfig.state.configLocation },
-                            { projectConfig.state.configLocation = it }
+                            { projectConfig.state.configLocation = it },
                         )
                         .label(DprintBundle.message("config.dprint.config.path"), LabelPosition.TOP)
                         .comment(DprintBundle.message("config.dprint.config.path.description")).validationOnInput {
@@ -104,7 +104,7 @@ class ProjectConfigurable(private val project: Project) : BoundSearchableConfigu
                     textFieldWithBrowseButton()
                         .bindText(
                             { projectConfig.state.executableLocation },
-                            { projectConfig.state.executableLocation = it }
+                            { projectConfig.state.executableLocation = it },
                         )
                         .label(DprintBundle.message("config.dprint.executable.path"), LabelPosition.TOP)
                         .comment(DprintBundle.message("config.dprint.executable.path.description")).validationOnInput {
