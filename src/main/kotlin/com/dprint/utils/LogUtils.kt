@@ -57,7 +57,7 @@ fun errorLogWithConsole(
     logger: Logger,
 ) {
     // Always use info for system level logging as it throws notifications into the UI
-    logger.info(message, throwable)
+    logger.error(message, throwable)
     maybeGetMessageBus(project)?.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)?.error(message)
 }
 

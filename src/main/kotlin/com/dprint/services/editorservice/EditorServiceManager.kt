@@ -46,6 +46,7 @@ class EditorServiceManager(private val project: Project) {
     private var configPath: String? = null
     private val taskQueue = BackgroundTaskQueue(project, "Dprint manager task queue")
     private var canFormatCache = LRUMap<String, Boolean>()
+    private var isInitialising = false
 
     init {
         maybeInitialiseEditorService()
@@ -84,9 +85,11 @@ class EditorServiceManager(private val project: Project) {
     }
 
     private fun maybeInitialiseEditorService() {
-        if (!project.service<ProjectConfiguration>().state.enabled) {
+        if (!project.service<ProjectConfiguration>().state.enabled || isInitialising) {
             return
         }
+        isInitialising = true
+
         createTaskWithTimeout(
             DprintBundle.message("editor.service.manager.initialising.editor.service"),
             {
@@ -119,8 +122,10 @@ class EditorServiceManager(private val project: Project) {
                         )
                 }
                 editorService?.initialiseEditorService()
+                isInitialising = false
             },
             false,
+            { isInitialising = false },
         )
     }
 
@@ -153,29 +158,26 @@ class EditorServiceManager(private val project: Project) {
     private fun primeCanFormatCache(path: String) {
         createTaskWithTimeout(
             DprintBundle.message("editor.service.manager.priming.can.format.cache", path),
-            {
-                editorService?.canFormat(path) {
-                    canFormatCache[path] = it
-                    infoLogWithConsole("$path ${if (it) "can" else "cannot"} be formatted", project, LOGGER)
-                }
-            },
-            true,
-        )
+        ) {
+            editorService?.canFormat(path) {
+                canFormatCache[path] = it
+                infoLogWithConsole("$path ${if (it) "can" else "cannot"} be formatted", project, LOGGER)
+            }
+        }
     }
 
     private fun createTaskWithTimeout(
         title: String,
         operation: () -> Unit,
-        restartOnFailure: Boolean,
     ) {
-        createTaskWithTimeout(title, operation, restartOnFailure, null)
+        createTaskWithTimeout(title, operation, true) {}
     }
 
     private fun createTaskWithTimeout(
         title: String,
         operation: () -> Unit,
         restartOnFailure: Boolean,
-        onFailure: (() -> Unit)?,
+        onFailure: (() -> Unit),
     ) {
         val future = CompletableFuture<Unit>()
         val task =
@@ -187,11 +189,11 @@ class EditorServiceManager(private val project: Project) {
                         future.completeAsync(operation)
                         future.get(TIMEOUT, TimeUnit.SECONDS)
                     } catch (e: TimeoutException) {
-                        if (onFailure != null) onFailure()
+                        onFailure()
                         errorLogWithConsole("Dprint timeout: $title", e, project, LOGGER)
                         if (restartOnFailure) maybeInitialiseEditorService()
                     } catch (e: ExecutionException) {
-                        if (onFailure != null) onFailure()
+                        onFailure()
                         if (e.cause is ProcessUnavailableException) {
                             warnLogWithConsole(
                                 DprintBundle.message("editor.service.process.is.dead"),
@@ -203,11 +205,11 @@ class EditorServiceManager(private val project: Project) {
                         errorLogWithConsole("Dprint execution exception: $title", e, project, LOGGER)
                         if (restartOnFailure) maybeInitialiseEditorService()
                     } catch (e: InterruptedException) {
-                        if (onFailure != null) onFailure()
+                        onFailure()
                         errorLogWithConsole("Dprint interruption: $title", e, project, LOGGER)
                         if (restartOnFailure) maybeInitialiseEditorService()
                     } catch (e: CancellationException) {
-                        if (onFailure != null) onFailure()
+                        onFailure()
                         errorLogWithConsole("Dprint cancellation: $title", e, project, LOGGER)
                         if (restartOnFailure) maybeInitialiseEditorService()
                     }
@@ -284,9 +286,7 @@ class EditorServiceManager(private val project: Project) {
     fun cancelFormat(formatId: Int) {
         createTaskWithTimeout(
             "Cancelling format $formatId",
-            { editorService?.cancelFormat(formatId) },
-            true,
-        )
+        ) { editorService?.cancelFormat(formatId) }
     }
 
     fun canCancelFormat(): Boolean {

@@ -5,10 +5,12 @@ import com.dprint.config.UserConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
+import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.isFormattableFile
+import com.dprint.utils.warnLogWithConsole
 import com.intellij.formatting.service.AsyncDocumentFormattingService
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
@@ -188,6 +190,14 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                     editorServiceManager.restartEditorService()
                     null
                 } catch (e: ExecutionException) {
+                    if (e.cause is ProcessUnavailableException) {
+                        warnLogWithConsole(
+                            DprintBundle.message("editor.service.process.is.dead"),
+                            e.cause,
+                            project,
+                            LOGGER,
+                        )
+                    }
                     errorLogWithConsole("External format process failed", e, project, LOGGER)
                     formattingRequest.onError("Dprint external formatter", "Format process failed")
                     editorServiceManager.restartEditorService()
