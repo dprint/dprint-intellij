@@ -39,6 +39,7 @@ private val LOGGER = logger<EditorServiceManager>()
 private const val SCHEMA_V4 = 4
 private const val SCHEMA_V5 = 5
 private const val TIMEOUT = 10L
+private const val INIT_TIMEOUT = 20L
 
 @Service(Service.Level.PROJECT)
 class EditorServiceManager(private val project: Project) {
@@ -47,10 +48,6 @@ class EditorServiceManager(private val project: Project) {
     private val taskQueue = BackgroundTaskQueue(project, "Dprint manager task queue")
     private var canFormatCache = LRUMap<String, Boolean>()
     private var isInitialising = false
-
-    init {
-        maybeInitialiseEditorService()
-    }
 
     // The less generic error is kotlinx.serialization.json.internal.JsonDecodingException and is not accessible
     // unfortunately
@@ -124,6 +121,7 @@ class EditorServiceManager(private val project: Project) {
                 editorService?.initialiseEditorService()
                 isInitialising = false
             },
+            INIT_TIMEOUT,
             false,
             { isInitialising = false },
         )
@@ -170,12 +168,13 @@ class EditorServiceManager(private val project: Project) {
         title: String,
         operation: () -> Unit,
     ) {
-        createTaskWithTimeout(title, operation, true) {}
+        createTaskWithTimeout(title, operation, TIMEOUT, true) {}
     }
 
     private fun createTaskWithTimeout(
         title: String,
         operation: () -> Unit,
+        timeout: Long,
         restartOnFailure: Boolean,
         onFailure: (() -> Unit),
     ) {
@@ -187,7 +186,7 @@ class EditorServiceManager(private val project: Project) {
                     infoLogWithConsole(indicator.text, project, LOGGER)
                     try {
                         future.completeAsync(operation)
-                        future.get(TIMEOUT, TimeUnit.SECONDS)
+                        future.get(timeout, TimeUnit.SECONDS)
                     } catch (e: TimeoutException) {
                         onFailure()
                         errorLogWithConsole("Dprint timeout: $title", e, project, LOGGER)
@@ -250,6 +249,7 @@ class EditorServiceManager(private val project: Project) {
         createTaskWithTimeout(
             DprintBundle.message("editor.service.manager.creating.formatting.task", path),
             { editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished) },
+            TIMEOUT,
             true,
             { onFinished(FormatResult()) },
         )

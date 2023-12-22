@@ -92,7 +92,7 @@ class EditorProcess(private val project: Project) {
                         LOGGER.info(e)
                         return@Runnable
                     } catch (e: Exception) {
-                        errorLogWithConsole("Dprint: stderr reader failed", e, project, LOGGER)
+                        LOGGER.info(e)
                         return@Runnable
                     }
                 }
