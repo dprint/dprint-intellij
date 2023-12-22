@@ -22,7 +22,6 @@ private const val SHUTDOWN_TIMEOUT = 1000L
 
 @Service(Service.Level.PROJECT)
 class EditorServiceV5(val project: Project) : EditorService {
-
     private var editorProcess = EditorProcess(project)
     private var stdoutListener: Thread? = null
     private val pendingMessages = PendingMessages()
@@ -37,7 +36,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         infoLogWithConsole(
             DprintBundle.message("editor.service.initialize", getName()),
             project,
-            LOGGER
+            LOGGER,
         )
         dropMessages()
         if (stdoutListener != null) {
@@ -78,7 +77,10 @@ class EditorServiceV5(val project: Project) : EditorService {
         }
     }
 
-    override fun canFormat(filePath: String, onFinished: (Boolean) -> Unit) {
+    override fun canFormat(
+        filePath: String,
+        onFinished: (Boolean) -> Unit,
+    ) {
         handleStaleMessages()
 
         infoLogWithConsole(DprintBundle.message("formatting.checking.can.format", filePath), project, LOGGER)
@@ -92,7 +94,7 @@ class EditorServiceV5(val project: Project) : EditorService {
                 infoLogWithConsole(
                     DprintBundle.message("editor.service.format.check.failed", filePath, it.data),
                     project,
-                    LOGGER
+                    LOGGER,
                 )
             } else if (it.type === MessageType.Dropped) {
                 // do nothing
@@ -100,7 +102,7 @@ class EditorServiceV5(val project: Project) : EditorService {
                 infoLogWithConsole(
                     DprintBundle.message("editor.service.unsupported.message.type", it.type),
                     project,
-                    LOGGER
+                    LOGGER,
                 )
             }
         }
@@ -138,7 +140,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         content: String,
         startIndex: Int?,
         endIndex: Int?,
-        onFinished: (FormatResult) -> Unit
+        onFinished: (FormatResult) -> Unit,
     ): Int {
         infoLogWithConsole(DprintBundle.message("formatting.file", filePath), project, LOGGER)
         val message = Message(formatId ?: getNextMessageId(), MessageType.FormatFile)
@@ -152,17 +154,18 @@ class EditorServiceV5(val project: Project) : EditorService {
         val handler: (PendingMessages.Result) -> Unit = {
             val formatResult = FormatResult()
             if (it.type == MessageType.FormatFileResponse && it.data is String?) {
-                val successMessage = when (it.data) {
-                    null -> DprintBundle.message("editor.service.format.not.needed", filePath)
-                    else -> DprintBundle.message("editor.service.format.succeeded", filePath)
-                }
+                val successMessage =
+                    when (it.data) {
+                        null -> DprintBundle.message("editor.service.format.not.needed", filePath)
+                        else -> DprintBundle.message("editor.service.format.succeeded", filePath)
+                    }
                 infoLogWithConsole(successMessage, project, LOGGER)
                 formatResult.formattedContent = it.data
             } else if (it.type == MessageType.ErrorResponse && it.data is String) {
                 warnLogWithConsole(
                     DprintBundle.message("editor.service.format.failed", filePath, it.data),
                     project,
-                    LOGGER
+                    LOGGER,
                 )
                 formatResult.error = it.data
             } else if (it.type != MessageType.Dropped) {
@@ -170,7 +173,7 @@ class EditorServiceV5(val project: Project) : EditorService {
                 warnLogWithConsole(
                     DprintBundle.message("editor.service.format.failed", filePath, errorMessage),
                     project,
-                    LOGGER
+                    LOGGER,
                 )
                 formatResult.error = errorMessage
             }
@@ -187,7 +190,7 @@ class EditorServiceV5(val project: Project) : EditorService {
         infoLogWithConsole(
             DprintBundle.message("editor.service.created.formatting.task", filePath, message.id),
             project,
-            LOGGER
+            LOGGER,
         )
 
         return message.id

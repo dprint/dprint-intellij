@@ -16,7 +16,10 @@ class PendingMessages {
      */
     class Result(val type: MessageType, val data: Any?)
 
-    fun store(id: Int, handler: Handler) {
+    fun store(
+        id: Int,
+        handler: Handler,
+    ) {
         concurrentHashMap[id] = MessageInfo(handler, System.currentTimeMillis())
     }
 

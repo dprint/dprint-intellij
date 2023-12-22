@@ -17,7 +17,10 @@ interface EditorService : Disposable {
     /**
      * Returns whether dprint can format the given file path based on the config used in the editor service.
      */
-    fun canFormat(filePath: String, onFinished: (Boolean) -> Unit)
+    fun canFormat(
+        filePath: String,
+        onFinished: (Boolean) -> Unit,
+    )
 
     fun canRangeFormat(): Boolean
 
@@ -30,7 +33,11 @@ interface EditorService : Disposable {
      * will be the result of the formatting job. The class providing this should handle timeouts themselves.
      * @return A result object containing the formatted content is successful or an error.
      */
-    fun fmt(filePath: String, content: String, onFinished: (FormatResult) -> Unit): Int? {
+    fun fmt(
+        filePath: String,
+        content: String,
+        onFinished: (FormatResult) -> Unit,
+    ): Int? {
         return fmt(maybeGetFormatId(), filePath, content, null, null, onFinished)
     }
 
@@ -53,7 +60,7 @@ interface EditorService : Disposable {
         content: String,
         startIndex: Int?,
         endIndex: Int?,
-        onFinished: (FormatResult) -> Unit
+        onFinished: (FormatResult) -> Unit,
     ): Int?
 
     /**

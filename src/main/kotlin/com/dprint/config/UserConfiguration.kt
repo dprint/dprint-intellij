@@ -9,7 +9,6 @@ import com.intellij.openapi.components.Storage
  */
 @State(name = "DprintUserConfiguration", storages = [Storage("dprintUserConfig.xml")])
 class UserConfiguration : PersistentStateComponent<UserConfiguration.State> {
-
     class State {
         var runOnSave = false
         var overrideIntelliJFormatter = true

@@ -60,9 +60,10 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         // as it appears that blocking the EDT here causes quite a few issues. Also, we ignore scratch files as a perf
         // optimisation because they are not part of the project and thus never in config.
         val virtualFile = file.virtualFile ?: file.originalFile.virtualFile
-        val canFormat = virtualFile != null &&
-            isFormattableFile(file.project, virtualFile) &&
-            editorServiceManager.canFormatCached(virtualFile.path) != false
+        val canFormat =
+            virtualFile != null &&
+                isFormattableFile(file.project, virtualFile) &&
+                editorServiceManager.canFormatCached(virtualFile.path) != false
 
         if (canFormat) {
             infoConsole(DprintBundle.message("external.formatter.can.format", virtualFile.path), file.project)
@@ -111,7 +112,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 infoLogWithConsole(
                     DprintBundle.message("external.formatter.running.task", formattingId ?: path),
                     project,
-                    LOGGER
+                    LOGGER,
                 )
 
                 for (range in ranges.subList(1, ranges.size)) {
@@ -134,7 +135,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                                     resultContent,
                                     range.startOffset,
                                     getEndOfRange(content, range),
-                                    nextHandler
+                                    nextHandler,
                                 )
                             }
 
@@ -158,7 +159,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                     content,
                     initialRange?.startOffset,
                     getEndOfRange(content, initialRange),
-                    initialHandler
+                    initialHandler,
                 )
                 // Timeouts are handled at the EditorServiceManager level and an empty result will be
                 // returned if something goes wrong
@@ -208,7 +209,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                     infoLogWithConsole(
                         DprintBundle.message("external.formatter.cancelling.task", formattingId ?: path),
                         project,
-                        LOGGER
+                        LOGGER,
                     )
                     editorServiceManager.cancelFormat(formatId)
                 }
@@ -228,7 +229,10 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
      * This function gets around an issue where IntelliJ will sometimes send in a formatting range that
      * is greater than the actual length of the file. Doing this will cause a no-op in dprint for a format.
      */
-    private fun getEndOfRange(content: String, range: TextRange?): Int? {
+    private fun getEndOfRange(
+        content: String,
+        range: TextRange?,
+    ): Int? {
         return when {
             range == null -> null
             range.endOffset > content.length -> content.length

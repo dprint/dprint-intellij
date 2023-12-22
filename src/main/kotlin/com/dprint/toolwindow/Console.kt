@@ -27,7 +27,7 @@ class Console(val project: Project) {
                     override fun error(message: String) {
                         consoleView.print(decorateText(message), ConsoleViewContentType.LOG_ERROR_OUTPUT)
                     }
-                }
+                },
             )
         }
     }

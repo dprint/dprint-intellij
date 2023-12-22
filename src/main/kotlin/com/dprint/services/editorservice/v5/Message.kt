@@ -64,7 +64,7 @@ class Message(val id: Int, val type: MessageType) {
 
                 else -> {
                     throw UnsupportedMessagePartException(
-                        DprintBundle.message("editor.service.unsupported.message.type", part::class.java.simpleName)
+                        DprintBundle.message("editor.service.unsupported.message.type", part::class.java.simpleName),
                     )
                 }
             }
@@ -73,11 +73,12 @@ class Message(val id: Int, val type: MessageType) {
         buffer.put(SUCCESS_MESSAGE)
 
         if (buffer.hasRemaining()) {
-            val message = DprintBundle.message(
-                "editor.service.incorrect.message.size",
-                byteLength,
-                byteLength - buffer.remaining()
-            )
+            val message =
+                DprintBundle.message(
+                    "editor.service.incorrect.message.size",
+                    byteLength,
+                    byteLength - buffer.remaining(),
+                )
             throw UnsupportedMessagePartException(message)
         }
         return buffer.array()
