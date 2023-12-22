@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 - Add check for dead processes to warn users that the dprint daemon is not responding
+- Increase severity of logging in the event processes die or errors are seen in process communication
+  - This may be a little noisy, and if so disabling the plugin is recommended unless the underlying issue with the process can be fixed
+  - For intermittent or one off errors, just restart the dprint plugin via the `Restart dprint` action
 - Upgrade dependencies
 - Attempt to fix changelog update on publish
 
