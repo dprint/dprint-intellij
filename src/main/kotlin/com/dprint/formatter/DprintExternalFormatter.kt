@@ -26,6 +26,16 @@ private val LOGGER = logger<DprintExternalFormatter>()
 private const val NAME = "dprintfmt"
 private const val FORMATTING_TIMEOUT = 10L
 
+/**
+ * Thia class is the recommended way to implement an external formatter in the IJ
+ * framework.
+ *
+ * How it works is that extends AsyncDocumentFormattingService and IJ
+ * will use the `canFormat` method to determine if this formatter should be used
+ * for a given file. If yes, then this will be run and the IJ formatter will not.
+ * If no, it passes through his formatter and checks the next registered formatter
+ * until it eventually gets to the IJ formatter as a last resort.
+ */
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun getFeatures(): MutableSet<FormattingService.Feature> {
         // To ensure that we don't allow IntelliJ range formatting on files that should be dprint formatted we need to

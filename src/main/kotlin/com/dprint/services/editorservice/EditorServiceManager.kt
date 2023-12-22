@@ -39,7 +39,7 @@ private const val SCHEMA_V4 = 4
 private const val SCHEMA_V5 = 5
 private const val TIMEOUT = 10L
 
-@Service
+@Service(Service.Level.PROJECT)
 class EditorServiceManager(private val project: Project) {
     private var editorService: EditorService? = null
     private var configPath: String? = null

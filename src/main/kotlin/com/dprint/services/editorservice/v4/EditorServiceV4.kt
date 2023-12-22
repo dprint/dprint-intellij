@@ -19,7 +19,7 @@ private const val FORMAT_COMMAND = 2
 
 private val LOGGER = logger<EditorServiceV4>()
 
-@Service
+@Service(Service.Level.PROJECT)
 class EditorServiceV4(private val project: Project) : EditorService {
     private var editorProcess = EditorProcess(project)
 
