@@ -20,14 +20,16 @@ private val LOGGER = logger<OnSaveAction>()
  * This listener sets up format on save functionality.
  */
 class OnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
-
     override fun isEnabledForProject(project: Project): Boolean {
         val projectConfig = project.service<ProjectConfiguration>().state
         val userConfig = project.service<UserConfiguration>().state
         return projectConfig.enabled && userConfig.runOnSave
     }
 
-    override fun processDocuments(project: Project, documents: Array<Document?>) {
+    override fun processDocuments(
+        project: Project,
+        documents: Array<Document?>,
+    ) {
         val currentCommandName = CommandProcessor.getInstance().currentCommandName
         if (currentCommandName == ReformatCodeProcessor.getCommandName()) {
             return

@@ -9,16 +9,16 @@ plugins {
     // Java support
     id("java")
     // Kotlin support
-    kotlin("jvm") version "1.9.0"
-    kotlin("plugin.serialization") version "1.9.0"
+    kotlin("jvm") version "1.9.22"
+    kotlin("plugin.serialization") version "1.9.22"
     // gradle-intellij-plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
-    id("org.jetbrains.intellij") version "1.15.0"
+    id("org.jetbrains.intellij") version "1.16.1"
     // gradle-changelog-plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
-    id("org.jetbrains.changelog") version "2.1.2"
+    id("org.jetbrains.changelog") version "2.2.0"
     // detekt linter - read more: https://detekt.github.io/detekt/gradle.html
-    id("io.gitlab.arturbosch.detekt") version "1.23.1"
+    id("io.gitlab.arturbosch.detekt") version "1.23.4"
     // ktlint linter - read more: https://github.com/JLLeitschuh/ktlint-gradle
-    id("org.jlleitschuh.gradle.ktlint") version "11.5.1"
+    id("org.jlleitschuh.gradle.ktlint") version "12.0.3"
 }
 
 group = properties("pluginGroup")
@@ -37,22 +37,24 @@ dependencies {
 // Configure gradle-intellij-plugin plugin.
 // Read more: https://github.com/JetBrains/gradle-intellij-plugin
 intellij {
-    pluginName.set(properties("pluginName"))
-    version.set(properties("platformVersion"))
-    type.set(properties("platformType"))
-    downloadSources.set(properties("platformDownloadSources").toBoolean())
+    pluginName = properties("pluginName")
+    version = properties("platformVersion")
+    type = properties("platformType")
+    downloadSources = properties("platformDownloadSources").toBoolean()
     // Ensures all new builds will "just work" without an update. Obtained from thread in IntelliJ slack
-    updateSinceUntilBuild.set(false)
+    updateSinceUntilBuild = false
     if (properties("platformType") == "IU") {
-        plugins.set(listOf("JavaScript"))
+        plugins = listOf("JavaScript")
     }
 }
 
 // Configure gradle-changelog-plugin plugin.
 // Read more: https://github.com/JetBrains/gradle-changelog-plugin
 changelog {
-    version.set(properties("pluginVersion"))
-    groups.set(listOf())
+    version = properties("pluginVersion")
+    groups = listOf()
+    keepUnreleasedSection = true
+    unreleasedTerm = "[Unreleased]"
 }
 
 // Configure detekt plugin.
@@ -78,15 +80,15 @@ sourceSets {
 tasks {
     // Set the compatibility versions to 11
     withType<JavaCompile> {
-        sourceCompatibility = "11"
-        targetCompatibility = "11"
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
     }
     withType<KotlinCompile> {
-        kotlinOptions.jvmTarget = "11"
+        kotlinOptions.jvmTarget = "17"
     }
 
     withType<Detekt> {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 
     test {
@@ -99,9 +101,9 @@ tasks {
 
     detekt.configure {
         reports {
-            html.required.set(false)
-            xml.required.set(false)
-            txt.required.set(false)
+            html.required = false
+            xml.required = false
+            txt.required = false
         }
     }
 
@@ -110,11 +112,11 @@ tasks {
     }
 
     patchPluginXml {
-        version.set(properties("pluginVersion"))
-        sinceBuild.set(properties("pluginSinceBuild"))
+        version = properties("pluginVersion")
+        sinceBuild = properties("pluginSinceBuild")
 
         // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's manifest
-        pluginDescription.set(
+        pluginDescription =
             File(projectDir, "README.md").readText().lines().run {
                 val start = "<!-- Plugin description -->"
                 val end = "<!-- Plugin description end -->"
@@ -124,22 +126,21 @@ tasks {
                 }
                 subList(indexOf(start) + 1, indexOf(end))
             }.joinToString("\n").run { markdownToHTML(this) }
-        )
 
         // Get the latest available change notes from the changelog file
-        changeNotes.set(provider { changelog.renderItem(changelog.getLatest(), Changelog.OutputType.HTML) })
+        changeNotes = provider { changelog.renderItem(changelog.getLatest(), Changelog.OutputType.HTML) }
     }
 
     runPluginVerifier {
-        ideVersions.set(properties("pluginVerifierIdeVersions").split(',').map(String::trim).filter(String::isNotEmpty))
+        ideVersions = properties("pluginVerifierIdeVersions").split(',').map(String::trim).filter(String::isNotEmpty)
     }
 
     publishPlugin {
         dependsOn("patchChangelog")
-        token.set(System.getenv("PUBLISH_TOKEN"))
+        token = System.getenv("PUBLISH_TOKEN")
         // pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
         // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
         // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
-        channels.set(listOf(properties("pluginVersion").split('-').getOrElse(1) { "default" }.split('.').first()))
+        channels = listOf(properties("pluginVersion").split('-').getOrElse(1) { "default" }.split('.').first())
     }
 }

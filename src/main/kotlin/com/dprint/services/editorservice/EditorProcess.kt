@@ -68,46 +68,52 @@ class EditorProcess(private val project: Project) {
 
     @Suppress("TooGenericExceptionCaught")
     private fun createStderrListener() {
-        val listener = Runnable {
-            while (true) {
-                if (Thread.interrupted()) {
-                    return@Runnable
-                }
-
-                try {
-                    process?.errorStream?.bufferedReader()?.readLine()?.let {
-                        errorLogWithConsole("Dprint daemon ${process?.pid()}: $it", project, LOGGER)
+        val listener =
+            Runnable {
+                while (true) {
+                    if (Thread.interrupted()) {
+                        return@Runnable
                     }
-                } catch (e: InterruptedException) {
-                    LOGGER.info(e)
-                    return@Runnable
-                } catch (e: BufferUnderflowException) {
-                    // Happens when the editor service is shut down while this thread is waiting to read output
-                    LOGGER.info(e)
-                    return@Runnable
-                } catch (e: Exception) {
-                    errorLogWithConsole("Dprint: stderr reader failed", e, project, LOGGER)
-                    return@Runnable
+
+                    try {
+                        process?.errorStream?.bufferedReader()?.readLine()?.let {
+                            errorLogWithConsole("Dprint daemon ${process?.pid()}: $it", project, LOGGER)
+                        }
+                    } catch (e: InterruptedException) {
+                        LOGGER.info(e)
+                        return@Runnable
+                    } catch (e: BufferUnderflowException) {
+                        // Happens when the editor service is shut down while this thread is waiting to read output
+                        LOGGER.info(e)
+                        return@Runnable
+                    } catch (e: Exception) {
+                        errorLogWithConsole("Dprint: stderr reader failed", e, project, LOGGER)
+                        return@Runnable
+                    }
                 }
             }
-        }
-        stderrListener = thread {
-            listener.run()
-        }
+        stderrListener =
+            thread {
+                listener.run()
+            }
     }
 
-    private fun createEditorService(executablePath: String, configPath: String): Process {
+    private fun createEditorService(
+        executablePath: String,
+        configPath: String,
+    ): Process {
         val pid = ProcessHandle.current().pid()
         val userConfig = project.service<UserConfiguration>().state
 
-        val args = mutableListOf(
-            executablePath,
-            "editor-service",
-            "--config",
-            configPath,
-            "--parent-pid",
-            pid.toString()
-        )
+        val args =
+            mutableListOf(
+                executablePath,
+                "editor-service",
+                "--config",
+                configPath,
+                "--parent-pid",
+                pid.toString(),
+            )
 
         if (userConfig.enableEditorServiceVerboseLogging) args.add("--verbose")
 
@@ -120,15 +126,16 @@ class EditorProcess(private val project: Project) {
                 infoLogWithConsole(
                     DprintBundle.message("editor.service.starting", executablePath, configPath, workingDir),
                     project,
-                    LOGGER
+                    LOGGER,
                 )
             }
 
-            else -> infoLogWithConsole(
-                DprintBundle.message("editor.service.starting.working.dir", executablePath, configPath),
-                project,
-                LOGGER
-            )
+            else ->
+                infoLogWithConsole(
+                    DprintBundle.message("editor.service.starting.working.dir", executablePath, configPath),
+                    project,
+                    LOGGER,
+                )
         }
 
         return commandLine.createProcess()
@@ -137,8 +144,8 @@ class EditorProcess(private val project: Project) {
     private fun getProcess(): Process {
         return process ?: throw ProcessUnavailableException(
             DprintBundle.message(
-                "editor.process.cannot.get.editor.service.process"
-            )
+                "editor.process.cannot.get.editor.service.process",
+            ),
         )
     }
 

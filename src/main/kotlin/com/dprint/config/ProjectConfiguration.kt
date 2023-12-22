@@ -9,7 +9,6 @@ import com.intellij.openapi.components.Storage
  */
 @State(name = "DprintProjectConfiguration", storages = [Storage("dprintProjectConfig.xml")])
 class ProjectConfiguration : PersistentStateComponent<ProjectConfiguration.State> {
-
     class State {
         var enabled: Boolean = false
         var configLocation: String = ""

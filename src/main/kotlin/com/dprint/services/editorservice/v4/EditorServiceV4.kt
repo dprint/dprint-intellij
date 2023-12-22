@@ -30,7 +30,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
         infoLogWithConsole(
             DprintBundle.message("editor.service.initialize", getName()),
             project,
-            LOGGER
+            LOGGER,
         )
     }
 
@@ -43,7 +43,10 @@ class EditorServiceV4(private val project: Project) : EditorService {
         editorProcess.destroy()
     }
 
-    override fun canFormat(filePath: String, onFinished: (Boolean) -> Unit) {
+    override fun canFormat(
+        filePath: String,
+        onFinished: (Boolean) -> Unit,
+    ) {
         var status = 0
         infoLogWithConsole(DprintBundle.message("formatting.checking.can.format", filePath), project, LOGGER)
 
@@ -61,7 +64,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
                 DprintBundle.message("editor.service.unable.to.determine.if.can.format", filePath),
                 e,
                 project,
-                LOGGER
+                LOGGER,
             )
             initialiseEditorService()
         }
@@ -78,7 +81,11 @@ class EditorServiceV4(private val project: Project) : EditorService {
         return false
     }
 
-    override fun fmt(filePath: String, content: String, onFinished: (FormatResult) -> Unit): Int? {
+    override fun fmt(
+        filePath: String,
+        content: String,
+        onFinished: (FormatResult) -> Unit,
+    ): Int? {
         val result = FormatResult()
 
         infoLogWithConsole(DprintBundle.message("formatting.file", filePath), project, LOGGER)
@@ -93,7 +100,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
                     infoLogWithConsole(
                         DprintBundle.message("editor.service.format.not.needed", filePath),
                         project,
-                        LOGGER
+                        LOGGER,
                     )
                 } // no-op as content didn't change
                 1 -> {
@@ -101,7 +108,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
                     infoLogWithConsole(
                         DprintBundle.message("editor.service.format.succeeded", filePath),
                         project,
-                        LOGGER
+                        LOGGER,
                     )
                 }
 
@@ -111,7 +118,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
                     warnLogWithConsole(
                         DprintBundle.message("editor.service.format.failed", filePath, error),
                         project,
-                        LOGGER
+                        LOGGER,
                     )
                 }
             }
@@ -122,11 +129,11 @@ class EditorServiceV4(private val project: Project) : EditorService {
                 DprintBundle.message(
                     "editor.service.format.failed.internal",
                     filePath,
-                    e.message ?: "Process unavailable"
+                    e.message ?: "Process unavailable",
                 ),
                 e,
                 project,
-                LOGGER
+                LOGGER,
             )
             initialiseEditorService()
         }
@@ -143,7 +150,7 @@ class EditorServiceV4(private val project: Project) : EditorService {
         content: String,
         startIndex: Int?,
         endIndex: Int?,
-        onFinished: (FormatResult) -> Unit
+        onFinished: (FormatResult) -> Unit,
     ): Int? {
         return fmt(filePath, content, onFinished)
     }

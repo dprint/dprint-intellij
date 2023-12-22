@@ -8,8 +8,10 @@ import org.jetbrains.annotations.PropertyKey
 private const val DPRINT_BUNDLE = "messages.Bundle"
 
 object DprintBundle : AbstractBundle(DPRINT_BUNDLE) {
-
     @Suppress("SpreadOperator")
     @JvmStatic
-    fun message(@PropertyKey(resourceBundle = DPRINT_BUNDLE) key: String, vararg params: Any) = getMessage(key, *params)
+    fun message(
+        @PropertyKey(resourceBundle = DPRINT_BUNDLE) key: String,
+        vararg params: Any,
+    ) = getMessage(key, *params)
 }

@@ -72,10 +72,11 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
                 MessageType.FormatFileResponse.intValue -> {
                     val responseId = body.readInt()
                     val hasChanged = body.readInt()
-                    val text = when (hasChanged == 1) {
-                        true -> body.readSizedString()
-                        false -> null
-                    }
+                    val text =
+                        when (hasChanged == 1) {
+                            true -> body.readSizedString()
+                            false -> null
+                        }
                     val result = PendingMessages.Result(MessageType.FormatFileResponse, text)
                     pendingMessages.take(responseId)?.let { it(result) }
                 }
@@ -101,7 +102,10 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
         }
     }
 
-    private fun sendFailure(messageId: Int, errorMessage: String) {
+    private fun sendFailure(
+        messageId: Int,
+        errorMessage: String,
+    ) {
         val message = createNewMessage(MessageType.ErrorResponse)
         message.addInt(messageId)
         message.addString(errorMessage)
