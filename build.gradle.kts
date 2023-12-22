@@ -12,7 +12,7 @@ plugins {
     kotlin("jvm") version "1.9.20"
     kotlin("plugin.serialization") version "1.9.20"
     // gradle-intellij-plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
-    id("org.jetbrains.intellij") version "1.16.0"
+    id("org.jetbrains.intellij") version "1.16.1"
     // gradle-changelog-plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
     id("org.jetbrains.changelog") version "2.2.0"
     // detekt linter - read more: https://detekt.github.io/detekt/gradle.html
@@ -53,6 +53,8 @@ intellij {
 changelog {
     version.set(properties("pluginVersion"))
     groups.set(listOf())
+    keepUnreleasedSection.set(true)
+    unreleasedTerm.set("[Unreleased]")
 }
 
 // Configure detekt plugin.

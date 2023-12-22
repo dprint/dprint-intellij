@@ -2,7 +2,10 @@
 
 # dprint-intellij-plugin Changelog
 
-## Unreleased
+## [Unreleased]
+- Add check for dead processes to warn users that the dprint daemon is not responding
+- Upgrade dependencies
+- Attempt to fix changelog update on publish
 
 ## 0.4.4 - 2023-11-23
 - Fixed issue for plugins that require the underlying process to be running in the working projects git repository.
