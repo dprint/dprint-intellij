@@ -31,6 +31,17 @@ fun warnLogWithConsole(
     maybeGetMessageBus(project)?.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)?.warn(message)
 }
 
+fun warnLogWithConsole(
+    message: String,
+    throwable: Throwable?,
+    project: Project,
+    logger: Logger,
+) {
+    // Always use info for system level logging as it throws notifications into the UI
+    logger.warn(message, throwable)
+    maybeGetMessageBus(project)?.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)?.warn(message)
+}
+
 fun errorLogWithConsole(
     message: String,
     project: Project,
@@ -46,7 +57,7 @@ fun errorLogWithConsole(
     logger: Logger,
 ) {
     // Always use info for system level logging as it throws notifications into the UI
-    logger.info(message, throwable)
+    logger.error(message, throwable)
     maybeGetMessageBus(project)?.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)?.error(message)
 }
 

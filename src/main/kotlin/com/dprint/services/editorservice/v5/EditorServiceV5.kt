@@ -4,7 +4,6 @@ import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
-import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
@@ -20,7 +19,7 @@ import kotlin.concurrent.thread
 private val LOGGER = logger<EditorServiceV5>()
 private const val SHUTDOWN_TIMEOUT = 1000L
 
-@Service
+@Service(Service.Level.PROJECT)
 class EditorServiceV5(val project: Project) : EditorService {
     private var editorProcess = EditorProcess(project)
     private var stdoutListener: Thread? = null
@@ -60,11 +59,7 @@ class EditorServiceV5(val project: Project) : EditorService {
             runBlocking {
                 withTimeout(SHUTDOWN_TIMEOUT) {
                     launch {
-                        try {
-                            editorProcess.writeBuffer(message.build())
-                        } catch (e: ProcessUnavailableException) {
-                            LOGGER.warn(e)
-                        }
+                        editorProcess.writeBuffer(message.build())
                     }
                 }
             }
@@ -81,6 +76,8 @@ class EditorServiceV5(val project: Project) : EditorService {
         filePath: String,
         onFinished: (Boolean) -> Unit,
     ) {
+        handleStaleMessages()
+
         infoLogWithConsole(DprintBundle.message("formatting.checking.can.format", filePath), project, LOGGER)
         val message = createNewMessage(MessageType.CanFormat)
         message.addString(filePath)
@@ -106,11 +103,18 @@ class EditorServiceV5(val project: Project) : EditorService {
         }
 
         pendingMessages.store(message.id, handler)
+        editorProcess.writeBuffer(message.build())
+    }
 
-        try {
-            editorProcess.writeBuffer(message.build())
-        } catch (e: ProcessUnavailableException) {
-            LOGGER.warn(e)
+    /**
+     * If we find stale messages we assume there is an issue with the underlying process and try restart. In the event
+     * that doesn't work, it is likely there is a problem with the underlying daemon and the IJ process that runs on top
+     * of it is not aware of its unhealthy state.
+     */
+    private fun handleStaleMessages() {
+        if (pendingMessages.hasStaleMessages()) {
+            infoLogWithConsole(DprintBundle.message("editor.service.stale.tasks"), project, LOGGER)
+            this.initialiseEditorService()
         }
     }
 
@@ -166,12 +170,7 @@ class EditorServiceV5(val project: Project) : EditorService {
             onFinished(formatResult)
         }
         pendingMessages.store(message.id, handler)
-
-        try {
-            editorProcess.writeBuffer(message.build())
-        } catch (e: ProcessUnavailableException) {
-            LOGGER.warn(e)
-        }
+        editorProcess.writeBuffer(message.build())
 
         infoLogWithConsole(
             DprintBundle.message("editor.service.created.formatting.task", filePath, message.id),
@@ -194,18 +193,14 @@ class EditorServiceV5(val project: Project) : EditorService {
         val message = createNewMessage(MessageType.CancelFormat)
         infoLogWithConsole(DprintBundle.message("editor.service.cancel.format", formatId), project, LOGGER)
         message.addInt(formatId)
-        try {
-            editorProcess.writeBuffer(message.build())
-        } catch (e: ProcessUnavailableException) {
-            LOGGER.warn(e)
-        }
+        editorProcess.writeBuffer(message.build())
         pendingMessages.take(formatId)
     }
 
     private fun dropMessages() {
         for (message in pendingMessages.drain()) {
-            infoLogWithConsole(DprintBundle.message("editor.service.clearing.message", message.key), project, LOGGER)
-            message.value(PendingMessages.Result(MessageType.Dropped, null))
+            infoLogWithConsole(DprintBundle.message("editor.service.clearing.message", message.first), project, LOGGER)
+            message.second(PendingMessages.Result(MessageType.Dropped, null))
         }
     }
 

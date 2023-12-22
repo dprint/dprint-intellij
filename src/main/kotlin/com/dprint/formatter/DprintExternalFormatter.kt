@@ -5,10 +5,12 @@ import com.dprint.config.UserConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
+import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.isFormattableFile
+import com.dprint.utils.warnLogWithConsole
 import com.intellij.formatting.service.AsyncDocumentFormattingService
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
@@ -26,6 +28,16 @@ private val LOGGER = logger<DprintExternalFormatter>()
 private const val NAME = "dprintfmt"
 private const val FORMATTING_TIMEOUT = 10L
 
+/**
+ * Thia class is the recommended way to implement an external formatter in the IJ
+ * framework.
+ *
+ * How it works is that extends AsyncDocumentFormattingService and IJ
+ * will use the `canFormat` method to determine if this formatter should be used
+ * for a given file. If yes, then this will be run and the IJ formatter will not.
+ * If no, it passes through his formatter and checks the next registered formatter
+ * until it eventually gets to the IJ formatter as a last resort.
+ */
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun getFeatures(): MutableSet<FormattingService.Feature> {
         // To ensure that we don't allow IntelliJ range formatting on files that should be dprint formatted we need to
@@ -55,17 +67,14 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                 isFormattableFile(file.project, virtualFile) &&
                 editorServiceManager.canFormatCached(virtualFile.path) != false
 
-        val message =
-            if (canFormat) {
-                DprintBundle.message("external.formatter.can.format", virtualFile.path)
-            } else {
-                DprintBundle.message(
-                    "external.formatter.cannot.format",
-                    virtualFile?.path ?: "an ephemeral virtual file",
-                )
-            }
-
-        infoConsole(message, file.project)
+        if (canFormat) {
+            infoConsole(DprintBundle.message("external.formatter.can.format", virtualFile.path), file.project)
+        } else if (virtualFile?.path != null) {
+            // If a virtual file path doesn't exist then it is an ephemeral file such as a scratch file. Dprint needs
+            // real files to work. I have tried to log this in the past but it seems to be called frequently resulting
+            // in log spam, so in the case the path doesn't exist, we just do nothing.
+            infoConsole(DprintBundle.message("external.formatter.cannot.format", virtualFile.path), file.project)
+        }
 
         return canFormat
     }
@@ -181,6 +190,14 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
                     editorServiceManager.restartEditorService()
                     null
                 } catch (e: ExecutionException) {
+                    if (e.cause is ProcessUnavailableException) {
+                        warnLogWithConsole(
+                            DprintBundle.message("editor.service.process.is.dead"),
+                            e.cause,
+                            project,
+                            LOGGER,
+                        )
+                    }
                     errorLogWithConsole("External format process failed", e, project, LOGGER)
                     formattingRequest.onError("Dprint external formatter", "Format process failed")
                     editorServiceManager.restartEditorService()

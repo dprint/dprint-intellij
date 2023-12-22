@@ -52,6 +52,11 @@ class EditorProcess(private val project: Project) {
 
             else -> {
                 process = createEditorService(executablePath, configPath)
+                process?.let {
+                    it.onExit().thenApply {
+                        destroy()
+                    }
+                }
                 createStderrListener()
             }
         }
@@ -102,7 +107,7 @@ class EditorProcess(private val project: Project) {
         executablePath: String,
         configPath: String,
     ): Process {
-        val pid = ProcessHandle.current().pid()
+        val ijPid = ProcessHandle.current().pid()
         val userConfig = project.service<UserConfiguration>().state
 
         val args =
@@ -112,7 +117,7 @@ class EditorProcess(private val project: Project) {
                 "--config",
                 configPath,
                 "--parent-pid",
-                pid.toString(),
+                ijPid.toString(),
             )
 
         if (userConfig.enableEditorServiceVerboseLogging) args.add("--verbose")
@@ -138,11 +143,25 @@ class EditorProcess(private val project: Project) {
                 )
         }
 
-        return commandLine.createProcess()
+        val rtnProcess = commandLine.createProcess()
+        val processPid = rtnProcess.pid()
+        rtnProcess.onExit().thenApply {
+            infoLogWithConsole(
+                DprintBundle.message("process.shut.down", processPid),
+                project,
+                LOGGER,
+            )
+        }
+        return rtnProcess
     }
 
     private fun getProcess(): Process {
-        return process ?: throw ProcessUnavailableException(
+        val boundProcess = process
+
+        if (boundProcess?.isAlive == true) {
+            return boundProcess
+        }
+        throw ProcessUnavailableException(
             DprintBundle.message(
                 "editor.process.cannot.get.editor.service.process",
             ),
