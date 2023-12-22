@@ -1,12 +1,14 @@
 package com.dprint.config
 
 import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 
 /**
  * Persists configuration between IDE sessions per project. Configuration is stored in .idea/dprintConfig.xml.
  */
+@Service(Service.Level.PROJECT)
 @State(name = "DprintUserConfiguration", storages = [Storage("dprintUserConfig.xml")])
 class UserConfiguration : PersistentStateComponent<UserConfiguration.State> {
     class State {
