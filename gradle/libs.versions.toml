@@ -1,0 +1,26 @@
+[versions]
+annotations = "24.0.1"
+changelog = "2.2.0"
+commonsCollection4 = "4.4"
+gradleIntelliJPlugin = "1.16.1"
+kotlin = "1.9.22"
+ktlint = "12.0.3"
+versionCatalogUpdate = "0.8.3"
+versions = "0.50.0"
+
+[libraries]
+annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
+commonsCollection4 = { module = "org.apache.commons:commons-collections4", version.ref = "commonsCollection4"}
+
+[plugins]
+# Changelog update gradle plugin - https://github.com/JetBrains/gradle-changelog-plugin
+changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }
+# IntelliJ gradle plugin - https://plugins.gradle.org/plugin/org.jetbrains.intellij
+gradleIntelliJPlugin = { id = "org.jetbrains.intellij", version.ref = "gradleIntelliJPlugin" }
+# Kotlin gradle plugin - https://plugins.gradle.org/plugin/org.jetbrains.kotlin.jvm
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+# ktlint formatter and linter - https://github.com/JLLeitschuh/ktlint-gradle
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+# Updates gradle plugin versions - https://github.com/littlerobots/version-catalog-update-plugin
+versionCatalogUpdate = { id = "nl.littlerobots.version-catalog-update", version.ref = "versionCatalogUpdate" }
+versions = { id = "com.github.ben-manes.versions", version.ref = "versions" }

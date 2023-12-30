@@ -1,24 +1,22 @@
-import io.gitlab.arturbosch.detekt.Detekt
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-fun properties(key: String) = project.findProperty(key).toString()
+
+fun properties(key: String) = providers.gradleProperty(key)
+
+fun environment(key: String) = providers.environmentVariable(key)
 
 plugins {
     // Java support
     id("java")
-    // Kotlin support
-    kotlin("jvm") version "1.9.22"
-    kotlin("plugin.serialization") version "1.9.22"
-    // gradle-intellij-plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
-    id("org.jetbrains.intellij") version "1.16.1"
-    // gradle-changelog-plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
-    id("org.jetbrains.changelog") version "2.2.0"
-    // detekt linter - read more: https://detekt.github.io/detekt/gradle.html
-    id("io.gitlab.arturbosch.detekt") version "1.23.4"
-    // ktlint linter - read more: https://github.com/JLLeitschuh/ktlint-gradle
-    id("org.jlleitschuh.gradle.ktlint") version "12.0.3"
+    alias(libs.plugins.kotlin) // Kotlin support
+    alias(libs.plugins.gradleIntelliJPlugin) // Gradle IntelliJ Plugin
+    alias(libs.plugins.changelog) // Gradle Changelog Plugin
+    alias(libs.plugins.ktlint) // ktlint formatter
+    // Both used for updating gradle dep catalog
+    alias(libs.plugins.versions)
+    alias(libs.plugins.versionCatalogUpdate)
 }
 
 group = properties("pluginGroup")
@@ -29,9 +27,18 @@ repositories {
     mavenCentral()
 }
 dependencies {
-    implementation("org.apache.commons:commons-collections4:4.4")
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.22.0")
+    //    implementation(libs.annotations)
+    implementation(libs.commonsCollection4)
     testImplementation(kotlin("test"))
+}
+
+// Set the JVM language level used to build the project. Use Java 11 for 2020.3+, and Java 17 for 2022.2+.
+kotlin {
+    @Suppress("UnstableApiUsage")
+    jvmToolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+        vendor = JvmVendorSpec.JETBRAINS
+    }
 }
 
 // Configure gradle-intellij-plugin plugin.
@@ -40,10 +47,10 @@ intellij {
     pluginName = properties("pluginName")
     version = properties("platformVersion")
     type = properties("platformType")
-    downloadSources = properties("platformDownloadSources").toBoolean()
+    downloadSources = properties("platformDownloadSources").get().toBoolean()
     // Ensures all new builds will "just work" without an update. Obtained from thread in IntelliJ slack
     updateSinceUntilBuild = false
-    if (properties("platformType") == "IU") {
+    if (properties("platformType").get() == "IU") {
         plugins = listOf("JavaScript")
     }
 }
@@ -55,13 +62,6 @@ changelog {
     groups = listOf()
     keepUnreleasedSection = true
     unreleasedTerm = "[Unreleased]"
-}
-
-// Configure detekt plugin.
-// Read more: https://detekt.github.io/detekt/kotlindsl.html
-detekt {
-    config.setFrom("./detekt-config.yml")
-    buildUponDefaultConfig = true
 }
 
 sourceSets {
@@ -77,20 +77,14 @@ sourceSets {
     }
 }
 
+fun isNonStable(version: String): Boolean {
+    val stableKeyword = listOf("RELEASE", "FINAL", "GA").any { version.uppercase().contains(it) }
+    val regex = "^[0-9,.v-]+(-r)?$".toRegex()
+    val isStable = stableKeyword || regex.matches(version)
+    return isStable.not()
+}
+
 tasks {
-    // Set the compatibility versions to 11
-    withType<JavaCompile> {
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
-    }
-    withType<KotlinCompile> {
-        kotlinOptions.jvmTarget = "17"
-    }
-
-    withType<Detekt> {
-        jvmTarget = "17"
-    }
-
     test {
         useJUnitPlatform()
     }
@@ -99,48 +93,60 @@ tasks {
         jvmArgs("-Xmx4096m")
     }
 
-    detekt.configure {
-        reports {
-            html.required = false
-            xml.required = false
-            txt.required = false
-        }
-    }
-
     buildSearchableOptions {
         enabled = false
+    }
+
+    wrapper {
+        gradleVersion = properties("gradleVersion").get()
     }
 
     patchPluginXml {
         version = properties("pluginVersion")
         sinceBuild = properties("pluginSinceBuild")
+        untilBuild = properties("pluginUntilBuild")
 
         // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's manifest
         pluginDescription =
-            File(projectDir, "README.md").readText().lines().run {
+            providers.fileContents(layout.projectDirectory.file("README.md")).asText.map {
                 val start = "<!-- Plugin description -->"
                 val end = "<!-- Plugin description end -->"
 
-                if (!containsAll(listOf(start, end))) {
-                    throw GradleException("Plugin description section not found in README.md:\n$start ... $end")
+                with(it.lines()) {
+                    if (!containsAll(listOf(start, end))) {
+                        throw GradleException("Plugin description section not found in README.md:\n$start ... $end")
+                    }
+                    subList(indexOf(start) + 1, indexOf(end)).joinToString("\n").let(::markdownToHTML)
                 }
-                subList(indexOf(start) + 1, indexOf(end))
-            }.joinToString("\n").run { markdownToHTML(this) }
+            }
 
+        val changelog = project.changelog // local variable for configuration cache compatibility
         // Get the latest available change notes from the changelog file
-        changeNotes = provider { changelog.renderItem(changelog.getLatest(), Changelog.OutputType.HTML) }
-    }
-
-    runPluginVerifier {
-        ideVersions = properties("pluginVerifierIdeVersions").split(',').map(String::trim).filter(String::isNotEmpty)
+        changeNotes =
+            properties("pluginVersion").map { pluginVersion ->
+                with(changelog) {
+                    renderItem(
+                        (getOrNull(pluginVersion) ?: getUnreleased())
+                            .withHeader(false)
+                            .withEmptySections(false),
+                        Changelog.OutputType.HTML,
+                    )
+                }
+            }
     }
 
     publishPlugin {
         dependsOn("patchChangelog")
-        token = System.getenv("PUBLISH_TOKEN")
+        token = environment("PUBLISH_TOKEN")
         // pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
         // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
         // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
-        channels = listOf(properties("pluginVersion").split('-').getOrElse(1) { "default" }.split('.').first())
+        channels = listOf(properties("pluginVersion").get().split('-').getOrElse(1) { "default" }.split('.').first())
+    }
+
+    withType<DependencyUpdatesTask> {
+        rejectVersionIf {
+            isNonStable(candidate.version)
+        }
     }
 }
