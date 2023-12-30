@@ -1,6 +1,6 @@
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
-import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 
 
 fun properties(key: String) = providers.gradleProperty(key)
