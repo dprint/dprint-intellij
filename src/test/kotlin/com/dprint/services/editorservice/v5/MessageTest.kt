@@ -1,13 +1,13 @@
 package com.dprint.services.editorservice.v5
 
 import com.intellij.util.io.toByteArray
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import java.nio.ByteBuffer
-import kotlin.test.assertContentEquals
 
-internal class MessageTest {
-    @Test
-    fun testItBuildsAStringMessage() {
+internal class MessageTest : FunSpec({
+
+    test("It builds a string message") {
         val id = 1
         val type = MessageType.Active
         val text = "blah!"
@@ -27,11 +27,10 @@ internal class MessageTest {
         expected.put(textAsBytes)
         expected.put(SUCCESS_MESSAGE)
 
-        assertContentEquals(expected.array(), message.build())
+        message.build() shouldBe expected.array()
     }
 
-    @Test
-    fun testItBuildsAnIntMessage() {
+    test("It builds an int message") {
         val id = 1
         val type = MessageType.Active
         val int = 2
@@ -47,11 +46,10 @@ internal class MessageTest {
         expected.put(createIntBytes(int))
         expected.put(SUCCESS_MESSAGE)
 
-        assertContentEquals(expected.array(), message.build())
+        message.build() shouldBe expected.array()
     }
 
-    @Test
-    fun testItBuildsACombinedMessage() {
+    test("It builds a combined message") {
         val id = 1
         val type = MessageType.Active
         val int = 2
@@ -74,12 +72,12 @@ internal class MessageTest {
         expected.put(textAsBytes)
         expected.put(SUCCESS_MESSAGE)
 
-        assertContentEquals(expected.array(), message.build())
+        message.build() shouldBe expected.array()
     }
+})
 
-    private fun createIntBytes(int: Int): ByteArray {
-        val buffer = ByteBuffer.allocate(4)
-        buffer.putInt(int)
-        return buffer.toByteArray()
-    }
+private fun createIntBytes(int: Int): ByteArray {
+    val buffer = ByteBuffer.allocate(4)
+    buffer.putInt(int)
+    return buffer.toByteArray()
 }

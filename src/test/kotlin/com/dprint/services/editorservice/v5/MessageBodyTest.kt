@@ -1,21 +1,19 @@
 package com.dprint.services.editorservice.v5
 
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import java.nio.ByteBuffer
-import kotlin.test.assertEquals
 
-internal class MessageBodyTest {
-    @Test
-    fun testItDecodesAnInt() {
+class MessageBodyTest : FunSpec({
+    test("It decodes an int") {
         val int = 7
         val buffer = ByteBuffer.allocate(4)
         buffer.putInt(7)
         val messageBody = MessageBody(buffer.array())
-        assertEquals(int, messageBody.readInt())
+        messageBody.readInt() shouldBe int
     }
 
-    @Test
-    fun testItDecodesAString() {
+    test("It decodes a string") {
         val text = "blah!"
         val textAsByteArray = text.encodeToByteArray()
         val sizeBuffer = ByteBuffer.allocate(4)
@@ -25,6 +23,6 @@ internal class MessageBodyTest {
         buffer.put(sizeBuffer.array())
         buffer.put(textAsByteArray)
         val messageBody = MessageBody(buffer.array())
-        assertEquals(text, messageBody.readSizedString())
+        messageBody.readSizedString() shouldBe text
     }
-}
+})
