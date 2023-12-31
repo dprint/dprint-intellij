@@ -19,7 +19,7 @@ fun getNextMessageId(): Int {
     return messageId.incrementAndGet()
 }
 
-class Message(val id: Int, val type: MessageType) {
+class Message(val id: Int, private val type: MessageType) {
     private var parts = mutableListOf<Any>()
 
     fun addString(str: String) {

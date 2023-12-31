@@ -43,7 +43,7 @@ Please report any issues with this Intellij plugin to the
 
 ## Development
 
-This project is currently built using JDK 11. To install on a mac with homebrew run `brew install java11` and set that
+This project is currently built using JDK 17. To install on a mac with homebrew run `brew install java` and set that
 be your project SDK.
 
 ### Intellij Setup
