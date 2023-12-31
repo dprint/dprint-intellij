@@ -25,8 +25,12 @@ interface IFormatterService {
  * A project service that handles reading virtual files, formatting their contents and writing the formatted result.
  */
 @Service(Service.Level.PROJECT)
-class FormatterService(private val project: Project) : IFormatterService {
-    private val delegate = FormatterServiceImpl(project, project.service<EditorServiceManager>())
+class FormatterService(project: Project) : IFormatterService {
+    private val delegate =
+        FormatterServiceImpl(
+            project,
+            project.service<EditorServiceManager>(),
+        )
 
     override fun format(
         virtualFile: VirtualFile,
@@ -36,7 +40,10 @@ class FormatterService(private val project: Project) : IFormatterService {
     }
 }
 
-class FormatterServiceImpl(private val project: Project, private val editorServiceManager: EditorServiceManager) :
+class FormatterServiceImpl(
+    private val project: Project,
+    private val editorServiceManager: EditorServiceManager,
+) :
     IFormatterService {
     override fun format(
         virtualFile: VirtualFile,

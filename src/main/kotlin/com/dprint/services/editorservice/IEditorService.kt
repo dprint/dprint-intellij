@@ -3,7 +3,7 @@ package com.dprint.services.editorservice
 import com.dprint.services.editorservice.exceptions.HandlerNotImplementedException
 import com.intellij.openapi.Disposable
 
-interface EditorService : Disposable {
+interface IEditorService : Disposable {
     /**
      * If enabled, initialises the dprint editor-service so it is ready to format
      */

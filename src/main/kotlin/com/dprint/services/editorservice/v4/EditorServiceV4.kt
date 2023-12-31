@@ -3,7 +3,7 @@ package com.dprint.services.editorservice.v4
 import com.dprint.config.ProjectConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorProcess
-import com.dprint.services.editorservice.EditorService
+import com.dprint.services.editorservice.IEditorService
 import com.dprint.services.editorservice.FormatResult
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
@@ -18,7 +18,7 @@ private const val FORMAT_COMMAND = 2
 private val LOGGER = logger<EditorServiceV4>()
 
 @Service(Service.Level.PROJECT)
-class EditorServiceV4(private val project: Project) : EditorService {
+class EditorServiceV4(private val project: Project) : IEditorService {
     private var editorProcess = EditorProcess(project)
 
     override fun initialiseEditorService() {
