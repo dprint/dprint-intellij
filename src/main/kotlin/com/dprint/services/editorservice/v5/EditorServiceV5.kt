@@ -2,8 +2,8 @@ package com.dprint.services.editorservice.v5
 
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorProcess
-import com.dprint.services.editorservice.EditorService
 import com.dprint.services.editorservice.FormatResult
+import com.dprint.services.editorservice.IEditorService
 import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
@@ -20,7 +20,7 @@ private val LOGGER = logger<EditorServiceV5>()
 private const val SHUTDOWN_TIMEOUT = 1000L
 
 @Service(Service.Level.PROJECT)
-class EditorServiceV5(val project: Project) : EditorService {
+class EditorServiceV5(val project: Project) : IEditorService {
     private var editorProcess = EditorProcess(project)
     private var stdoutListener: Thread? = null
     private val pendingMessages = PendingMessages()

@@ -43,7 +43,7 @@ private const val INIT_TIMEOUT = 20L
 
 @Service(Service.Level.PROJECT)
 class EditorServiceManager(private val project: Project) {
-    private var editorService: EditorService? = null
+    private var editorService: IEditorService? = null
     private var configPath: String? = null
     private val taskQueue = BackgroundTaskQueue(project, "Dprint manager task queue")
     private var canFormatCache = LRUMap<String, Boolean>()
@@ -224,7 +224,7 @@ class EditorServiceManager(private val project: Project) {
 
     /**
      * Formats the given file in a background thread and runs the onFinished callback once complete.
-     * See [com.dprint.services.editorservice.EditorService.fmt] for more info on the parameters.
+     * See [com.dprint.services.editorservice.IEditorService.fmt] for more info on the parameters.
      */
     fun format(
         path: String,
@@ -236,7 +236,7 @@ class EditorServiceManager(private val project: Project) {
 
     /**
      * Formats the given file in a background thread and runs the onFinished callback once complete.
-     * See [com.dprint.services.editorservice.EditorService.fmt] for more info on the parameters.
+     * See [com.dprint.services.editorservice.IEditorService.fmt] for more info on the parameters.
      */
     fun format(
         formatId: Int?,

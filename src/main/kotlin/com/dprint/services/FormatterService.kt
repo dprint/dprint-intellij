@@ -11,17 +11,41 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 
-/**
- * A project service that handles reading virtual files, formatting their contents and writing the formatted result.
- */
-@Service(Service.Level.PROJECT)
-class FormatterService(private val project: Project) {
-    private var editorServiceManager = project.service<EditorServiceManager>()
-
+interface IFormatterService {
     /**
      * Attempts to format and save a Document using Dprint.
      */
     fun format(
+        virtualFile: VirtualFile,
+        document: Document,
+    )
+}
+
+/**
+ * A project service that handles reading virtual files, formatting their contents and writing the formatted result.
+ */
+@Service(Service.Level.PROJECT)
+class FormatterService(project: Project) : IFormatterService {
+    private val delegate =
+        FormatterServiceImpl(
+            project,
+            project.service<EditorServiceManager>(),
+        )
+
+    override fun format(
+        virtualFile: VirtualFile,
+        document: Document,
+    ) {
+        this.delegate.format(virtualFile, document)
+    }
+}
+
+class FormatterServiceImpl(
+    private val project: Project,
+    private val editorServiceManager: EditorServiceManager,
+) :
+    IFormatterService {
+    override fun format(
         virtualFile: VirtualFile,
         document: Document,
     ) {
