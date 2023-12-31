@@ -2,8 +2,8 @@ package com.dprint.services.editorservice.v5
 
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorProcess
-import com.dprint.services.editorservice.IEditorService
 import com.dprint.services.editorservice.FormatResult
+import com.dprint.services.editorservice.IEditorService
 import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole

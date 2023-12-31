@@ -3,8 +3,8 @@ package com.dprint.services.editorservice.v4
 import com.dprint.config.ProjectConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.EditorProcess
-import com.dprint.services.editorservice.IEditorService
 import com.dprint.services.editorservice.FormatResult
+import com.dprint.services.editorservice.IEditorService
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
 import com.intellij.openapi.components.Service
@@ -45,7 +45,6 @@ class EditorServiceV4(private val project: Project) : IEditorService {
         filePath: String,
         onFinished: (Boolean) -> Unit,
     ) {
-        var status = 0
         infoLogWithConsole(DprintBundle.message("formatting.checking.can.format", filePath), project, LOGGER)
 
         editorProcess.writeInt(CHECK_COMMAND)
@@ -54,7 +53,7 @@ class EditorServiceV4(private val project: Project) : IEditorService {
 
         // https://github.com/dprint/dprint/blob/main/docs/editor-extension-development.md
         // this command sequence returns 1 if the file can be formatted
-        status = editorProcess.readInt()
+        val status: Int = editorProcess.readInt()
         editorProcess.readAndAssertSuccess()
 
         val result = status == 1
