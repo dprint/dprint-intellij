@@ -201,7 +201,11 @@ private fun getStartOfRange(
     // that ranges do not overlap, so we can use the diff to the original content length to know where the
     // new range will shift after each range format.
     val rangeOffset = currentContent.length - originalContent.length
-    return range.startOffset + rangeOffset
+    val startOffset = range.startOffset + rangeOffset
+    return when {
+        startOffset > currentContent.length -> currentContent.length
+        else -> startOffset
+    }
 }
 
 private fun getEndOfRange(
@@ -218,7 +222,7 @@ private fun getEndOfRange(
     val rangeOffset = currentContent.length - originalContent.length
     val endOffset = range.endOffset + rangeOffset
     return when {
-        rangeOffset > currentContent.length -> currentContent.length
+        endOffset < 0 -> 0
         else -> endOffset
     }
 }
