@@ -12,7 +12,6 @@ import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 
 private val LOGGER = logger<DprintExternalFormatter>()
@@ -30,9 +29,8 @@ private const val NAME = "dprintfmt"
  */
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun getFeatures(): MutableSet<FormattingService.Feature> {
-        // To ensure that we don't allow IntelliJ range formatting on files that should be dprint formatted we need to
-        // say we provide the FORMAT_FRAGMENTS features then handle them as a no op.
-        return mutableSetOf(FormattingService.Feature.FORMAT_FRAGMENTS)
+        // When range formatting is available we need to specify format fragments here.
+        return mutableSetOf()
     }
 
     override fun canFormat(file: PsiFile): Boolean {
@@ -89,6 +87,11 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             return null
         }
 
+        if (doAnyRangesIntersect(formattingRequest)) {
+            infoLogWithConsole(DprintBundle.message("external.formatter.range.overlapping"), project, LOGGER)
+            return null
+        }
+
         infoLogWithConsole(DprintBundle.message("external.formatter.creating.task", path), project, LOGGER)
 
         return object : FormattingTask {
@@ -109,18 +112,22 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
     }
 
     /**
-     * This function gets around an issue where IntelliJ will sometimes send in a formatting range that
-     * is greater than the actual length of the file. Doing this will cause a no-op in dprint for a format.
+     * We make assumptions that ranges do not overlap each other in our formatting algorithm.
      */
-    private fun getEndOfRange(
-        content: String,
-        range: TextRange?,
-    ): Int? {
-        return when {
-            range == null -> null
-            range.endOffset > content.length -> content.length
-            else -> range.endOffset
+    private fun doAnyRangesIntersect(formattingRequest: AsyncFormattingRequest): Boolean {
+        val ranges = formattingRequest.formattingRanges.sortedBy { textRange -> textRange.startOffset }
+        for (i in ranges.indices) {
+            if (i + 1 >= ranges.size) {
+                continue
+            }
+            val current = ranges[i]
+            val next = ranges[i + 1]
+
+            if (current.intersects(next)) {
+                return true
+            }
         }
+        return false
     }
 
     private fun isRangeFormat(formattingRequest: AsyncFormattingRequest): Boolean {
