@@ -128,7 +128,9 @@ class DprintFormattingTaskTest : FunSpec({
         dprintFormattingTask.run()
 
         verify(exactly = 1) { editorServiceManager.format(1, path, testContent, 0, testContentPart1.length, any()) }
-        verify(exactly = 1) { editorServiceManager.format(1, path, successContentPart1, 8, successContentPart1.length, any()) }
+        verify(
+            exactly = 1,
+        ) { editorServiceManager.format(1, path, successContentPart1, 8, successContentPart1.length, any()) }
         verify { formattingRequest.onTextReady(successContentPart2) }
     }
 })

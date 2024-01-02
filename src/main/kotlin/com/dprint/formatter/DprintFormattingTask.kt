@@ -28,11 +28,22 @@ class DprintFormattingTask(
 ) {
     private var formattingId: Int? = editorServiceManager.maybeGetFormatId()
     private var isCancelled = false
+
+    /**
+     * Used when we want to cancel a format, so that we can cancel every future in the chain.
+     */
     private val allFormatFutures = mutableListOf<CompletableFuture<FormatResult>>()
 
     fun run() {
         val content = formattingRequest.documentText
-        val ranges = if (editorServiceManager.canRangeFormat()) formattingRequest.formattingRanges else mutableListOf(TextRange(0, content.length))
+        val ranges =
+            if (editorServiceManager.canRangeFormat()) {
+                formattingRequest.formattingRanges
+            } else {
+                mutableListOf(
+                    TextRange(0, content.length),
+                )
+            }
 
         infoLogWithConsole(
             DprintBundle.message("external.formatter.running.task", formattingId ?: path),
@@ -49,14 +60,16 @@ class DprintFormattingTask(
         for (range in ranges.subList(0, ranges.size)) {
             nextFuture.thenCompose { formatResult ->
                 if (isCancelled) {
-                    CompletableFuture.completedFuture(formatResult)
+                    // Revert to the initial contents
+                    CompletableFuture.completedFuture(initialResult)
                 } else {
-                    nextFuture = applyNextRangeFormat(
-                        path,
-                        formatResult,
-                        getStartOfRange(formatResult.formattedContent, content, range),
-                        getEndOfRange(formatResult.formattedContent, content, range),
-                    )
+                    nextFuture =
+                        applyNextRangeFormat(
+                            path,
+                            formatResult,
+                            getStartOfRange(formatResult.formattedContent, content, range),
+                            getEndOfRange(formatResult.formattedContent, content, range),
+                        )
                     nextFuture
                 }
             }
