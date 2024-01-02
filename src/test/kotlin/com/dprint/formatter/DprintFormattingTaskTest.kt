@@ -2,6 +2,7 @@ package com.dprint.formatter
 
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
+import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.openapi.project.Project
@@ -13,6 +14,7 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.verify
+import java.util.concurrent.CompletableFuture
 
 class DprintFormattingTaskTest : FunSpec({
     val path = "/some/path"
@@ -65,12 +67,12 @@ class DprintFormattingTaskTest : FunSpec({
         val onFinished = slot<(FormatResult) -> Unit>()
 
         every { formattingRequest.documentText } returns testContent
-        every { formattingRequest.formattingRanges } returns mutableListOf(TextRange(0, testContent.length))
+        every { formattingRequest.formattingRanges } returns mutableListOf(TextRange(0, testContent.length - 1))
         every { editorServiceManager.canRangeFormat() } returns true
         // range indexes should be null as range format is disabled
         every {
             editorServiceManager.format(
-                any(), path, testContent, 0, testContent.length, capture(onFinished),
+                any(), path, testContent, 0, testContent.length - 1, capture(onFinished),
             )
         } answers {
             formatResult.formattedContent = successContent
@@ -79,7 +81,7 @@ class DprintFormattingTaskTest : FunSpec({
 
         dprintFormattingTask.run()
 
-        verify(exactly = 1) { editorServiceManager.format(any(), path, testContent, 0, testContent.length, any()) }
+        verify(exactly = 1) { editorServiceManager.format(any(), path, testContent, 0, testContent.length - 1, any()) }
         verify { formattingRequest.onTextReady(successContent) }
     }
 
@@ -132,5 +134,39 @@ class DprintFormattingTaskTest : FunSpec({
             exactly = 1,
         ) { editorServiceManager.format(1, path, successContentPart1, 8, successContentPart1.length, any()) }
         verify { formattingRequest.onTextReady(successContentPart2) }
+    }
+
+    test("it calls onSuccess with the original content when cancelled") {
+        val testContent = "val test =   \"test\""
+        val formattedContent = "val test = \"test\""
+        val formatResult = FormatResult()
+        val onFinished = slot<(FormatResult) -> Unit>()
+
+        mockkStatic("com.dprint.utils.LogUtilsKt")
+        every { infoLogWithConsole(any(), project, any()) } returns Unit
+        every { errorLogWithConsole(any(), any(), project, any()) } returns Unit
+        every { formattingRequest.documentText } returns testContent
+        every { formattingRequest.formattingRanges } returns mutableListOf(TextRange(0, testContent.length))
+        every { editorServiceManager.canRangeFormat() } returns false
+        every { editorServiceManager.canCancelFormat() } returns true
+        every { editorServiceManager.cancelFormat(1) } returns Unit
+        // range indexes should be null as range format is disabled
+        every {
+            editorServiceManager.format(
+                any(), path, testContent, 0, testContent.length, capture(onFinished),
+            )
+        } answers {
+            CompletableFuture.runAsync {
+                dprintFormattingTask.cancel()
+                Thread.sleep(5000)
+                formatResult.formattedContent = formattedContent
+                onFinished.captured.invoke(formatResult)
+            }
+        }
+
+        dprintFormattingTask.run()
+
+        verify(exactly = 1) { editorServiceManager.format(any(), path, testContent, 0, testContent.length, any()) }
+        verify(exactly = 0) { formattingRequest.onTextReady(any()) }
     }
 })

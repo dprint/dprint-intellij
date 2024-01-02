@@ -59,19 +59,19 @@ class DprintFormattingTask(
         var nextFuture = baseFormatFuture
         for (range in ranges.subList(0, ranges.size)) {
             nextFuture.thenCompose { formatResult ->
-                if (isCancelled) {
-                    // Revert to the initial contents
-                    CompletableFuture.completedFuture(initialResult)
-                } else {
-                    nextFuture =
+                nextFuture =
+                    if (isCancelled) {
+                        // Revert to the initial contents
+                        CompletableFuture.completedFuture(initialResult)
+                    } else {
                         applyNextRangeFormat(
                             path,
                             formatResult,
                             getStartOfRange(formatResult.formattedContent, content, range),
                             getEndOfRange(formatResult.formattedContent, content, range),
                         )
-                    nextFuture
-                }
+                    }
+                nextFuture
             }
         }
 
