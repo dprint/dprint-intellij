@@ -95,10 +95,10 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         infoLogWithConsole(DprintBundle.message("external.formatter.creating.task", path), project, LOGGER)
 
         return object : FormattingTask {
-            val dprintTask = DprintFormattingTask(project, editorServiceManager, formattingRequest)
+            val dprintTask = DprintFormattingTask(project, editorServiceManager, formattingRequest, path)
 
             override fun run() {
-                return dprintTask.run(path)
+                return dprintTask.run()
             }
 
             override fun cancel(): Boolean {

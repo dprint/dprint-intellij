@@ -24,15 +24,15 @@ class DprintFormattingTask(
     private val project: Project,
     private val editorServiceManager: EditorServiceManager,
     private val formattingRequest: AsyncFormattingRequest,
+    private val path: String,
 ) {
     private var formattingId: Int? = editorServiceManager.maybeGetFormatId()
     private var isCancelled = false
-    private val baseFormatFuture = CompletableFuture<FormatResult>()
-    private var activeFormatFuture: CompletableFuture<FormatResult>? = null
+    private val allFormatFutures = mutableListOf<CompletableFuture<FormatResult>>()
 
-    fun run(path: String) {
+    fun run() {
         val content = formattingRequest.documentText
-        val ranges = formattingRequest.formattingRanges
+        val ranges = if (editorServiceManager.canRangeFormat()) formattingRequest.formattingRanges else mutableListOf(TextRange(0, content.length))
 
         infoLogWithConsole(
             DprintBundle.message("external.formatter.running.task", formattingId ?: path),
@@ -40,47 +40,31 @@ class DprintFormattingTask(
             LOGGER,
         )
 
-        // If the version can't range format we always return null, in this case the underlying process will
-        // extract the start byte position (0) and end byte position (content.encodeToByteArray().size) for the
-        // whole file
-        val initialRange =
-            if (editorServiceManager.canRangeFormat() && ranges.size > 0) ranges.first() else null
-        val initialHandler: (FormatResult) -> Unit = {
-            baseFormatFuture.complete(it)
-        }
+        val initialResult = FormatResult()
+        initialResult.formattedContent = content
+        val baseFormatFuture = CompletableFuture.completedFuture(initialResult)
+        allFormatFutures.add(baseFormatFuture)
 
-        editorServiceManager.format(
-            formattingId,
-            path,
-            content,
-            initialRange?.startOffset,
-            initialRange?.endOffset?.let {
-                when {
-                    it > content.length -> content.length
-                    else -> it
-                }
-            },
-            initialHandler,
-        )
-
-        for (range in ranges.subList(1, ranges.size)) {
-            baseFormatFuture.thenApply { formatResult ->
+        var nextFuture = baseFormatFuture
+        for (range in ranges.subList(0, ranges.size)) {
+            nextFuture.thenCompose { formatResult ->
                 if (isCancelled) {
-                    formatResult
+                    CompletableFuture.completedFuture(formatResult)
                 } else {
-                    applyNextRangeFormat(
+                    nextFuture = applyNextRangeFormat(
                         path,
                         formatResult,
                         getStartOfRange(formatResult.formattedContent, content, range),
                         getEndOfRange(formatResult.formattedContent, content, range),
                     )
+                    nextFuture
                 }
             }
         }
 
         // Timeouts are handled at the EditorServiceManager level and an empty result will be
         // returned if something goes wrong
-        val result = getFuture(baseFormatFuture)
+        val result = getFuture(nextFuture)
 
         if (isCancelled || result == null) return
 
@@ -130,7 +114,7 @@ class DprintFormattingTask(
         previousFormatResult: FormatResult,
         startIndex: Int?,
         endIndex: Int?,
-    ): FormatResult? {
+    ): CompletableFuture<FormatResult>? {
         val contentToFormat = previousFormatResult.formattedContent
         if (contentToFormat == null || startIndex == null || endIndex == null) {
             errorLogWithConsole(
@@ -147,7 +131,7 @@ class DprintFormattingTask(
         }
 
         val nextFuture = CompletableFuture<FormatResult>()
-        activeFormatFuture = nextFuture
+        allFormatFutures.add(nextFuture)
         val nextHandler: (FormatResult) -> Unit = { nextResult ->
             nextFuture.complete(nextResult)
         }
@@ -162,7 +146,7 @@ class DprintFormattingTask(
             nextHandler,
         )
 
-        return getFuture(nextFuture)
+        return nextFuture
     }
 
     fun cancel(): Boolean {
@@ -179,8 +163,7 @@ class DprintFormattingTask(
             editorServiceManager.cancelFormat(it)
         }
         // Clean up state so process can complete
-        baseFormatFuture.cancel(true)
-        activeFormatFuture?.cancel(true)
+        allFormatFutures.stream().forEach { f -> f.cancel(true) }
         return true
     }
 
