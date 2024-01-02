@@ -14,6 +14,7 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.verify
+import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 
 class DprintFormattingTaskTest : FunSpec({
@@ -167,6 +168,7 @@ class DprintFormattingTaskTest : FunSpec({
         dprintFormattingTask.run()
 
         verify(exactly = 1) { editorServiceManager.format(any(), path, testContent, 0, testContent.length, any()) }
+        verify(exactly = 1) { errorLogWithConsole(any(), any(CancellationException::class), project, any()) }
         verify(exactly = 0) { formattingRequest.onTextReady(any()) }
     }
 })
