@@ -9,10 +9,9 @@ private const val SLEEP_TIME = 500L
 
 private val LOGGER = logger<StdoutListener>()
 
-class StdoutListener(private val editorProcess: EditorProcess, private val pendingMessages: PendingMessages) :
-    Runnable {
+class StdoutListener(private val editorProcess: EditorProcess, private val pendingMessages: PendingMessages) {
     @Suppress("TooGenericExceptionCaught")
-    override fun run() {
+    fun listen() {
         LOGGER.info(DprintBundle.message("editor.service.started.stdout.listener"))
         while (true) {
             if (Thread.interrupted()) {
