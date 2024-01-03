@@ -136,7 +136,16 @@ class DprintFormattingTaskTest : FunSpec({
         verify(exactly = 1) { editorServiceManager.format(1, path, testContent, 0, unformattedPart1.length, any()) }
         verify(
             exactly = 1,
-        ) { editorServiceManager.format(2, path, successContentPart1, formattedPart1.length, formattedPart1.length + unformattedPart2.length, any()) }
+        ) {
+            editorServiceManager.format(
+                2,
+                path,
+                successContentPart1,
+                formattedPart1.length,
+                formattedPart1.length + unformattedPart2.length,
+                any(),
+            )
+        }
         verify { formattingRequest.onTextReady(successContentPart2) }
     }
 
