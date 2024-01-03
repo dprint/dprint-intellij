@@ -73,11 +73,11 @@ class EditorProcess(private val project: Project) {
 
     @Suppress("TooGenericExceptionCaught")
     private fun createStderrListener() {
-        val listener =
-            Runnable {
+        stderrListener =
+            thread(start = true) {
                 while (true) {
                     if (Thread.interrupted()) {
-                        return@Runnable
+                        return@thread
                     }
 
                     try {
@@ -86,20 +86,16 @@ class EditorProcess(private val project: Project) {
                         }
                     } catch (e: InterruptedException) {
                         LOGGER.info(e)
-                        return@Runnable
+                        return@thread
                     } catch (e: BufferUnderflowException) {
                         // Happens when the editor service is shut down while this thread is waiting to read output
                         LOGGER.info(e)
-                        return@Runnable
+                        return@thread
                     } catch (e: Exception) {
                         LOGGER.info(e)
-                        return@Runnable
+                        return@thread
                     }
                 }
-            }
-        stderrListener =
-            thread {
-                listener.run()
             }
     }
 

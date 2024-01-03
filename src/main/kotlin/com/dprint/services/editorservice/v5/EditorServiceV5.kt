@@ -26,8 +26,8 @@ class EditorServiceV5(val project: Project) : IEditorService {
     private val pendingMessages = PendingMessages()
 
     private fun createStdoutListener(): Thread {
-        return thread {
-            StdoutListener(editorProcess, pendingMessages).run()
+        return thread(start = true) {
+            StdoutListener(editorProcess, pendingMessages).listen()
         }
     }
 
