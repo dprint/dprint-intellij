@@ -26,7 +26,7 @@ class DprintFormattingTask(
     private val formattingRequest: AsyncFormattingRequest,
     private val path: String,
 ) {
-    private var formattingId: Int? = editorServiceManager.maybeGetFormatId()
+    private var formattingIds = mutableListOf<Int>()
     private var isCancelled = false
 
     /**
@@ -46,7 +46,7 @@ class DprintFormattingTask(
             }
 
         infoLogWithConsole(
-            DprintBundle.message("external.formatter.running.task", formattingId ?: path),
+            DprintBundle.message("external.formatter.running.task", path),
             project,
             LOGGER,
         )
@@ -79,7 +79,15 @@ class DprintFormattingTask(
         // returned if something goes wrong
         val result = getFuture(nextFuture)
 
-        if (isCancelled || result == null) return
+        // If cancelled there is no need to utilise the formattingRequest finalising methods
+        if (isCancelled) return
+
+        // If the result is null we don't want to change the document text, so we just set it to be the original.
+        // This should only happen if getting the future throws.
+        if (result == null) {
+            formattingRequest.onTextReady(content)
+            return
+        }
 
         val error = result.error
         if (error != null) {
@@ -143,13 +151,17 @@ class DprintFormattingTask(
             return null
         }
 
+        // Need to update the formatting id so the correct job would be cancelled
+        val formattingId = editorServiceManager.maybeGetFormatId()
+        formattingId?.let {
+            formattingIds.add(it)
+        }
+
         val nextFuture = CompletableFuture<FormatResult>()
         allFormatFutures.add(nextFuture)
         val nextHandler: (FormatResult) -> Unit = { nextResult ->
             nextFuture.complete(nextResult)
         }
-        // Need to update the formatting id so the correct job would be cancelled
-        formattingId = editorServiceManager.maybeGetFormatId()
         editorServiceManager.format(
             formattingId,
             path,
@@ -165,16 +177,16 @@ class DprintFormattingTask(
     fun cancel(): Boolean {
         if (!editorServiceManager.canCancelFormat()) return false
 
-        val formatId = formattingId
         isCancelled = true
-        formatId?.let {
+        for (id in formattingIds) {
             infoLogWithConsole(
-                DprintBundle.message("external.formatter.cancelling.task", it),
+                DprintBundle.message("external.formatter.cancelling.task", id),
                 project,
                 LOGGER,
             )
-            editorServiceManager.cancelFormat(it)
+            editorServiceManager.cancelFormat(id)
         }
+
         // Clean up state so process can complete
         allFormatFutures.stream().forEach { f -> f.cancel(true) }
         return true

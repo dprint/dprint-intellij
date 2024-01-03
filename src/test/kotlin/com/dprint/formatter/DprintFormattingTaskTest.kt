@@ -29,7 +29,7 @@ class DprintFormattingTaskTest : FunSpec({
 
     beforeEach {
         every { infoLogWithConsole(any(), project, any()) } returns Unit
-        every { editorServiceManager.maybeGetFormatId() } returns 1
+        every { editorServiceManager.maybeGetFormatId() } returnsMany mutableListOf(1, 2, 3)
 
         dprintFormattingTask = DprintFormattingTask(project, editorServiceManager, formattingRequest, path)
     }
@@ -48,7 +48,7 @@ class DprintFormattingTaskTest : FunSpec({
         // range indexes should be null as range format is disabled
         every {
             editorServiceManager.format(
-                any(), path, testContent, 0, testContent.length, capture(onFinished),
+                1, path, testContent, 0, testContent.length, capture(onFinished),
             )
         } answers {
             formatResult.formattedContent = successContent
@@ -57,7 +57,7 @@ class DprintFormattingTaskTest : FunSpec({
 
         dprintFormattingTask.run()
 
-        verify(exactly = 1) { editorServiceManager.format(any(), path, testContent, 0, testContent.length, any()) }
+        verify(exactly = 1) { editorServiceManager.format(1, path, testContent, 0, testContent.length, any()) }
         verify { formattingRequest.onTextReady(successContent) }
     }
 
@@ -73,7 +73,7 @@ class DprintFormattingTaskTest : FunSpec({
         // range indexes should be null as range format is disabled
         every {
             editorServiceManager.format(
-                any(), path, testContent, 0, testContent.length - 1, capture(onFinished),
+                1, path, testContent, 0, testContent.length - 1, capture(onFinished),
             )
         } answers {
             formatResult.formattedContent = successContent
@@ -82,17 +82,19 @@ class DprintFormattingTaskTest : FunSpec({
 
         dprintFormattingTask.run()
 
-        verify(exactly = 1) { editorServiceManager.format(any(), path, testContent, 0, testContent.length - 1, any()) }
+        verify(exactly = 1) { editorServiceManager.format(1, path, testContent, 0, testContent.length - 1, any()) }
         verify { formattingRequest.onTextReady(successContent) }
     }
 
     test("it calls editorServiceManager.format correctly when range formatting has multiple ranges") {
-        val testContentPart1 = "val    test"
-        val testContentPart2 = " =   \"test\""
-        val testContent = testContentPart1 + testContentPart2
+        val unformattedPart1 = "val    test"
+        val unformattedPart2 = " =   \"test\""
+        val testContent = unformattedPart1 + unformattedPart2
 
-        val successContentPart1 = "val test =   \"test\""
-        val successContentPart2 = "val test = \"test\""
+        val formattedPart1 = "val test"
+        val formattedPart2 = " = \"test\""
+        val successContentPart1 = formattedPart1 + unformattedPart2
+        val successContentPart2 = formattedPart1 + formattedPart2
 
         val formatResult1 = FormatResult()
         formatResult1.formattedContent = successContentPart1
@@ -106,8 +108,8 @@ class DprintFormattingTaskTest : FunSpec({
             formattingRequest.formattingRanges
         } returns
             mutableListOf(
-                TextRange(0, testContentPart1.length),
-                TextRange(testContentPart1.length, testContent.length),
+                TextRange(0, unformattedPart1.length),
+                TextRange(unformattedPart1.length, unformattedPart1.length + unformattedPart2.length),
             )
         every { editorServiceManager.canRangeFormat() } returns true
         // range indexes should be null as range format is disabled
@@ -121,7 +123,7 @@ class DprintFormattingTaskTest : FunSpec({
 
         every {
             editorServiceManager.format(
-                1, path, successContentPart1, any(), any(), capture(onFinished2),
+                2, path, successContentPart1, any(), any(), capture(onFinished2),
             )
         } answers {
             formatResult2.formattedContent = successContentPart2
@@ -130,14 +132,15 @@ class DprintFormattingTaskTest : FunSpec({
 
         dprintFormattingTask.run()
 
-        verify(exactly = 1) { editorServiceManager.format(1, path, testContent, 0, testContentPart1.length, any()) }
+        // Verify the correct range lengths are recalculated
+        verify(exactly = 1) { editorServiceManager.format(1, path, testContent, 0, unformattedPart1.length, any()) }
         verify(
             exactly = 1,
-        ) { editorServiceManager.format(1, path, successContentPart1, 8, successContentPart1.length, any()) }
+        ) { editorServiceManager.format(2, path, successContentPart1, formattedPart1.length, formattedPart1.length + unformattedPart2.length, any()) }
         verify { formattingRequest.onTextReady(successContentPart2) }
     }
 
-    test("it calls onSuccess with the original content when cancelled") {
+    test("it calls editorServiceManager.cancel with the format id when cancelled") {
         val testContent = "val test =   \"test\""
         val formattedContent = "val test = \"test\""
         val formatResult = FormatResult()
@@ -167,8 +170,34 @@ class DprintFormattingTaskTest : FunSpec({
 
         dprintFormattingTask.run()
 
-        verify(exactly = 1) { editorServiceManager.format(any(), path, testContent, 0, testContent.length, any()) }
+        verify(exactly = 1) { editorServiceManager.format(1, path, testContent, 0, testContent.length, any()) }
+        verify(exactly = 1) { editorServiceManager.cancelFormat(1) }
         verify(exactly = 1) { errorLogWithConsole(any(), any(CancellationException::class), project, any()) }
         verify(exactly = 0) { formattingRequest.onTextReady(any()) }
+    }
+
+    test("it calls formattingRequest.onError when the format returns a failure state") {
+        val testContent = "val test =   \"test\""
+        val testFailure = "Test failure"
+        val formatResult = FormatResult()
+        val onFinished = slot<(FormatResult) -> Unit>()
+
+        every { formattingRequest.documentText } returns testContent
+        every { formattingRequest.formattingRanges } returns mutableListOf(TextRange(0, testContent.length))
+        every { editorServiceManager.canRangeFormat() } returns false
+        // range indexes should be null as range format is disabled
+        every {
+            editorServiceManager.format(
+                1, path, testContent, 0, testContent.length, capture(onFinished),
+            )
+        } answers {
+            formatResult.error = testFailure
+            onFinished.captured.invoke(formatResult)
+        }
+
+        dprintFormattingTask.run()
+
+        verify(exactly = 1) { editorServiceManager.format(1, path, testContent, 0, testContent.length, any()) }
+        verify { formattingRequest.onError(any(), testFailure) }
     }
 })
