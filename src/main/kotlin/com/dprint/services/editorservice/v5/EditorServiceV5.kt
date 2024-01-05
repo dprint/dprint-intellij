@@ -133,40 +133,9 @@ class EditorServiceV5(val project: Project) : IEditorService {
         onFinished: (FormatResult) -> Unit,
     ): Int {
         infoLogWithConsole(DprintBundle.message("formatting.file", filePath), project, LOGGER)
-        val message = Message(formatId ?: getNextMessageId(), MessageType.FormatFile)
-        message.addString(filePath)
-        // TODO We need to properly handle string index to byte index here
-        message.addInt(startIndex ?: 0) // for range formatting add starting index
-        message.addInt(endIndex ?: content.encodeToByteArray().size) // add ending index
-        message.addInt(0) // Override config
-        message.addString(content)
-
+        val message = createFormatMessage(formatId, filePath, startIndex, endIndex, content)
         val handler: (PendingMessages.Result) -> Unit = {
-            val formatResult = FormatResult()
-            if (it.type == MessageType.FormatFileResponse && it.data is String?) {
-                val successMessage =
-                    when (it.data) {
-                        null -> DprintBundle.message("editor.service.format.not.needed", filePath)
-                        else -> DprintBundle.message("editor.service.format.succeeded", filePath)
-                    }
-                infoLogWithConsole(successMessage, project, LOGGER)
-                formatResult.formattedContent = it.data
-            } else if (it.type == MessageType.ErrorResponse && it.data is String) {
-                warnLogWithConsole(
-                    DprintBundle.message("editor.service.format.failed", filePath, it.data),
-                    project,
-                    LOGGER,
-                )
-                formatResult.error = it.data
-            } else if (it.type != MessageType.Dropped) {
-                val errorMessage = DprintBundle.message("editor.service.unsupported.message.type", it.type)
-                warnLogWithConsole(
-                    DprintBundle.message("editor.service.format.failed", filePath, errorMessage),
-                    project,
-                    LOGGER,
-                )
-                formatResult.error = errorMessage
-            }
+            val formatResult: FormatResult = mapResultToFormatResult(it, filePath)
             onFinished(formatResult)
         }
         pendingMessages.store(message.id, handler)
@@ -179,6 +148,59 @@ class EditorServiceV5(val project: Project) : IEditorService {
         )
 
         return message.id
+    }
+
+    private fun createFormatMessage(
+        formatId: Int?,
+        filePath: String,
+        startIndex: Int?,
+        endIndex: Int?,
+        content: String,
+    ): Message {
+        val message = Message(formatId ?: getNextMessageId(), MessageType.FormatFile)
+        message.addString(filePath)
+        // TODO We need to properly handle string index to byte index here
+        message.addInt(startIndex ?: 0) // for range formatting add starting index
+        message.addInt(endIndex ?: content.encodeToByteArray().size) // add ending index
+        message.addInt(0) // Override config
+        message.addString(content)
+        return message
+    }
+
+    private fun mapResultToFormatResult(
+        result: PendingMessages.Result,
+        filePath: String,
+    ): FormatResult {
+        return when {
+            (result.type == MessageType.FormatFileResponse && result.data is String?) -> {
+                val successMessage =
+                    when (result.data) {
+                        null -> DprintBundle.message("editor.service.format.not.needed", filePath)
+                        else -> DprintBundle.message("editor.service.format.succeeded", filePath)
+                    }
+                infoLogWithConsole(successMessage, project, LOGGER)
+                FormatResult(formattedContent = result.data)
+            }
+            (result.type == MessageType.ErrorResponse && result.data is String) -> {
+                warnLogWithConsole(
+                    DprintBundle.message("editor.service.format.failed", filePath, result.data),
+                    project,
+                    LOGGER,
+                )
+                FormatResult(error = result.data)
+            }
+            (result.type != MessageType.Dropped) -> {
+                val errorMessage = DprintBundle.message("editor.service.unsupported.message.type", result.type)
+                warnLogWithConsole(
+                    DprintBundle.message("editor.service.format.failed", filePath, errorMessage),
+                    project,
+                    LOGGER,
+                )
+                FormatResult(error = errorMessage)
+            } else -> {
+                FormatResult()
+            }
+        }
     }
 
     override fun canCancelFormat(): Boolean {

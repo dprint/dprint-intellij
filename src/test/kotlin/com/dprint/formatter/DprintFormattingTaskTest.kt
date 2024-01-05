@@ -39,7 +39,7 @@ class DprintFormattingTaskTest : FunSpec({
     test("it calls editorServiceManager.format correctly when range formatting is disabled") {
         val testContent = "val test =   \"test\""
         val successContent = "val test = \"test\""
-        val formatResult = FormatResult()
+        val formatResult = FormatResult(formattedContent = successContent)
         val onFinished = slot<(FormatResult) -> Unit>()
 
         every { formattingRequest.documentText } returns testContent
@@ -51,7 +51,6 @@ class DprintFormattingTaskTest : FunSpec({
                 1, path, testContent, 0, testContent.length, capture(onFinished),
             )
         } answers {
-            formatResult.formattedContent = successContent
             onFinished.captured.invoke(formatResult)
         }
 
@@ -64,7 +63,7 @@ class DprintFormattingTaskTest : FunSpec({
     test("it calls editorServiceManager.format correctly when range formatting has a single range") {
         val testContent = "val test =   \"test\""
         val successContent = "val test = \"test\""
-        val formatResult = FormatResult()
+        val formatResult = FormatResult(formattedContent = successContent)
         val onFinished = slot<(FormatResult) -> Unit>()
 
         every { formattingRequest.documentText } returns testContent
@@ -76,7 +75,6 @@ class DprintFormattingTaskTest : FunSpec({
                 1, path, testContent, 0, testContent.length - 1, capture(onFinished),
             )
         } answers {
-            formatResult.formattedContent = successContent
             onFinished.captured.invoke(formatResult)
         }
 
@@ -96,11 +94,10 @@ class DprintFormattingTaskTest : FunSpec({
         val successContentPart1 = formattedPart1 + unformattedPart2
         val successContentPart2 = formattedPart1 + formattedPart2
 
-        val formatResult1 = FormatResult()
-        formatResult1.formattedContent = successContentPart1
+        val formatResult1 = FormatResult(formattedContent = successContentPart1)
         val onFinished1 = slot<(FormatResult) -> Unit>()
 
-        val formatResult2 = FormatResult()
+        val formatResult2 = FormatResult(formattedContent = successContentPart2)
         val onFinished2 = slot<(FormatResult) -> Unit>()
 
         every { formattingRequest.documentText } returns testContent
@@ -126,7 +123,6 @@ class DprintFormattingTaskTest : FunSpec({
                 2, path, successContentPart1, any(), any(), capture(onFinished2),
             )
         } answers {
-            formatResult2.formattedContent = successContentPart2
             onFinished2.captured.invoke(formatResult2)
         }
 
@@ -152,7 +148,7 @@ class DprintFormattingTaskTest : FunSpec({
     test("it calls editorServiceManager.cancel with the format id when cancelled") {
         val testContent = "val test =   \"test\""
         val formattedContent = "val test = \"test\""
-        val formatResult = FormatResult()
+        val formatResult = FormatResult(formattedContent = formattedContent)
         val onFinished = slot<(FormatResult) -> Unit>()
 
         mockkStatic("com.dprint.utils.LogUtilsKt")
@@ -172,7 +168,6 @@ class DprintFormattingTaskTest : FunSpec({
             CompletableFuture.runAsync {
                 dprintFormattingTask.cancel()
                 Thread.sleep(5000)
-                formatResult.formattedContent = formattedContent
                 onFinished.captured.invoke(formatResult)
             }
         }
@@ -188,7 +183,7 @@ class DprintFormattingTaskTest : FunSpec({
     test("it calls formattingRequest.onError when the format returns a failure state") {
         val testContent = "val test =   \"test\""
         val testFailure = "Test failure"
-        val formatResult = FormatResult()
+        val formatResult = FormatResult(error = testFailure)
         val onFinished = slot<(FormatResult) -> Unit>()
 
         every { formattingRequest.documentText } returns testContent
@@ -200,7 +195,6 @@ class DprintFormattingTaskTest : FunSpec({
                 1, path, testContent, 0, testContent.length, capture(onFinished),
             )
         } answers {
-            formatResult.error = testFailure
             onFinished.captured.invoke(formatResult)
         }
 
