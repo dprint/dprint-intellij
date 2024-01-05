@@ -5,10 +5,6 @@ import com.dprint.services.editorservice.exceptions.UnsupportedMessagePartExcept
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicInteger
 
-// Dprint uses unsigned bytes of 4x255 for the success message and that translates
-// to 4x-1 in the jvm's signed bytes.
-val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
-private const val U32_BYTE_SIZE = 4
 private var messageId = AtomicInteger(0)
 
 fun createNewMessage(type: MessageType): Message {
@@ -20,6 +16,10 @@ fun getNextMessageId(): Int {
 }
 
 class Message(val id: Int, private val type: MessageType) {
+    // Dprint uses unsigned bytes of 4x255 for the success message and that translates
+    // to 4x-1 in the jvm's signed bytes.
+    private val successMessage = byteArrayOf(-1, -1, -1, -1)
+    private val u32ByteSize = 4
     private var parts = mutableListOf<Any>()
 
     fun addString(str: String) {
@@ -31,7 +31,7 @@ class Message(val id: Int, private val type: MessageType) {
     }
 
     private fun intToFourByteArray(int: Int): ByteArray {
-        val buffer = ByteBuffer.allocate(U32_BYTE_SIZE)
+        val buffer = ByteBuffer.allocate(u32ByteSize)
         buffer.putInt(int)
         return buffer.array()
     }
@@ -40,11 +40,11 @@ class Message(val id: Int, private val type: MessageType) {
         var bodyLength = 0
         for (part in parts) {
             when (part) {
-                is Int -> bodyLength += U32_BYTE_SIZE
-                is ByteArray -> bodyLength += (part.size + U32_BYTE_SIZE)
+                is Int -> bodyLength += u32ByteSize
+                is ByteArray -> bodyLength += (part.size + u32ByteSize)
             }
         }
-        val byteLength = bodyLength + U32_BYTE_SIZE * U32_BYTE_SIZE
+        val byteLength = bodyLength + u32ByteSize * u32ByteSize
         val buffer = ByteBuffer.allocate(byteLength)
 
         buffer.put(intToFourByteArray(id))
@@ -70,7 +70,7 @@ class Message(val id: Int, private val type: MessageType) {
             }
         }
 
-        buffer.put(SUCCESS_MESSAGE)
+        buffer.put(successMessage)
 
         if (buffer.hasRemaining()) {
             val message =
