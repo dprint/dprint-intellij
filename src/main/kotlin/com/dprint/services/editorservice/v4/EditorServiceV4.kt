@@ -43,7 +43,7 @@ class EditorServiceV4(private val project: Project) : IEditorService {
 
     override fun canFormat(
         filePath: String,
-        onFinished: (Boolean) -> Unit,
+        onFinished: (Boolean?) -> Unit,
     ) {
         infoLogWithConsole(DprintBundle.message("formatting.checking.can.format", filePath), project, LOGGER)
 

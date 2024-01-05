@@ -5,8 +5,9 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.nio.ByteBuffer
 
-internal class MessageTest : FunSpec({
+val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
 
+internal class MessageTest : FunSpec({
     test("It builds a string message") {
         val id = 1
         val type = MessageType.Active

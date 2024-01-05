@@ -33,7 +33,7 @@ class EditorServiceV5(val project: Project) : IEditorService {
 
     override fun canFormat(
         filePath: String,
-        onFinished: (Boolean) -> Unit,
+        onFinished: (Boolean?) -> Unit,
     ) {
         impl.canFormat(filePath, onFinished)
     }
@@ -122,7 +122,7 @@ class EditorServiceV5Impl(
 
     override fun canFormat(
         filePath: String,
-        onFinished: (Boolean) -> Unit,
+        onFinished: (Boolean?) -> Unit,
     ) {
         handleStaleMessages()
 
@@ -139,30 +139,33 @@ class EditorServiceV5Impl(
     }
 
     private fun handleCanFormatResult(
-        it: PendingMessages.Result,
-        onFinished: (Boolean) -> Unit,
+        result: PendingMessages.Result,
+        onFinished: (Boolean?) -> Unit,
         filePath: String,
     ) {
         when {
-            (it.type == MessageType.CanFormatResponse && it.data is Boolean) -> {
-                onFinished(it.data)
+            (result.type == MessageType.CanFormatResponse && result.data is Boolean) -> {
+                onFinished(result.data)
             }
-            (it.type == MessageType.ErrorResponse && it.data is String) -> {
+            (result.type == MessageType.ErrorResponse && result.data is String) -> {
                 infoLogWithConsole(
-                    DprintBundle.message("editor.service.format.check.failed", filePath, it.data),
+                    DprintBundle.message("editor.service.format.check.failed", filePath, result.data),
                     project,
                     LOGGER,
                 )
+                onFinished(null)
             }
-            (it.type === MessageType.Dropped) -> {
+            (result.type === MessageType.Dropped) -> {
                 // do nothing
+                onFinished(null)
             }
             else -> {
                 infoLogWithConsole(
-                    DprintBundle.message("editor.service.unsupported.message.type", it.type),
+                    DprintBundle.message("editor.service.unsupported.message.type", result.type),
                     project,
                     LOGGER,
                 )
+                onFinished(null)
             }
         }
     }

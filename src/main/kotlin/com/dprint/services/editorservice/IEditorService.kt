@@ -19,7 +19,7 @@ interface IEditorService : Disposable {
      */
     fun canFormat(
         filePath: String,
-        onFinished: (Boolean) -> Unit,
+        onFinished: (Boolean?) -> Unit,
     )
 
     fun canRangeFormat(): Boolean
@@ -44,7 +44,7 @@ interface IEditorService : Disposable {
     /**
      * This runs dprint using the editor service with the supplied file path and content as stdin.
      * @param formatId The id of the message that is passed to the underlying editor service. This is exposed at this
-     * level so we can cancel requests if need be.
+     * level, so we can cancel requests if need be.
      * @param filePath The path of the file being formatted. This is needed so the correct dprint configuration file
      * located.
      * @param content The content of the file as a string. This is formatted via Dprint and returned via the result.

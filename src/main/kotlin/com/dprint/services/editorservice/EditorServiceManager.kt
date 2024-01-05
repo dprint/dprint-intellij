@@ -157,9 +157,13 @@ class EditorServiceManager(private val project: Project) {
         createTaskWithTimeout(
             DprintBundle.message("editor.service.manager.priming.can.format.cache", path),
         ) {
-            editorService?.canFormat(path) {
-                canFormatCache[path] = it
-                infoLogWithConsole("$path ${if (it) "can" else "cannot"} be formatted", project, LOGGER)
+            editorService?.canFormat(path) { canFormat ->
+                if (canFormat == null) {
+                    infoLogWithConsole("Unable to determine if $path can be formatted.", project, LOGGER)
+                } else {
+                    canFormatCache[path] = canFormat
+                    infoLogWithConsole("$path ${if (canFormat) "can" else "cannot"} be formatted", project, LOGGER)
+                }
             }
         }
     }
