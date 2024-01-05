@@ -1,7 +1,7 @@
 package com.dprint.services.editorservice.v5
 
-import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.FormatResult
+import com.dprint.services.editorservice.process.EditorProcess
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
 import com.intellij.openapi.project.Project

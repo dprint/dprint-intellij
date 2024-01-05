@@ -1,10 +1,9 @@
-package com.dprint.services.editorservice
+package com.dprint.services.editorservice.process
 
 import com.dprint.config.UserConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
-import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.getValidConfigPath
 import com.dprint.utils.getValidExecutablePath
 import com.dprint.utils.infoLogWithConsole
@@ -13,7 +12,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import java.io.File
-import java.nio.BufferUnderflowException
 import java.nio.ByteBuffer
 import kotlin.concurrent.thread
 
@@ -52,12 +50,12 @@ class EditorProcess(private val project: Project) {
 
             else -> {
                 process = createEditorService(executablePath, configPath)
-                process?.let {
-                    it.onExit().thenApply {
+                process?.let { actualProcess ->
+                    actualProcess.onExit().thenApply {
                         destroy()
                     }
+                    createStderrListener(actualProcess)
                 }
-                createStderrListener()
             }
         }
     }
@@ -71,31 +69,10 @@ class EditorProcess(private val project: Project) {
         process = null
     }
 
-    @Suppress("TooGenericExceptionCaught")
-    private fun createStderrListener() {
+    private fun createStderrListener(actualProcess: Process) {
         stderrListener =
             thread(start = true) {
-                while (true) {
-                    if (Thread.interrupted()) {
-                        return@thread
-                    }
-
-                    try {
-                        process?.errorStream?.bufferedReader()?.readLine()?.let {
-                            errorLogWithConsole("Dprint daemon ${process?.pid()}: $it", project, LOGGER)
-                        }
-                    } catch (e: InterruptedException) {
-                        LOGGER.info(e)
-                        return@thread
-                    } catch (e: BufferUnderflowException) {
-                        // Happens when the editor service is shut down while this thread is waiting to read output
-                        LOGGER.info(e)
-                        return@thread
-                    } catch (e: Exception) {
-                        LOGGER.info(e)
-                        return@thread
-                    }
-                }
+                StdErrListener(project, actualProcess).listen()
             }
     }
 

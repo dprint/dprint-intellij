@@ -1,7 +1,7 @@
 package com.dprint.services.editorservice.v5
 
 import com.dprint.i18n.DprintBundle
-import com.dprint.services.editorservice.EditorProcess
+import com.dprint.services.editorservice.process.EditorProcess
 import com.intellij.openapi.diagnostic.logger
 import java.nio.BufferUnderflowException
 
