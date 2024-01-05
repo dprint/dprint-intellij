@@ -73,7 +73,7 @@ class EditorServiceV4(private val project: Project) : IEditorService {
         content: String,
         onFinished: (FormatResult) -> Unit,
     ): Int? {
-        val result = FormatResult()
+        var result = FormatResult()
 
         infoLogWithConsole(DprintBundle.message("formatting.file", filePath), project, LOGGER)
         editorProcess.writeInt(FORMAT_COMMAND)
@@ -90,7 +90,7 @@ class EditorServiceV4(private val project: Project) : IEditorService {
                 )
             } // no-op as content didn't change
             1 -> {
-                result.formattedContent = editorProcess.readString()
+                result = FormatResult(formattedContent = editorProcess.readString())
                 infoLogWithConsole(
                     DprintBundle.message("editor.service.format.succeeded", filePath),
                     project,
@@ -100,7 +100,7 @@ class EditorServiceV4(private val project: Project) : IEditorService {
 
             2 -> {
                 val error = editorProcess.readString()
-                result.error = error
+                result = FormatResult(error = error)
                 warnLogWithConsole(
                     DprintBundle.message("editor.service.format.failed", filePath, error),
                     project,

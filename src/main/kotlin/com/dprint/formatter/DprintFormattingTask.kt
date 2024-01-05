@@ -51,8 +51,7 @@ class DprintFormattingTask(
             LOGGER,
         )
 
-        val initialResult = FormatResult()
-        initialResult.formattedContent = content
+        val initialResult = FormatResult(formattedContent = content)
         val baseFormatFuture = CompletableFuture.completedFuture(initialResult)
         allFormatFutures.add(baseFormatFuture)
 
