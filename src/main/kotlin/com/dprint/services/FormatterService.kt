@@ -26,7 +26,7 @@ interface IFormatterService {
  */
 @Service(Service.Level.PROJECT)
 class FormatterService(project: Project) : IFormatterService {
-    private val delegate =
+    private val impl =
         FormatterServiceImpl(
             project,
             project.service<EditorServiceManager>(),
@@ -36,7 +36,7 @@ class FormatterService(project: Project) : IFormatterService {
         virtualFile: VirtualFile,
         document: Document,
     ) {
-        this.delegate.format(virtualFile, document)
+        this.impl.format(virtualFile, document)
     }
 }
 

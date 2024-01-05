@@ -21,9 +21,57 @@ private const val SHUTDOWN_TIMEOUT = 1000L
 
 @Service(Service.Level.PROJECT)
 class EditorServiceV5(val project: Project) : IEditorService {
-    private var editorProcess = EditorProcess(project)
+    private val impl = EditorServiceV5Impl(project, EditorProcess(project), PendingMessages())
+
+    override fun initialiseEditorService() {
+        impl.initialiseEditorService()
+    }
+
+    override fun destroyEditorService() {
+        impl.destroyEditorService()
+    }
+
+    override fun canFormat(
+        filePath: String,
+        onFinished: (Boolean) -> Unit,
+    ) {
+        impl.canFormat(filePath, onFinished)
+    }
+
+    override fun canRangeFormat(): Boolean {
+        return impl.canRangeFormat()
+    }
+
+    override fun fmt(
+        formatId: Int?,
+        filePath: String,
+        content: String,
+        startIndex: Int?,
+        endIndex: Int?,
+        onFinished: (FormatResult) -> Unit,
+    ): Int {
+        return impl.fmt(formatId, filePath, content, startIndex, endIndex, onFinished)
+    }
+
+    override fun canCancelFormat(): Boolean {
+        return impl.canCancelFormat()
+    }
+
+    override fun maybeGetFormatId(): Int {
+        return impl.maybeGetFormatId()
+    }
+
+    override fun dispose() {
+        impl.dispose()
+    }
+}
+
+class EditorServiceV5Impl(
+    private val project: Project,
+    private val editorProcess: EditorProcess,
+    private val pendingMessages: PendingMessages,
+) : IEditorService {
     private var stdoutListener: Thread? = null
-    private val pendingMessages = PendingMessages()
 
     private fun createStdoutListener(): Thread {
         return thread(start = true) {
@@ -83,17 +131,33 @@ class EditorServiceV5(val project: Project) : IEditorService {
         message.addString(filePath)
 
         val handler: (PendingMessages.Result) -> Unit = {
-            if (it.type == MessageType.CanFormatResponse && it.data is Boolean) {
+            handleCanFormatResult(it, onFinished, filePath)
+        }
+
+        pendingMessages.store(message.id, handler)
+        editorProcess.writeBuffer(message.build())
+    }
+
+    private fun handleCanFormatResult(
+        it: PendingMessages.Result,
+        onFinished: (Boolean) -> Unit,
+        filePath: String,
+    ) {
+        when {
+            (it.type == MessageType.CanFormatResponse && it.data is Boolean) -> {
                 onFinished(it.data)
-            } else if (it.type == MessageType.ErrorResponse && it.data is String) {
+            }
+            (it.type == MessageType.ErrorResponse && it.data is String) -> {
                 infoLogWithConsole(
                     DprintBundle.message("editor.service.format.check.failed", filePath, it.data),
                     project,
                     LOGGER,
                 )
-            } else if (it.type === MessageType.Dropped) {
+            }
+            (it.type === MessageType.Dropped) -> {
                 // do nothing
-            } else {
+            }
+            else -> {
                 infoLogWithConsole(
                     DprintBundle.message("editor.service.unsupported.message.type", it.type),
                     project,
@@ -101,9 +165,6 @@ class EditorServiceV5(val project: Project) : IEditorService {
                 )
             }
         }
-
-        pendingMessages.store(message.id, handler)
-        editorProcess.writeBuffer(message.build())
     }
 
     /**
