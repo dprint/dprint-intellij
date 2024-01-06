@@ -1,5 +1,6 @@
 package com.dprint.services.editorservice.v5
 
+import com.dprint.config.UserConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.FormatResult
 import com.dprint.services.editorservice.IEditorService
@@ -8,6 +9,7 @@ import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.TimeoutCancellationException
@@ -21,7 +23,8 @@ private const val SHUTDOWN_TIMEOUT = 1000L
 
 @Service(Service.Level.PROJECT)
 class EditorServiceV5(val project: Project) : IEditorService {
-    private val impl = EditorServiceV5Impl(project, EditorProcess(project), PendingMessages())
+    private val impl =
+        EditorServiceV5Impl(project, EditorProcess(project, project.service<UserConfiguration>()), PendingMessages())
 
     override fun initialiseEditorService() {
         impl.initialiseEditorService()

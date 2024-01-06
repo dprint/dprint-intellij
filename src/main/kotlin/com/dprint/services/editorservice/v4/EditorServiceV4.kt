@@ -1,6 +1,7 @@
 package com.dprint.services.editorservice.v4
 
 import com.dprint.config.ProjectConfiguration
+import com.dprint.config.UserConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.FormatResult
 import com.dprint.services.editorservice.IEditorService
@@ -19,7 +20,7 @@ private val LOGGER = logger<EditorServiceV4>()
 
 @Service(Service.Level.PROJECT)
 class EditorServiceV4(private val project: Project) : IEditorService {
-    private var editorProcess = EditorProcess(project)
+    private var editorProcess = EditorProcess(project, project.service<UserConfiguration>())
 
     override fun initialiseEditorService() {
         // If not enabled we don't start the editor service
