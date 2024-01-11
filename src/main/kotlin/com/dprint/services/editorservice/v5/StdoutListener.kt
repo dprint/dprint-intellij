@@ -10,7 +10,6 @@ private const val SLEEP_TIME = 500L
 private val LOGGER = logger<StdoutListener>()
 
 class StdoutListener(private val editorProcess: EditorProcess, private val pendingMessages: PendingMessages) {
-    @Suppress("TooGenericExceptionCaught")
     fun listen() {
         LOGGER.info(DprintBundle.message("editor.service.started.stdout.listener"))
         while (true) {
@@ -37,7 +36,7 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
         val messageId = editorProcess.readInt()
         val messageType = editorProcess.readInt()
         val bodyLength = editorProcess.readInt()
-        val body = MessageBody(editorProcess.readBuffer(bodyLength))
+        val body = IncomingMessage(editorProcess.readBuffer(bodyLength))
         editorProcess.readAndAssertSuccess()
 
         when (messageType) {
@@ -102,7 +101,7 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
         sendResponse(message)
     }
 
-    private fun sendResponse(message: Message) {
-        editorProcess.writeBuffer(message.build())
+    private fun sendResponse(outgoingMessage: OutgoingMessage) {
+        editorProcess.writeBuffer(outgoingMessage.build())
     }
 }

@@ -223,15 +223,15 @@ class EditorServiceV5Impl(
         startIndex: Int?,
         endIndex: Int?,
         content: String,
-    ): Message {
-        val message = Message(formatId ?: getNextMessageId(), MessageType.FormatFile)
-        message.addString(filePath)
+    ): OutgoingMessage {
+        val outgoingMessage = OutgoingMessage(formatId ?: getNextMessageId(), MessageType.FormatFile)
+        outgoingMessage.addString(filePath)
         // TODO We need to properly handle string index to byte index here
-        message.addInt(startIndex ?: 0) // for range formatting add starting index
-        message.addInt(endIndex ?: content.encodeToByteArray().size) // add ending index
-        message.addInt(0) // Override config
-        message.addString(content)
-        return message
+        outgoingMessage.addInt(startIndex ?: 0) // for range formatting add starting index
+        outgoingMessage.addInt(endIndex ?: content.encodeToByteArray().size) // add ending index
+        outgoingMessage.addInt(0) // Override config
+        outgoingMessage.addString(content)
+        return outgoingMessage
     }
 
     private fun mapResultToFormatResult(
