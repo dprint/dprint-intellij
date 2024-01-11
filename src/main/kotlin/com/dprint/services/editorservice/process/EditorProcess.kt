@@ -1,19 +1,16 @@
-package com.dprint.services.editorservice
+package com.dprint.services.editorservice.process
 
 import com.dprint.config.UserConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
-import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.getValidConfigPath
 import com.dprint.utils.getValidExecutablePath
 import com.dprint.utils.infoLogWithConsole
 import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import java.io.File
-import java.nio.BufferUnderflowException
 import java.nio.ByteBuffer
 import kotlin.concurrent.thread
 
@@ -27,12 +24,12 @@ private val LOGGER = logger<EditorProcess>()
 // to 4x-1 in the jvm's signed bytes.
 private val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
 
-class EditorProcess(private val project: Project) {
+class EditorProcess(private val project: Project, private val userConfiguration: UserConfiguration) {
     private var process: Process? = null
     private var stderrListener: Thread? = null
 
     fun initialize() {
-        val executablePath = getValidExecutablePath(this.project)
+        val executablePath = getValidExecutablePath(project)
         val configPath = getValidConfigPath(project)
 
         if (this.process != null) {
@@ -52,12 +49,12 @@ class EditorProcess(private val project: Project) {
 
             else -> {
                 process = createEditorService(executablePath, configPath)
-                process?.let {
-                    it.onExit().thenApply {
+                process?.let { actualProcess ->
+                    actualProcess.onExit().thenApply {
                         destroy()
                     }
+                    createStderrListener(actualProcess)
                 }
-                createStderrListener()
             }
         }
     }
@@ -71,31 +68,10 @@ class EditorProcess(private val project: Project) {
         process = null
     }
 
-    @Suppress("TooGenericExceptionCaught")
-    private fun createStderrListener() {
+    private fun createStderrListener(actualProcess: Process) {
         stderrListener =
             thread(start = true) {
-                while (true) {
-                    if (Thread.interrupted()) {
-                        return@thread
-                    }
-
-                    try {
-                        process?.errorStream?.bufferedReader()?.readLine()?.let {
-                            errorLogWithConsole("Dprint daemon ${process?.pid()}: $it", project, LOGGER)
-                        }
-                    } catch (e: InterruptedException) {
-                        LOGGER.info(e)
-                        return@thread
-                    } catch (e: BufferUnderflowException) {
-                        // Happens when the editor service is shut down while this thread is waiting to read output
-                        LOGGER.info(e)
-                        return@thread
-                    } catch (e: Exception) {
-                        LOGGER.info(e)
-                        return@thread
-                    }
-                }
+                StdErrListener(project, actualProcess).listen()
             }
     }
 
@@ -104,7 +80,6 @@ class EditorProcess(private val project: Project) {
         configPath: String,
     ): Process {
         val ijPid = ProcessHandle.current().pid()
-        val userConfig = project.service<UserConfiguration>().state
 
         val args =
             mutableListOf(
@@ -116,7 +91,7 @@ class EditorProcess(private val project: Project) {
                 ijPid.toString(),
             )
 
-        if (userConfig.enableEditorServiceVerboseLogging) args.add("--verbose")
+        if (userConfiguration.state.enableEditorServiceVerboseLogging) args.add("--verbose")
 
         val commandLine = GeneralCommandLine(args)
         val workingDir = File(configPath).parent
@@ -140,10 +115,9 @@ class EditorProcess(private val project: Project) {
         }
 
         val rtnProcess = commandLine.createProcess()
-        val processPid = rtnProcess.pid()
-        rtnProcess.onExit().thenApply {
+        rtnProcess.onExit().thenApply { exitedProcess ->
             infoLogWithConsole(
-                DprintBundle.message("process.shut.down", processPid),
+                DprintBundle.message("process.shut.down", exitedProcess.pid()),
                 project,
                 LOGGER,
             )

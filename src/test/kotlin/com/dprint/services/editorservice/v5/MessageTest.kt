@@ -13,8 +13,8 @@ internal class MessageTest : FunSpec({
         val type = MessageType.Active
         val text = "blah!"
         val textAsBytes = text.toByteArray()
-        val message = Message(id, type)
-        message.addString(text)
+        val outgoingMessage = OutgoingMessage(id, type)
+        outgoingMessage.addString(text)
 
         // 4 is for the size of the part, it has a single part
         val bodyLength = 4 + text.length
@@ -28,15 +28,15 @@ internal class MessageTest : FunSpec({
         expected.put(textAsBytes)
         expected.put(SUCCESS_MESSAGE)
 
-        message.build() shouldBe expected.array()
+        outgoingMessage.build() shouldBe expected.array()
     }
 
     test("It builds an int message") {
         val id = 1
         val type = MessageType.Active
         val int = 2
-        val message = Message(id, type)
-        message.addInt(int)
+        val outgoingMessage = OutgoingMessage(id, type)
+        outgoingMessage.addInt(int)
 
         // id + message type + body size + part content + success message
         val expectedSize = 4 * 3 + 4 + SUCCESS_MESSAGE.size
@@ -47,7 +47,7 @@ internal class MessageTest : FunSpec({
         expected.put(createIntBytes(int))
         expected.put(SUCCESS_MESSAGE)
 
-        message.build() shouldBe expected.array()
+        outgoingMessage.build() shouldBe expected.array()
     }
 
     test("It builds a combined message") {
@@ -56,9 +56,9 @@ internal class MessageTest : FunSpec({
         val int = 2
         val text = "blah!"
         val textAsBytes = text.toByteArray()
-        val message = Message(id, type)
-        message.addInt(int)
-        message.addString(text)
+        val outgoingMessage = OutgoingMessage(id, type)
+        outgoingMessage.addInt(int)
+        outgoingMessage.addString(text)
 
         // body length
         val bodyLength = 4 + 4 + text.length
@@ -73,7 +73,7 @@ internal class MessageTest : FunSpec({
         expected.put(textAsBytes)
         expected.put(SUCCESS_MESSAGE)
 
-        message.build() shouldBe expected.array()
+        outgoingMessage.build() shouldBe expected.array()
     }
 })
 

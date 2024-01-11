@@ -1,7 +1,7 @@
 package com.dprint.services.editorservice.v5
 
-import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.FormatResult
+import com.dprint.services.editorservice.process.EditorProcess
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
 import com.intellij.openapi.project.Project
@@ -27,7 +27,7 @@ class EditorServiceV5ImplTest : FunSpec({
     beforeEach {
         every { infoLogWithConsole(any(), project, any()) } returns Unit
         every { createNewMessage(any()) } answers {
-            Message(1, firstArg())
+            OutgoingMessage(1, firstArg())
         }
         every { pendingMessages.hasStaleMessages() } returns false
     }
@@ -46,11 +46,11 @@ class EditorServiceV5ImplTest : FunSpec({
 
         editorServiceV5.canFormat(testFile, onFinished)
 
-        val expectedMessage = Message(1, MessageType.CanFormat)
-        expectedMessage.addString(testFile)
+        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.CanFormat)
+        expectedOutgoingMessage.addString(testFile)
 
         verify(exactly = 1) { pendingMessages.store(1, any()) }
-        verify(exactly = 1) { editorProcess.writeBuffer(expectedMessage.build()) }
+        verify(exactly = 1) { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
     }
 
     test("canFormat's handler invokes onFinished with the result on success") {
@@ -94,20 +94,20 @@ class EditorServiceV5ImplTest : FunSpec({
 
         editorServiceV5.fmt(1, testFile, testContent, null, null, onFinished)
 
-        val expectedMessage = Message(1, MessageType.FormatFile)
+        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
         // path
-        expectedMessage.addString(testFile)
+        expectedOutgoingMessage.addString(testFile)
         // start position
-        expectedMessage.addInt(0)
+        expectedOutgoingMessage.addInt(0)
         // content length
-        expectedMessage.addInt(testContent.toByteArray().size)
+        expectedOutgoingMessage.addInt(testContent.toByteArray().size)
         // don't override config
-        expectedMessage.addInt(0)
+        expectedOutgoingMessage.addInt(0)
         // content
-        expectedMessage.addString(testContent)
+        expectedOutgoingMessage.addString(testContent)
 
         verify(exactly = 1) { pendingMessages.store(1, any()) }
-        verify(exactly = 1) { editorProcess.writeBuffer(expectedMessage.build()) }
+        verify(exactly = 1) { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
     }
 
     test("fmt's handler invokes onFinished with the new content on success") {
@@ -156,10 +156,10 @@ class EditorServiceV5ImplTest : FunSpec({
 
         editorServiceV5.cancelFormat(testId)
 
-        val expectedMessage = Message(1, MessageType.CancelFormat)
-        expectedMessage.addInt(testId)
+        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.CancelFormat)
+        expectedOutgoingMessage.addInt(testId)
 
         verify { pendingMessages.take(testId) }
-        verify { editorProcess.writeBuffer(expectedMessage.build()) }
+        verify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
     }
 })

@@ -1,13 +1,15 @@
 package com.dprint.services.editorservice.v5
 
+import com.dprint.config.UserConfiguration
 import com.dprint.i18n.DprintBundle
-import com.dprint.services.editorservice.EditorProcess
 import com.dprint.services.editorservice.FormatResult
 import com.dprint.services.editorservice.IEditorService
+import com.dprint.services.editorservice.process.EditorProcess
 import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.TimeoutCancellationException
@@ -21,7 +23,8 @@ private const val SHUTDOWN_TIMEOUT = 1000L
 
 @Service(Service.Level.PROJECT)
 class EditorServiceV5(val project: Project) : IEditorService {
-    private val impl = EditorServiceV5Impl(project, EditorProcess(project), PendingMessages())
+    private val impl =
+        EditorServiceV5Impl(project, EditorProcess(project, project.service<UserConfiguration>()), PendingMessages())
 
     override fun initialiseEditorService() {
         impl.initialiseEditorService()
@@ -220,15 +223,15 @@ class EditorServiceV5Impl(
         startIndex: Int?,
         endIndex: Int?,
         content: String,
-    ): Message {
-        val message = Message(formatId ?: getNextMessageId(), MessageType.FormatFile)
-        message.addString(filePath)
+    ): OutgoingMessage {
+        val outgoingMessage = OutgoingMessage(formatId ?: getNextMessageId(), MessageType.FormatFile)
+        outgoingMessage.addString(filePath)
         // TODO We need to properly handle string index to byte index here
-        message.addInt(startIndex ?: 0) // for range formatting add starting index
-        message.addInt(endIndex ?: content.encodeToByteArray().size) // add ending index
-        message.addInt(0) // Override config
-        message.addString(content)
-        return message
+        outgoingMessage.addInt(startIndex ?: 0) // for range formatting add starting index
+        outgoingMessage.addInt(endIndex ?: content.encodeToByteArray().size) // add ending index
+        outgoingMessage.addInt(0) // Override config
+        outgoingMessage.addString(content)
+        return outgoingMessage
     }
 
     private fun mapResultToFormatResult(

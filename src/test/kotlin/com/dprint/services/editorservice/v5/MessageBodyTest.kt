@@ -9,8 +9,8 @@ class MessageBodyTest : FunSpec({
         val int = 7
         val buffer = ByteBuffer.allocate(4)
         buffer.putInt(7)
-        val messageBody = MessageBody(buffer.array())
-        messageBody.readInt() shouldBe int
+        val incomingMessage = IncomingMessage(buffer.array())
+        incomingMessage.readInt() shouldBe int
     }
 
     test("It decodes a string") {
@@ -22,7 +22,7 @@ class MessageBodyTest : FunSpec({
         // Need to call array here so the 0's get copied into the new buffer
         buffer.put(sizeBuffer.array())
         buffer.put(textAsByteArray)
-        val messageBody = MessageBody(buffer.array())
-        messageBody.readSizedString() shouldBe text
+        val incomingMessage = IncomingMessage(buffer.array())
+        incomingMessage.readSizedString() shouldBe text
     }
 })
