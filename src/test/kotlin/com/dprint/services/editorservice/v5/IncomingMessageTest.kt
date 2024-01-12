@@ -4,7 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.nio.ByteBuffer
 
-class MessageBodyTest : FunSpec({
+class IncomingMessageTest : FunSpec({
     test("It decodes an int") {
         val int = 7
         val buffer = ByteBuffer.allocate(4)
