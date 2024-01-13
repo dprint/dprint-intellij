@@ -7,7 +7,7 @@ import java.nio.ByteBuffer
 
 val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
 
-internal class MessageTest : FunSpec({
+internal class OutgoingMessageTest : FunSpec({
     test("It builds a string message") {
         val id = 1
         val type = MessageType.Active
