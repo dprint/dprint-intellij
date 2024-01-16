@@ -16,7 +16,6 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import kotlin.concurrent.thread
 
 private val LOGGER = logger<EditorServiceV5>()
 private const val SHUTDOWN_TIMEOUT = 1000L
@@ -74,12 +73,12 @@ class EditorServiceV5Impl(
     private val editorProcess: EditorProcess,
     private val pendingMessages: PendingMessages,
 ) : IEditorService {
-    private var stdoutListener: Thread? = null
+    private var stdoutListener: StdoutListener? = null
 
-    private fun createStdoutListener(): Thread {
-        return thread(start = true) {
-            StdoutListener(editorProcess, pendingMessages).listen()
-        }
+    private fun createStdoutListener(): StdoutListener {
+        val stdoutListener = StdoutListener(editorProcess, pendingMessages)
+        stdoutListener.listen()
+        return stdoutListener
     }
 
     override fun initialiseEditorService() {
@@ -90,7 +89,7 @@ class EditorServiceV5Impl(
         )
         dropMessages()
         if (stdoutListener != null) {
-            stdoutListener?.interrupt()
+            stdoutListener?.dispose()
             stdoutListener = null
         }
 
@@ -105,7 +104,7 @@ class EditorServiceV5Impl(
     override fun destroyEditorService() {
         infoLogWithConsole(DprintBundle.message("editor.service.destroy", getName()), project, LOGGER)
         val message = createNewMessage(MessageType.ShutDownProcess)
-
+        stdoutListener?.disposing = true
         try {
             runBlocking {
                 withTimeout(SHUTDOWN_TIMEOUT) {
@@ -117,7 +116,7 @@ class EditorServiceV5Impl(
         } catch (e: TimeoutCancellationException) {
             errorLogWithConsole(DprintBundle.message("editor.service.shutting.down.timed.out"), e, project, LOGGER)
         } finally {
-            stdoutListener?.interrupt()
+            stdoutListener?.dispose()
             dropMessages()
             editorProcess.destroy()
         }
