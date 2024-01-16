@@ -3,11 +3,13 @@ package com.dprint.toolwindow
 import com.dprint.messages.DprintMessage
 import com.intellij.execution.impl.ConsoleViewImpl
 import com.intellij.execution.ui.ConsoleViewContentType
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.search.GlobalSearchScope
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+@Service(Service.Level.PROJECT)
 class Console(val project: Project) {
     val consoleView = ConsoleViewImpl(project, GlobalSearchScope.allScope(project), false, false)
 

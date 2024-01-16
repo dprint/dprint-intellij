@@ -14,7 +14,7 @@ class ConsoleToolWindowFactory : ToolWindowFactory, DumbAware {
         project: Project,
         toolWindow: ToolWindow,
     ) {
-        val console = Console(project)
+        val console = project.service<Console>()
         val contentFactory = ContentFactory.getInstance()
         val panel = SimpleToolWindowPanel(true, false)
         panel.setContent(console.consoleView.component)
