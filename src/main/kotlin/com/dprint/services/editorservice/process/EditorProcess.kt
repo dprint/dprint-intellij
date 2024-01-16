@@ -12,7 +12,6 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import java.io.File
 import java.nio.ByteBuffer
-import kotlin.concurrent.thread
 
 private const val BUFFER_SIZE = 1024
 private const val ZERO = 0
@@ -26,7 +25,7 @@ private val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
 
 class EditorProcess(private val project: Project, private val userConfiguration: UserConfiguration) {
     private var process: Process? = null
-    private var stderrListener: Thread? = null
+    private var stderrListener: StdErrListener? = null
 
     fun initialize() {
         val executablePath = getValidExecutablePath(project)
@@ -63,16 +62,15 @@ class EditorProcess(private val project: Project, private val userConfiguration:
      * Shuts down the editor service and destroys the process.
      */
     fun destroy() {
-        stderrListener?.interrupt()
+        stderrListener?.dispose()
         process?.destroy()
         process = null
     }
 
-    private fun createStderrListener(actualProcess: Process) {
-        stderrListener =
-            thread(start = true) {
-                StdErrListener(project, actualProcess).listen()
-            }
+    private fun createStderrListener(actualProcess: Process): StdErrListener {
+        val stdErrListener = StdErrListener(project, actualProcess)
+        stdErrListener.listen()
+        return stdErrListener
     }
 
     private fun createEditorService(

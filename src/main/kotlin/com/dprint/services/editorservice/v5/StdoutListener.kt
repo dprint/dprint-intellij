@@ -4,32 +4,44 @@ import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.process.EditorProcess
 import com.intellij.openapi.diagnostic.logger
 import java.nio.BufferUnderflowException
+import kotlin.concurrent.thread
 
 private const val SLEEP_TIME = 500L
 
 private val LOGGER = logger<StdoutListener>()
 
 class StdoutListener(private val editorProcess: EditorProcess, private val pendingMessages: PendingMessages) {
+    private var listenerThread: Thread? = null
+    var disposing = false
+
     fun listen() {
-        LOGGER.info(DprintBundle.message("editor.service.started.stdout.listener"))
-        while (true) {
-            if (Thread.interrupted()) {
-                return
+        disposing = false
+        listenerThread =
+            thread(start = true) {
+                LOGGER.info(DprintBundle.message("editor.service.started.stdout.listener"))
+                while (true) {
+                    if (Thread.interrupted()) {
+                        return@thread
+                    }
+                    try {
+                        handleStdout()
+                    } catch (e: InterruptedException) {
+                        if (!disposing) LOGGER.info(e)
+                        return@thread
+                    } catch (e: BufferUnderflowException) {
+                        // Happens when the editor service is shut down while this thread is waiting to read output
+                        if (!disposing) LOGGER.info(e)
+                        return@thread
+                    } catch (e: Exception) {
+                        if (!disposing) LOGGER.error(DprintBundle.message("editor.service.read.failed"), e)
+                        Thread.sleep(SLEEP_TIME)
+                    }
+                }
             }
-            try {
-                handleStdout()
-            } catch (e: InterruptedException) {
-                LOGGER.info(e)
-                return
-            } catch (e: BufferUnderflowException) {
-                // Happens when the editor service is shut down while this thread is waiting to read output
-                LOGGER.info(e)
-                return
-            } catch (e: Exception) {
-                LOGGER.error(DprintBundle.message("editor.service.read.failed"), e)
-                Thread.sleep(SLEEP_TIME)
-            }
-        }
+    }
+
+    fun dispose() {
+        listenerThread?.interrupt()
     }
 
     private fun handleStdout() {
