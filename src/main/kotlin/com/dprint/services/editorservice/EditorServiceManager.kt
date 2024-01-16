@@ -14,6 +14,8 @@ import com.dprint.utils.isFormattableFile
 import com.dprint.utils.warnLogWithConsole
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
@@ -47,7 +49,13 @@ class EditorServiceManager(private val project: Project) {
     private var configPath: String? = null
     private val taskQueue = BackgroundTaskQueue(project, "Dprint manager task queue")
     private var canFormatCache = LRUMap<String, Boolean>()
+
+    // The following flags are used to optimise user experience
+    // - isInitialising stops multiple initialisation events triggering if the user spams save, and it isn't working
+    // - hasBeenNotifiedOfInitialisationFailure ensures that the user is only notified once of initialisation failures
+    //   so that they don't get spammed while fixing problems. This resets on successful initialisation.
     private var isInitialising = false
+    private var hasBeenNotifiedOfInitialisationFailure = false
 
     // The less generic error is kotlinx.serialization.json.internal.JsonDecodingException and is not accessible
     // unfortunately
@@ -119,11 +127,27 @@ class EditorServiceManager(private val project: Project) {
                         )
                 }
                 editorService?.initialiseEditorService()
+                // Reset state flags for optimising user experience
                 isInitialising = false
+                hasBeenNotifiedOfInitialisationFailure = false
             },
             INIT_TIMEOUT,
             false,
-            { isInitialising = false },
+            {
+                isInitialising = false
+                if (!hasBeenNotifiedOfInitialisationFailure) {
+                    NotificationGroupManager
+                        .getInstance()
+                        .getNotificationGroup("Dprint")
+                        .createNotification(
+                            DprintBundle.message("editor.service.manager.initialising.editor.service.failed.title"),
+                            DprintBundle.message("editor.service.manager.initialising.editor.service.failed.content"),
+                            NotificationType.ERROR,
+                        )
+                        .notify(project)
+                    hasBeenNotifiedOfInitialisationFailure = true
+                }
+            },
         )
     }
 
