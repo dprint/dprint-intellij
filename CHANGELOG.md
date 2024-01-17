@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+- Fixed issue where on save actions were running twice per save.
+- Enforce that only a initialisation or format can be queued to run at a time.
+- Added checkbox to `Tools -> Actions on Save` menu.
+- Added notification when the underlying dprint daemon cannot initialise.
+- Fixed an issue where an error could be thrown when closing or changing projects due to a race condition.
+
 ## 0.5.0 - 2023-12-22
 
 - Add check for dead processes to warn users that the dprint daemon is not responding
