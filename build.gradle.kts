@@ -19,8 +19,8 @@ plugins {
     alias(libs.plugins.versionCatalogUpdate)
 }
 
-group = properties("pluginGroup")
-version = properties("pluginVersion")
+group = properties("pluginGroup").get()
+version = properties("pluginVersion").get()
 
 // Configure project's dependencies
 repositories {
@@ -45,9 +45,9 @@ kotlin {
 // Configure gradle-intellij-plugin plugin.
 // Read more: https://github.com/JetBrains/gradle-intellij-plugin
 intellij {
-    pluginName = properties("pluginName")
-    version = properties("platformVersion")
-    type = properties("platformType")
+    pluginName = properties("pluginName").get()
+    version = properties("platformVersion").get()
+    type = properties("platformType").get()
     downloadSources = properties("platformDownloadSources").get().toBoolean()
     // Ensures all new builds will "just work" without an update. Obtained from thread in IntelliJ slack
     updateSinceUntilBuild = false
@@ -59,7 +59,7 @@ intellij {
 // Configure gradle-changelog-plugin plugin.
 // Read more: https://github.com/JetBrains/gradle-changelog-plugin
 changelog {
-    version = properties("pluginVersion")
+    version = properties("pluginVersion").get()
     groups = listOf()
     keepUnreleasedSection = true
     unreleasedTerm = "[Unreleased]"
