@@ -178,7 +178,7 @@ class EditorServiceManager(private val project: Project) {
             TIMEOUT,
             {
                 maybeInitialiseEditorService()
-            }
+            },
         )
     }
 
@@ -248,7 +248,7 @@ class EditorServiceManager(private val project: Project) {
             TaskInfo(TaskType.Cancel, null, formatId),
             "Cancelling format $formatId",
             { editorService?.cancelFormat(formatId) },
-            TIMEOUT
+            TIMEOUT,
         )
     }
 
