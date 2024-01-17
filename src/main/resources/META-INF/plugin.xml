@@ -10,11 +10,14 @@
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.dprint.listeners.ProjectStartupListener" />
         <projectConfigurable parentId="tools"
-                             instance="com.dprint.config.ProjectConfigurable"
-                             id="com.dprint.config.ProjectConfigurable"
+                             instance="com.dprint.config.DprintConfigurable"
+                             id="com.dprint.config"
                              bundle="messages.Bundle"
                              key="config.name"
                              nonDefaultProject="true"/>
+        <actionOnSaveInfoProvider id="DprintActionOnSaveInfoProvider"
+                                  implementation="com.dprint.config.DprintConfigurable$DprintActionOnSaveInfoProvider"
+                                  order="after FormatOnSaveInfoProvider, after EsLintOnSaveInfoProvider"/>
         <notificationGroup id="Dprint" displayType="STICKY_BALLOON" key="notification.group.name"
                            isLogByDefault="false"/>
         <formattingService implementation="com.dprint.formatter.DprintExternalFormatter"/>
