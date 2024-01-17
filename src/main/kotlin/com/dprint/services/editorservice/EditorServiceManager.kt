@@ -32,6 +32,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.apache.commons.collections4.map.LRUMap
 import java.io.File
+import java.lang.Exception
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
@@ -43,23 +44,29 @@ private const val SCHEMA_V5 = 5
 private const val TIMEOUT = 10L
 private const val INIT_TIMEOUT = 20L
 
+enum class TaskType {
+    Initialisation,
+    PrimeCanFormat,
+    Format,
+    Cancel,
+}
+
+data class TaskInfo(val taskType: TaskType, val path: String?, val formatId: Int?)
+
 @Service(Service.Level.PROJECT)
 class EditorServiceManager(private val project: Project) {
     private var editorService: IEditorService? = null
     private var configPath: String? = null
     private val taskQueue = BackgroundTaskQueue(project, "Dprint manager task queue")
+    private val activeTasks = HashSet<TaskInfo>()
     private var canFormatCache = LRUMap<String, Boolean>()
 
     // The following flags are used to optimise user experience
     // - isInitialising stops multiple initialisation events triggering if the user spams save, and it isn't working
     // - hasBeenNotifiedOfInitialisationFailure ensures that the user is only notified once of initialisation failures
     //   so that they don't get spammed while fixing problems. This resets on successful initialisation.
-    private var isInitialising = false
     private var hasBeenNotifiedOfInitialisationFailure = false
 
-    // The less generic error is kotlinx.serialization.json.internal.JsonDecodingException and is not accessible
-    // unfortunately
-    @Suppress("TooGenericExceptionCaught")
     private fun getSchemaVersion(configPath: String?): Int? {
         val executablePath = getValidExecutablePath(project)
 
@@ -90,12 +97,12 @@ class EditorServiceManager(private val project: Project) {
     }
 
     private fun maybeInitialiseEditorService() {
-        if (!project.service<ProjectConfiguration>().state.enabled || isInitialising) {
+        if (!project.service<ProjectConfiguration>().state.enabled) {
             return
         }
-        isInitialising = true
 
         createTaskWithTimeout(
+            TaskInfo(TaskType.Initialisation, null, null),
             DprintBundle.message("editor.service.manager.initialising.editor.service"),
             {
                 configPath = getValidConfigPath(project)
@@ -128,13 +135,11 @@ class EditorServiceManager(private val project: Project) {
                 }
                 editorService?.initialiseEditorService()
                 // Reset state flags for optimising user experience
-                isInitialising = false
                 hasBeenNotifiedOfInitialisationFailure = false
             },
             INIT_TIMEOUT,
             false,
             {
-                isInitialising = false
                 if (!hasBeenNotifiedOfInitialisationFailure) {
                     NotificationGroupManager
                         .getInstance()
@@ -179,6 +184,7 @@ class EditorServiceManager(private val project: Project) {
 
     private fun primeCanFormatCache(path: String) {
         createTaskWithTimeout(
+            TaskInfo(TaskType.PrimeCanFormat, path, null),
             DprintBundle.message("editor.service.manager.priming.can.format.cache", path),
         ) {
             editorService?.canFormat(path) { canFormat ->
@@ -193,19 +199,26 @@ class EditorServiceManager(private val project: Project) {
     }
 
     private fun createTaskWithTimeout(
+        taskInfo: TaskInfo,
         title: String,
         operation: () -> Unit,
     ) {
-        createTaskWithTimeout(title, operation, TIMEOUT, true) {}
+        createTaskWithTimeout(taskInfo, title, operation, TIMEOUT, true) {}
     }
 
     private fun createTaskWithTimeout(
+        taskInfo: TaskInfo,
         title: String,
         operation: () -> Unit,
         timeout: Long,
         restartOnFailure: Boolean,
         onFailure: (() -> Unit),
     ) {
+        if (activeTasks.contains(taskInfo)) {
+            infoLogWithConsole("Task is already queued so this will be dropped: $taskInfo", project, LOGGER)
+            return
+        }
+        activeTasks.add(taskInfo)
         val future = CompletableFuture<Unit>()
         val task =
             object : Task.Backgroundable(project, title, true) {
@@ -239,6 +252,11 @@ class EditorServiceManager(private val project: Project) {
                         onFailure()
                         errorLogWithConsole("Dprint cancellation: $title", e, project, LOGGER)
                         if (restartOnFailure) maybeInitialiseEditorService()
+                    } catch (e: Exception) {
+                        activeTasks.remove(taskInfo)
+                        throw e
+                    } finally {
+                        activeTasks.remove(taskInfo)
                     }
                 }
 
@@ -275,6 +293,7 @@ class EditorServiceManager(private val project: Project) {
         onFinished: (FormatResult) -> Unit,
     ) {
         createTaskWithTimeout(
+            TaskInfo(TaskType.Format, path, formatId),
             DprintBundle.message("editor.service.manager.creating.formatting.task", path),
             { editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished) },
             TIMEOUT,
@@ -313,6 +332,7 @@ class EditorServiceManager(private val project: Project) {
 
     fun cancelFormat(formatId: Int) {
         createTaskWithTimeout(
+            TaskInfo(TaskType.Cancel, null, formatId),
             "Cancelling format $formatId",
         ) { editorService?.cancelFormat(formatId) }
     }

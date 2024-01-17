@@ -1,7 +1,0 @@
-<idea-plugin require-restart="true">
-    <extensions defaultExtensionNs="com.intellij">>
-        <actionOnSave id="DprintActionOnSave"
-                      implementation="com.dprint.listeners.OnSaveAction"
-                      order="after FormatOnSaveAction, after ESLintActionOnSave"/>
-    </extensions>
-</idea-plugin>
