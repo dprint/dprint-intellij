@@ -5,6 +5,15 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.messages.MessageBus
 
+data class MessageWithThrowable(val message: String, val throwable: Throwable?) {
+    override fun toString(): String {
+        if (throwable != null) {
+            return "$message\n\t$throwable"
+        }
+        return message
+    }
+}
+
 fun infoConsole(
     message: String,
     project: Project,
@@ -39,7 +48,9 @@ fun warnLogWithConsole(
 ) {
     // Always use info for system level logging as it throws notifications into the UI
     logger.warn(message, throwable)
-    maybeGetMessageBus(project)?.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)?.warn(message)
+    maybeGetMessageBus(
+        project,
+    )?.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)?.warn(MessageWithThrowable(message, throwable).toString())
 }
 
 fun errorLogWithConsole(
@@ -58,7 +69,9 @@ fun errorLogWithConsole(
 ) {
     // Always use info for system level logging as it throws notifications into the UI
     logger.error(message, throwable)
-    maybeGetMessageBus(project)?.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)?.error(message)
+    maybeGetMessageBus(
+        project,
+    )?.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)?.error(MessageWithThrowable(message, throwable).toString())
 }
 
 private fun maybeGetMessageBus(project: Project): MessageBus? {
