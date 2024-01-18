@@ -76,6 +76,16 @@ class EditorServiceManager(private val project: Project) {
     }
 
     /**
+     * In some cases we want to throw if the editor service is not available to ensure that a restart is actioned
+     * appropriately.
+     */
+    private fun getEditorService(): IEditorService {
+        return editorService ?: throw RuntimeException(
+            DprintBundle.message("editor.service.manager.not.initialised"),
+        )
+    }
+
+    /**
      * Gets a cached canFormat result. If a result doesn't exist this will return null and start a request to fill the
      * value in the cache.
      */
@@ -106,7 +116,7 @@ class EditorServiceManager(private val project: Project) {
             TaskInfo(TaskType.PrimeCanFormat, path, null),
             DprintBundle.message("editor.service.manager.priming.can.format.cache", path),
             {
-                editorService?.canFormat(path) { canFormat ->
+                getEditorService().canFormat(path) { canFormat ->
                     if (canFormat == null) {
                         infoLogWithConsole("Unable to determine if $path can be formatted.", project, LOGGER)
                     } else {
@@ -147,7 +157,7 @@ class EditorServiceManager(private val project: Project) {
         editorServiceTaskQueue.createTaskWithTimeout(
             TaskInfo(TaskType.Format, path, formatId),
             DprintBundle.message("editor.service.manager.creating.formatting.task", path),
-            { editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished) },
+            { getEditorService().fmt(formatId, path, content, startIndex, endIndex, onFinished) },
             TIMEOUT,
             {
                 onFinished(FormatResult())
