@@ -75,65 +75,6 @@ class EditorServiceManager(private val project: Project) {
         }
     }
 
-    private fun maybeInitialiseEditorService() {
-        if (!project.service<ProjectConfiguration>().state.enabled) {
-            return
-        }
-
-        editorServiceTaskQueue.createTaskWithTimeout(
-            TaskInfo(TaskType.Initialisation, null, null),
-            DprintBundle.message("editor.service.manager.initialising.editor.service"),
-            {
-                configPath = getValidConfigPath(project)
-                val schemaVersion = getSchemaVersion(configPath)
-                infoLogWithConsole(
-                    DprintBundle.message("editor.service.manager.received.schema.version", schemaVersion ?: "none"),
-                    project,
-                    LOGGER,
-                )
-                when {
-                    schemaVersion == null ->
-                        project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).info(
-                            DprintBundle.message("config.dprint.schemaVersion.not.found"),
-                        )
-
-                    schemaVersion < SCHEMA_V4 ->
-                        project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                            .info(
-                                DprintBundle.message("config.dprint.schemaVersion.older"),
-                            )
-
-                    schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
-                    schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
-                    schemaVersion > SCHEMA_V5 ->
-                        infoLogWithConsole(
-                            DprintBundle.message("config.dprint.schemaVersion.newer"),
-                            project,
-                            LOGGER,
-                        )
-                }
-                editorService?.initialiseEditorService()
-                // Reset state flags for optimising user experience
-                hasBeenNotifiedOfInitialisationFailure = false
-            },
-            INIT_TIMEOUT,
-            {
-                if (!hasBeenNotifiedOfInitialisationFailure) {
-                    NotificationGroupManager
-                        .getInstance()
-                        .getNotificationGroup("Dprint")
-                        .createNotification(
-                            DprintBundle.message("editor.service.manager.initialising.editor.service.failed.title"),
-                            DprintBundle.message("editor.service.manager.initialising.editor.service.failed.content"),
-                            NotificationType.ERROR,
-                        )
-                        .notify(project)
-                    hasBeenNotifiedOfInitialisationFailure = true
-                }
-            },
-        )
-    }
-
     /**
      * Gets a cached canFormat result. If a result doesn't exist this will return null and start a request to fill the
      * value in the cache.
@@ -215,14 +156,80 @@ class EditorServiceManager(private val project: Project) {
         )
     }
 
-    fun restartEditorService() {
-        maybeInitialiseEditorService()
-        clearCanFormatCache()
-        for (virtualFile in FileEditorManager.getInstance(project).openFiles) {
-            if (isFormattableFile(project, virtualFile)) {
-                primeCanFormatCacheForFile(virtualFile)
-            }
+    private fun initialiseFreshEditorService() {
+        configPath = getValidConfigPath(project)
+        val schemaVersion = getSchemaVersion(configPath)
+        infoLogWithConsole(
+            DprintBundle.message(
+                "editor.service.manager.received.schema.version",
+                schemaVersion ?: "none",
+            ),
+            project,
+            LOGGER,
+        )
+        when {
+            schemaVersion == null ->
+                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).info(
+                    DprintBundle.message("config.dprint.schemaVersion.not.found"),
+                )
+
+            schemaVersion < SCHEMA_V4 ->
+                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                    .info(
+                        DprintBundle.message("config.dprint.schemaVersion.older"),
+                    )
+
+            schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
+            schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
+            schemaVersion > SCHEMA_V5 ->
+                infoLogWithConsole(
+                    DprintBundle.message("config.dprint.schemaVersion.newer"),
+                    project,
+                    LOGGER,
+                )
         }
+        editorService?.initialiseEditorService()
+        // Reset state flags for optimising user experience
+        hasBeenNotifiedOfInitialisationFailure = false
+    }
+
+    fun restartEditorService() {
+        if (!project.service<ProjectConfiguration>().state.enabled) {
+            return
+        }
+
+        editorServiceTaskQueue.createTaskWithTimeout(
+            TaskInfo(TaskType.Initialisation, null, null),
+            DprintBundle.message("editor.service.manager.initialising.editor.service"),
+            {
+                clearCanFormatCache()
+                initialiseFreshEditorService()
+                for (virtualFile in FileEditorManager.getInstance(project).openFiles) {
+                    if (isFormattableFile(project, virtualFile)) {
+                        primeCanFormatCacheForFile(virtualFile)
+                    }
+                }
+            },
+            INIT_TIMEOUT,
+            {
+                if (!hasBeenNotifiedOfInitialisationFailure) {
+                    NotificationGroupManager
+                        .getInstance()
+                        .getNotificationGroup("Dprint")
+                        .createNotification(
+                            DprintBundle.message(
+                                "editor.service.manager.initialising.editor.service.failed.title",
+                            ),
+                            DprintBundle.message(
+                                "editor.service.manager.initialising.editor.service.failed.content",
+                            ),
+                            NotificationType.ERROR,
+                        )
+                        .notify(project)
+                    hasBeenNotifiedOfInitialisationFailure = true
+                }
+            },
+        )
     }
 
     fun destroyEditorService() {
