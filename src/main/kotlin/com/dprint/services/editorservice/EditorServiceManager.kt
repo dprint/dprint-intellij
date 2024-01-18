@@ -67,12 +67,11 @@ class EditorServiceManager(private val project: Project) {
             Json.parseToJsonElement(jsonText).jsonObject["schemaVersion"]?.jsonPrimitive?.int
         } catch (e: RuntimeException) {
             errorLogWithConsole(
-                DprintBundle.message("error.failed.to.parse.json.schema", result.stdout, result.stderr),
-                e,
+                DprintBundle.message("error.failed.to.parse.json.schema", result.stdout.trim(), result.stderr.trim()),
                 project,
                 LOGGER,
             )
-            null
+            throw e
         }
     }
 
