@@ -175,9 +175,7 @@ class EditorServiceManager(private val project: Project) {
                 }
             },
             TIMEOUT,
-            {
-                maybeInitialiseEditorService()
-            },
+            { restartEditorService() },
         )
     }
 
@@ -210,13 +208,14 @@ class EditorServiceManager(private val project: Project) {
             DprintBundle.message("editor.service.manager.creating.formatting.task", path),
             { editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished) },
             TIMEOUT,
-            { onFinished(FormatResult()) },
+            {
+                onFinished(FormatResult())
+                restartEditorService()
+            },
         )
     }
 
     fun restartEditorService() {
-        // TODO rather than restarting we should try and see if it is healthy, cancel the pending format, and drain
-        //  pending messages if we are on schema version 5
         maybeInitialiseEditorService()
         clearCanFormatCache()
         for (virtualFile in FileEditorManager.getInstance(project).openFiles) {
