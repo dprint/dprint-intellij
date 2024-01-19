@@ -31,8 +31,6 @@ import java.io.File
 private val LOGGER = logger<EditorServiceManager>()
 private const val SCHEMA_V4 = 4
 private const val SCHEMA_V5 = 5
-private const val TIMEOUT = 10L
-private const val INIT_TIMEOUT = 20L
 
 @Service(Service.Level.PROJECT)
 class EditorServiceManager(private val project: Project) {
@@ -50,6 +48,8 @@ class EditorServiceManager(private val project: Project) {
 
     private fun getSchemaVersion(configPath: String?): Int? {
         val executablePath = getValidExecutablePath(project)
+        // The entire timeout will be
+        val timeout = project.service<ProjectConfiguration>().state.initialisationTimeout
 
         val commandLine =
             GeneralCommandLine(
@@ -60,7 +60,7 @@ class EditorServiceManager(private val project: Project) {
             val workingDir = File(it).parent
             commandLine.withWorkDirectory(workingDir)
         }
-        val result = ExecUtil.execAndGetOutput(commandLine)
+        val result = ExecUtil.execAndGetOutput(commandLine, timeout.toInt())
 
         return try {
             val jsonText = result.stdout
@@ -107,6 +107,7 @@ class EditorServiceManager(private val project: Project) {
     }
 
     private fun primeCanFormatCache(path: String) {
+        val timeout = project.service<ProjectConfiguration>().state.commandTimeout
         editorServiceTaskQueue.createTaskWithTimeout(
             TaskInfo(TaskType.PrimeCanFormat, path, null),
             DprintBundle.message("editor.service.manager.priming.can.format.cache", path),
@@ -124,7 +125,7 @@ class EditorServiceManager(private val project: Project) {
                     }
                 }
             },
-            TIMEOUT,
+            timeout,
             { restartEditorService() },
         )
     }
@@ -153,6 +154,7 @@ class EditorServiceManager(private val project: Project) {
         endIndex: Int?,
         onFinished: (FormatResult) -> Unit,
     ) {
+        val timeout = project.service<ProjectConfiguration>().state.commandTimeout
         editorServiceTaskQueue.createTaskWithTimeout(
             TaskInfo(TaskType.Format, path, formatId),
             DprintBundle.message("editor.service.manager.creating.formatting.task", path),
@@ -162,7 +164,7 @@ class EditorServiceManager(private val project: Project) {
                 }
                 editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished)
             },
-            TIMEOUT,
+            timeout,
             {
                 onFinished(FormatResult())
                 restartEditorService()
@@ -170,7 +172,7 @@ class EditorServiceManager(private val project: Project) {
         )
     }
 
-    private fun initialiseFreshEditorService() {
+    private fun initialiseFreshEditorService(): Boolean {
         hasAttemptedInitialisation = true
         configPath = getValidConfigPath(project)
         val schemaVersion = getSchemaVersion(configPath)
@@ -203,9 +205,15 @@ class EditorServiceManager(private val project: Project) {
                     LOGGER,
                 )
         }
+
+        if (editorService == null) {
+            return false
+        }
+
         editorService?.initialiseEditorService()
         // Reset state flags for optimising user experience
         hasBeenNotifiedOfInitialisationFailure = false
+        return true
     }
 
     fun restartEditorService() {
@@ -213,19 +221,22 @@ class EditorServiceManager(private val project: Project) {
             return
         }
 
+        val timeout = project.service<ProjectConfiguration>().state.initialisationTimeout
         editorServiceTaskQueue.createTaskWithTimeout(
             TaskInfo(TaskType.Initialisation, null, null),
             DprintBundle.message("editor.service.manager.initialising.editor.service"),
             {
                 clearCanFormatCache()
-                initialiseFreshEditorService()
-                for (virtualFile in FileEditorManager.getInstance(project).openFiles) {
-                    if (isFormattableFile(project, virtualFile)) {
-                        primeCanFormatCacheForFile(virtualFile)
+                val initialised = initialiseFreshEditorService()
+                if (initialised) {
+                    for (virtualFile in FileEditorManager.getInstance(project).openFiles) {
+                        if (isFormattableFile(project, virtualFile)) {
+                            primeCanFormatCacheForFile(virtualFile)
+                        }
                     }
                 }
             },
-            INIT_TIMEOUT,
+            timeout,
             {
                 if (!hasBeenNotifiedOfInitialisationFailure) {
                     NotificationGroupManager
@@ -264,11 +275,12 @@ class EditorServiceManager(private val project: Project) {
     }
 
     fun cancelFormat(formatId: Int) {
+        val timeout = project.service<ProjectConfiguration>().state.commandTimeout
         editorServiceTaskQueue.createTaskWithTimeout(
             TaskInfo(TaskType.Cancel, null, formatId),
             "Cancelling format $formatId",
             { editorService?.cancelFormat(formatId) },
-            TIMEOUT,
+            timeout,
         )
     }
 

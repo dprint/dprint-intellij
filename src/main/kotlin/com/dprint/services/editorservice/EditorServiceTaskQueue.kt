@@ -53,15 +53,16 @@ class EditorServiceTaskQueue(private val project: Project) {
             return
         }
         activeTasks.add(taskInfo)
-        val future = CompletableFuture<Unit>()
         val task =
             object : Task.Backgroundable(project, title, true) {
+                val future = CompletableFuture<Unit>()
+
                 override fun run(indicator: ProgressIndicator) {
                     indicator.text = title
                     infoLogWithConsole(indicator.text, project, LOGGER)
                     try {
                         future.completeAsync(operation)
-                        future.get(timeout, TimeUnit.SECONDS)
+                        future.get(timeout, TimeUnit.MILLISECONDS)
                     } catch (e: TimeoutException) {
                         onFailure?.invoke()
                         errorLogWithConsole("Dprint timeout: $title", e, project, LOGGER)

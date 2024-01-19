@@ -15,6 +15,8 @@ class ProjectConfiguration : PersistentStateComponent<ProjectConfiguration.State
         var enabled: Boolean = false
         var configLocation: String = ""
         var executableLocation: String = ""
+        var initialisationTimeout: Long = 10_000
+        var commandTimeout: Long = 5_000
     }
 
     private var internalState = State()
