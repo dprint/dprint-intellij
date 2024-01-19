@@ -9,6 +9,7 @@
 - Added checkbox to `Tools -> Actions on Save` menu.
 - Added notification when the underlying dprint daemon cannot initialise.
 - Fixed an issue where an error could be thrown when closing or changing projects due to a race condition.
+- Added timeout configuration for the initialisation of the dprint daemon and for commands.
 
 ## 0.5.0 - 2023-12-22
 
