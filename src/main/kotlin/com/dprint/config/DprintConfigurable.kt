@@ -99,7 +99,8 @@ class DprintConfigurable(private val project: Project) : BoundSearchableConfigur
                             { projectConfig.state.configLocation = it },
                         )
                         .label(DprintBundle.message("config.dprint.config.path"), LabelPosition.TOP)
-                        .comment(DprintBundle.message("config.dprint.config.path.description")).validationOnInput {
+                        .comment(DprintBundle.message("config.dprint.config.path.description"))
+                        .validationOnInput {
                             if (it.text.isEmpty() || validateConfigFile(project, it.text)) {
                                 null
                             } else {
@@ -118,13 +119,52 @@ class DprintConfigurable(private val project: Project) : BoundSearchableConfigur
                             { projectConfig.state.executableLocation = it },
                         )
                         .label(DprintBundle.message("config.dprint.executable.path"), LabelPosition.TOP)
-                        .comment(DprintBundle.message("config.dprint.executable.path.description")).validationOnInput {
+                        .comment(DprintBundle.message("config.dprint.executable.path.description"))
+                        .validationOnInput {
                             if (it.text.isEmpty() || validateExecutablePath(it.text)) {
                                 null
                             } else {
                                 this.error(DprintBundle.message("config.dprint.executable.invalid"))
                             }
                         }
+                }
+            }
+
+            indent {
+                row {
+                    intTextField(IntRange(0, 100_000), 1_000)
+                        .bindText(
+                            { projectConfig.state.initialisationTimeout.toString() },
+                            { projectConfig.state.initialisationTimeout = it.toLong() },
+                        )
+                        .label(DprintBundle.message("config.dprint.initialisation.timeout"), LabelPosition.TOP)
+                        .comment(DprintBundle.message("config.dprint.initialisation.timeout.description"))
+                        .validationOnInput {
+                            if (it.text.toLongOrNull() != null) {
+                                null
+                            } else {
+                                this.error(DprintBundle.message("config.dprint.initialisation.timeout.error"))
+                            }
+                        }
+                }
+            }
+
+            indent {
+                row {
+                    intTextField(IntRange(0, 100_000), 1_000)
+                        .bindText(
+                            { projectConfig.state.commandTimeout.toString() },
+                            { projectConfig.state.commandTimeout = it.toLong() },
+                        )
+                            .label(DprintBundle.message("config.dprint.command.timeout"), LabelPosition.TOP)
+                            .comment(DprintBundle.message("config.dprint.command.timeout.description"))
+                            .validationOnInput {
+                                if (it.text.toLongOrNull() != null) {
+                                    null
+                                } else {
+                                    this.error(DprintBundle.message("config.dprint.command.timeout.error"))
+                                }
+                            }
                 }
             }
 
