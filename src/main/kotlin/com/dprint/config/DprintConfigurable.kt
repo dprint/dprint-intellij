@@ -156,15 +156,15 @@ class DprintConfigurable(private val project: Project) : BoundSearchableConfigur
                             { projectConfig.state.commandTimeout.toString() },
                             { projectConfig.state.commandTimeout = it.toLong() },
                         )
-                            .label(DprintBundle.message("config.dprint.command.timeout"), LabelPosition.TOP)
-                            .comment(DprintBundle.message("config.dprint.command.timeout.description"))
-                            .validationOnInput {
-                                if (it.text.toLongOrNull() != null) {
-                                    null
-                                } else {
-                                    this.error(DprintBundle.message("config.dprint.command.timeout.error"))
-                                }
+                        .label(DprintBundle.message("config.dprint.command.timeout"), LabelPosition.TOP)
+                        .comment(DprintBundle.message("config.dprint.command.timeout.description"))
+                        .validationOnInput {
+                            if (it.text.toLongOrNull() != null) {
+                                null
+                            } else {
+                                this.error(DprintBundle.message("config.dprint.command.timeout.error"))
                             }
+                        }
                 }
             }
 
