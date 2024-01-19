@@ -46,6 +46,7 @@ class EditorServiceManager(private val project: Project) {
     // - hasBeenNotifiedOfInitialisationFailure ensures that the user is only notified once of initialisation failures
     //   so that they don't get spammed while fixing problems. This resets on successful initialisation.
     private var hasBeenNotifiedOfInitialisationFailure = false
+    private var hasAttemptedInitialisation = false
 
     private fun getSchemaVersion(configPath: String?): Int? {
         val executablePath = getValidExecutablePath(project)
@@ -75,65 +76,6 @@ class EditorServiceManager(private val project: Project) {
         }
     }
 
-    private fun maybeInitialiseEditorService() {
-        if (!project.service<ProjectConfiguration>().state.enabled) {
-            return
-        }
-
-        editorServiceTaskQueue.createTaskWithTimeout(
-            TaskInfo(TaskType.Initialisation, null, null),
-            DprintBundle.message("editor.service.manager.initialising.editor.service"),
-            {
-                configPath = getValidConfigPath(project)
-                val schemaVersion = getSchemaVersion(configPath)
-                infoLogWithConsole(
-                    DprintBundle.message("editor.service.manager.received.schema.version", schemaVersion ?: "none"),
-                    project,
-                    LOGGER,
-                )
-                when {
-                    schemaVersion == null ->
-                        project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).info(
-                            DprintBundle.message("config.dprint.schemaVersion.not.found"),
-                        )
-
-                    schemaVersion < SCHEMA_V4 ->
-                        project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
-                            .info(
-                                DprintBundle.message("config.dprint.schemaVersion.older"),
-                            )
-
-                    schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
-                    schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
-                    schemaVersion > SCHEMA_V5 ->
-                        infoLogWithConsole(
-                            DprintBundle.message("config.dprint.schemaVersion.newer"),
-                            project,
-                            LOGGER,
-                        )
-                }
-                editorService?.initialiseEditorService()
-                // Reset state flags for optimising user experience
-                hasBeenNotifiedOfInitialisationFailure = false
-            },
-            INIT_TIMEOUT,
-            {
-                if (!hasBeenNotifiedOfInitialisationFailure) {
-                    NotificationGroupManager
-                        .getInstance()
-                        .getNotificationGroup("Dprint")
-                        .createNotification(
-                            DprintBundle.message("editor.service.manager.initialising.editor.service.failed.title"),
-                            DprintBundle.message("editor.service.manager.initialising.editor.service.failed.content"),
-                            NotificationType.ERROR,
-                        )
-                        .notify(project)
-                    hasBeenNotifiedOfInitialisationFailure = true
-                }
-            },
-        )
-    }
-
     /**
      * Gets a cached canFormat result. If a result doesn't exist this will return null and start a request to fill the
      * value in the cache.
@@ -157,6 +99,10 @@ class EditorServiceManager(private val project: Project) {
      * Primes the canFormat result cache for the passed in virtual file.
      */
     fun primeCanFormatCacheForFile(virtualFile: VirtualFile) {
+        // Mainly used for project startup. The file opened listener runs before the ProjectStartUp listener
+        if (!hasAttemptedInitialisation) {
+            return
+        }
         primeCanFormatCache(virtualFile.path)
     }
 
@@ -165,6 +111,10 @@ class EditorServiceManager(private val project: Project) {
             TaskInfo(TaskType.PrimeCanFormat, path, null),
             DprintBundle.message("editor.service.manager.priming.can.format.cache", path),
             {
+                if (editorService == null) {
+                    warnLogWithConsole(DprintBundle.message("editor.service.manager.not.initialised"), project, LOGGER)
+                }
+
                 editorService?.canFormat(path) { canFormat ->
                     if (canFormat == null) {
                         infoLogWithConsole("Unable to determine if $path can be formatted.", project, LOGGER)
@@ -175,9 +125,7 @@ class EditorServiceManager(private val project: Project) {
                 }
             },
             TIMEOUT,
-            {
-                maybeInitialiseEditorService()
-            },
+            { restartEditorService() },
         )
     }
 
@@ -208,22 +156,95 @@ class EditorServiceManager(private val project: Project) {
         editorServiceTaskQueue.createTaskWithTimeout(
             TaskInfo(TaskType.Format, path, formatId),
             DprintBundle.message("editor.service.manager.creating.formatting.task", path),
-            { editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished) },
+            {
+                if (editorService == null) {
+                    warnLogWithConsole(DprintBundle.message("editor.service.manager.not.initialised"), project, LOGGER)
+                }
+                editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished)
+            },
             TIMEOUT,
-            { onFinished(FormatResult()) },
+            {
+                onFinished(FormatResult())
+                restartEditorService()
+            },
         )
     }
 
-    fun restartEditorService() {
-        // TODO rather than restarting we should try and see if it is healthy, cancel the pending format, and drain
-        //  pending messages if we are on schema version 5
-        maybeInitialiseEditorService()
-        clearCanFormatCache()
-        for (virtualFile in FileEditorManager.getInstance(project).openFiles) {
-            if (isFormattableFile(project, virtualFile)) {
-                primeCanFormatCacheForFile(virtualFile)
-            }
+    private fun initialiseFreshEditorService() {
+        hasAttemptedInitialisation = true
+        configPath = getValidConfigPath(project)
+        val schemaVersion = getSchemaVersion(configPath)
+        infoLogWithConsole(
+            DprintBundle.message(
+                "editor.service.manager.received.schema.version",
+                schemaVersion ?: "none",
+            ),
+            project,
+            LOGGER,
+        )
+        when {
+            schemaVersion == null ->
+                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC).info(
+                    DprintBundle.message("config.dprint.schemaVersion.not.found"),
+                )
+
+            schemaVersion < SCHEMA_V4 ->
+                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                    .info(
+                        DprintBundle.message("config.dprint.schemaVersion.older"),
+                    )
+
+            schemaVersion == SCHEMA_V4 -> editorService = project.service<EditorServiceV4>()
+            schemaVersion == SCHEMA_V5 -> editorService = project.service<EditorServiceV5>()
+            schemaVersion > SCHEMA_V5 ->
+                infoLogWithConsole(
+                    DprintBundle.message("config.dprint.schemaVersion.newer"),
+                    project,
+                    LOGGER,
+                )
         }
+        editorService?.initialiseEditorService()
+        // Reset state flags for optimising user experience
+        hasBeenNotifiedOfInitialisationFailure = false
+    }
+
+    fun restartEditorService() {
+        if (!project.service<ProjectConfiguration>().state.enabled) {
+            return
+        }
+
+        editorServiceTaskQueue.createTaskWithTimeout(
+            TaskInfo(TaskType.Initialisation, null, null),
+            DprintBundle.message("editor.service.manager.initialising.editor.service"),
+            {
+                clearCanFormatCache()
+                initialiseFreshEditorService()
+                for (virtualFile in FileEditorManager.getInstance(project).openFiles) {
+                    if (isFormattableFile(project, virtualFile)) {
+                        primeCanFormatCacheForFile(virtualFile)
+                    }
+                }
+            },
+            INIT_TIMEOUT,
+            {
+                if (!hasBeenNotifiedOfInitialisationFailure) {
+                    NotificationGroupManager
+                        .getInstance()
+                        .getNotificationGroup("Dprint")
+                        .createNotification(
+                            DprintBundle.message(
+                                "editor.service.manager.initialising.editor.service.failed.title",
+                            ),
+                            DprintBundle.message(
+                                "editor.service.manager.initialising.editor.service.failed.content",
+                            ),
+                            NotificationType.ERROR,
+                        )
+                        .notify(project)
+                    hasBeenNotifiedOfInitialisationFailure = true
+                }
+            },
+        )
     }
 
     fun destroyEditorService() {

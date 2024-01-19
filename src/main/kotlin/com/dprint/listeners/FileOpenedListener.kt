@@ -19,7 +19,13 @@ class FileOpenedListener : FileEditorManagerListener {
     ) {
         super.fileOpened(source, file)
         val projectConfig = source.project.service<ProjectConfiguration>().state
-        if (!projectConfig.enabled) return
+        if (!projectConfig.enabled ||
+            !source.project.isOpen ||
+            !source.project.isInitialized ||
+            source.project.isDisposed
+        ) {
+            return
+        }
 
         // We ignore scratch files as they are never part of config
         if (!isFormattableFile(source.project, file)) return
