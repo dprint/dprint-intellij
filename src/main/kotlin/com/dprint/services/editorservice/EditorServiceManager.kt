@@ -46,6 +46,7 @@ class EditorServiceManager(private val project: Project) {
     // - hasBeenNotifiedOfInitialisationFailure ensures that the user is only notified once of initialisation failures
     //   so that they don't get spammed while fixing problems. This resets on successful initialisation.
     private var hasBeenNotifiedOfInitialisationFailure = false
+    private var hasAttemptedInitialisation = false
 
     private fun getSchemaVersion(configPath: String?): Int? {
         val executablePath = getValidExecutablePath(project)
@@ -76,16 +77,6 @@ class EditorServiceManager(private val project: Project) {
     }
 
     /**
-     * In some cases we want to throw if the editor service is not available to ensure that a restart is actioned
-     * appropriately.
-     */
-    private fun getEditorService(): IEditorService {
-        return editorService ?: throw RuntimeException(
-            DprintBundle.message("editor.service.manager.not.initialised"),
-        )
-    }
-
-    /**
      * Gets a cached canFormat result. If a result doesn't exist this will return null and start a request to fill the
      * value in the cache.
      */
@@ -108,6 +99,10 @@ class EditorServiceManager(private val project: Project) {
      * Primes the canFormat result cache for the passed in virtual file.
      */
     fun primeCanFormatCacheForFile(virtualFile: VirtualFile) {
+        // Mainly used for project startup. The file opened listener runs before the ProjectStartUp listener
+        if (!hasAttemptedInitialisation) {
+            return
+        }
         primeCanFormatCache(virtualFile.path)
     }
 
@@ -116,7 +111,11 @@ class EditorServiceManager(private val project: Project) {
             TaskInfo(TaskType.PrimeCanFormat, path, null),
             DprintBundle.message("editor.service.manager.priming.can.format.cache", path),
             {
-                getEditorService().canFormat(path) { canFormat ->
+                if (editorService == null) {
+                    warnLogWithConsole(DprintBundle.message("editor.service.manager.not.initialised"), project, LOGGER)
+                }
+
+                editorService?.canFormat(path) { canFormat ->
                     if (canFormat == null) {
                         infoLogWithConsole("Unable to determine if $path can be formatted.", project, LOGGER)
                     } else {
@@ -157,7 +156,12 @@ class EditorServiceManager(private val project: Project) {
         editorServiceTaskQueue.createTaskWithTimeout(
             TaskInfo(TaskType.Format, path, formatId),
             DprintBundle.message("editor.service.manager.creating.formatting.task", path),
-            { getEditorService().fmt(formatId, path, content, startIndex, endIndex, onFinished) },
+            {
+                if (editorService == null) {
+                    warnLogWithConsole(DprintBundle.message("editor.service.manager.not.initialised"), project, LOGGER)
+                }
+                editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished)
+            },
             TIMEOUT,
             {
                 onFinished(FormatResult())
@@ -167,6 +171,7 @@ class EditorServiceManager(private val project: Project) {
     }
 
     private fun initialiseFreshEditorService() {
+        hasAttemptedInitialisation = true
         configPath = getValidConfigPath(project)
         val schemaVersion = getSchemaVersion(configPath)
         infoLogWithConsole(
