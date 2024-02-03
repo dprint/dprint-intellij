@@ -67,8 +67,32 @@ class EditorServiceManager(private val project: Project) {
             infoLogWithConsole(DprintBundle.message("config.dprint.editor.info", jsonText), project, LOGGER)
             Json.parseToJsonElement(jsonText).jsonObject["schemaVersion"]?.jsonPrimitive?.int
         } catch (e: RuntimeException) {
+            val stdout = result.stdout.trim()
+            val stderr = result.stderr.trim()
+            val message =
+                when {
+                    stdout.isEmpty() && stderr.isNotEmpty() ->
+                        DprintBundle.message(
+                            "error.failed.to.parse.json.schema.error",
+                            result.stderr.trim(),
+                        )
+
+                    stdout.isNotEmpty() && stderr.isEmpty() ->
+                        DprintBundle.message(
+                            "error.failed.to.parse.json.schema.received",
+                            result.stdout.trim(),
+                        )
+
+                    stdout.isNotEmpty() && stderr.isNotEmpty() ->
+                        DprintBundle.message(
+                            "error.failed.to.parse.json.schema.received.error",
+                            result.stdout.trim(),
+                            result.stderr.trim(),
+                        )
+                    else -> DprintBundle.message("error.failed.to.parse.json.schema")
+                }
             errorLogWithConsole(
-                DprintBundle.message("error.failed.to.parse.json.schema", result.stdout.trim(), result.stderr.trim()),
+                message,
                 project,
                 LOGGER,
             )
