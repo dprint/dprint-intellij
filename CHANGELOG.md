@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## 0.6.0 - 2024-02-08
+
 - Fixed issue where on save actions were running twice per save.
 - Enforce that only a initialisation or format can be queued to run at a time.
 - Added checkbox to `Tools -> Actions on Save` menu.
