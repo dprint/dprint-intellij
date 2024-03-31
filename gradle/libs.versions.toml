@@ -2,18 +2,18 @@
 annotations = "24.0.1"
 changelog = "2.2.0"
 commonsCollection4 = "4.4"
-gradleIntelliJPlugin = "1.17.0"
-kotestAssertions = "5.8.0"
-kotestRunner = "5.8.0"
-kotlin = "1.9.22"
+gradleIntelliJPlugin = "1.17.3"
+kotestAssertions = "5.8.1"
+kotestRunner = "5.8.1"
+kotlin = "1.9.23"
 ktlint = "12.1.0"
-mockk = "1.13.9"
-versionCatalogUpdate = "0.8.3"
-versions = "0.50.0"
+mockk = "1.13.10"
+versionCatalogUpdate = "0.8.4"
+versions = "0.51.0"
 
 [libraries]
 annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
-commonsCollection4 = { module = "org.apache.commons:commons-collections4", version.ref = "commonsCollection4"}
+commonsCollection4 = { module = "org.apache.commons:commons-collections4", version.ref = "commonsCollection4" }
 kotestAssertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotestAssertions" }
 kotestRunner = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotestRunner" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
