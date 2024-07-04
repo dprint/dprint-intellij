@@ -7,6 +7,7 @@ import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.utils.infoConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.isFormattableFile
+import com.dprint.utils.warnLogWithConsole
 import com.intellij.formatting.service.AsyncDocumentFormattingService
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.formatting.service.FormattingService
@@ -51,11 +52,16 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         // optimisation because they are not part of the project and thus never in config.
         val virtualFile = file.virtualFile ?: file.originalFile.virtualFile
         val canFormat =
-            virtualFile != null &&
-                isFormattableFile(file.project, virtualFile) &&
-                editorServiceManager.canFormatCached(virtualFile.path) != false
+            if (virtualFile != null && isFormattableFile(file.project, virtualFile)) {
+                editorServiceManager.canFormatCached(virtualFile.path)
+            } else {
+                false
+            }
 
-        if (canFormat) {
+        if (canFormat == null) {
+            warnLogWithConsole(DprintBundle.message("external.formatter.can.format.unknown"), file.project, LOGGER)
+            return false
+        } else if (canFormat) {
             infoConsole(DprintBundle.message("external.formatter.can.format", virtualFile.path), file.project)
         } else if (virtualFile?.path != null) {
             // If a virtual file path doesn't exist then it is an ephemeral file such as a scratch file. Dprint needs
@@ -77,10 +83,6 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             infoLogWithConsole(DprintBundle.message("formatting.cannot.determine.file.path"), project, LOGGER)
             return null
         }
-
-        // This exists as well as the condition in the canFormat method as that will prime the cache if
-        // the file hasn't already been checked. Should probably never happen but let's be safe.
-        if (editorServiceManager.canFormatCached(path) != true) return null
 
         if (!editorServiceManager.canRangeFormat() && isRangeFormat(formattingRequest)) {
             infoLogWithConsole(DprintBundle.message("external.formatter.range.formatting"), project, LOGGER)

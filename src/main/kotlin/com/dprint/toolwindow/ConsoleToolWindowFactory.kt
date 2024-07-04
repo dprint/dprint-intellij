@@ -1,6 +1,5 @@
 package com.dprint.toolwindow
 
-import com.dprint.config.ProjectConfiguration
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
@@ -23,6 +22,6 @@ class ConsoleToolWindowFactory : ToolWindowFactory, DumbAware {
     }
 
     override fun isApplicable(project: Project): Boolean {
-        return project.service<ProjectConfiguration>().state.enabled
+        return true
     }
 }
