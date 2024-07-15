@@ -39,16 +39,10 @@ class EditorServiceManager(private val project: Project) {
     private val editorServiceTaskQueue = EditorServiceTaskQueue(project)
     private var canFormatCache = LRUMap<String, Boolean>()
 
-    // The following flags are used to optimise user experience
-    // - isInitialising stops multiple initialisation events triggering if the user spams save, and it isn't working
-    // - hasBeenNotifiedOfInitialisationFailure ensures that the user is only notified once of initialisation failures
-    //   so that they don't get spammed while fixing problems. This resets on successful initialisation.
-    private var hasBeenNotifiedOfInitialisationFailure = false
     private var hasAttemptedInitialisation = false
 
     private fun getSchemaVersion(configPath: String?): Int? {
         val executablePath = getValidExecutablePath(project)
-        // The entire timeout will be
         val timeout = project.service<ProjectConfiguration>().state.initialisationTimeout
 
         val commandLine =
@@ -60,6 +54,7 @@ class EditorServiceManager(private val project: Project) {
             val workingDir = File(it).parent
             commandLine.withWorkDirectory(workingDir)
         }
+
         val result = ExecUtil.execAndGetOutput(commandLine, timeout.toInt())
 
         return try {
@@ -89,6 +84,7 @@ class EditorServiceManager(private val project: Project) {
                             result.stdout.trim(),
                             result.stderr.trim(),
                         )
+
                     else -> DprintBundle.message("error.failed.to.parse.json.schema")
                 }
             errorLogWithConsole(
@@ -150,7 +146,6 @@ class EditorServiceManager(private val project: Project) {
                 }
             },
             timeout,
-            { restartEditorService() },
         )
     }
 
@@ -191,7 +186,6 @@ class EditorServiceManager(private val project: Project) {
             timeout,
             {
                 onFinished(FormatResult())
-                restartEditorService()
             },
         )
     }
@@ -235,8 +229,6 @@ class EditorServiceManager(private val project: Project) {
         }
 
         editorService?.initialiseEditorService()
-        // Reset state flags for optimising user experience
-        hasBeenNotifiedOfInitialisationFailure = false
         return true
     }
 
@@ -245,6 +237,7 @@ class EditorServiceManager(private val project: Project) {
             return
         }
 
+        // Slightly larger incase the json schema step times out
         val timeout = project.service<ProjectConfiguration>().state.initialisationTimeout
         editorServiceTaskQueue.createTaskWithTimeout(
             TaskInfo(TaskType.Initialisation, null, null),
@@ -262,24 +255,25 @@ class EditorServiceManager(private val project: Project) {
             },
             timeout,
             {
-                if (!hasBeenNotifiedOfInitialisationFailure) {
-                    NotificationGroupManager
-                        .getInstance()
-                        .getNotificationGroup("Dprint")
-                        .createNotification(
-                            DprintBundle.message(
-                                "editor.service.manager.initialising.editor.service.failed.title",
-                            ),
-                            DprintBundle.message(
-                                "editor.service.manager.initialising.editor.service.failed.content",
-                            ),
-                            NotificationType.ERROR,
-                        )
-                        .notify(project)
-                    hasBeenNotifiedOfInitialisationFailure = true
-                }
+                this.notifyFailedToStart()
             },
         )
+    }
+
+    private fun notifyFailedToStart() {
+        NotificationGroupManager
+            .getInstance()
+            .getNotificationGroup("Dprint")
+            .createNotification(
+                DprintBundle.message(
+                    "editor.service.manager.initialising.editor.service.failed.title",
+                ),
+                DprintBundle.message(
+                    "editor.service.manager.initialising.editor.service.failed.content",
+                ),
+                NotificationType.ERROR,
+            )
+            .notify(project)
     }
 
     fun destroyEditorService() {
