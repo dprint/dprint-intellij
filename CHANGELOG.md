@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## 0.7.0 - 2024-07-20
+
 - Fixed an issue where initialisation could get into an infinite loop.
 - Default to the IntelliJ formatter when the canFormat cache is cold for a file.
 - Stop self-healing restarts and show error baloons every time a startup fails.
