@@ -46,10 +46,9 @@ dependencies {
     }
 }
 
-// Set the JVM language level used to build the project. Use Java 11 for 2020.3+, and Java 17 for 2022.2+.
 kotlin {
     jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(21)
         vendor = JvmVendorSpec.AZUL
     }
 }
@@ -109,11 +108,12 @@ intellijPlatform {
         freeArgs = listOf("-mute", "TemplateWordInPluginId,TemplateWordInPluginName")
         ides {
             select {
-                types = listOf(
-                    IntelliJPlatformType.IntellijIdeaUltimate,
-                    IntelliJPlatformType.IntellijIdeaCommunity,
-                    IntelliJPlatformType.WebStorm
-                )
+                types =
+                    listOf(
+                        IntelliJPlatformType.IntellijIdeaUltimate,
+                        IntelliJPlatformType.IntellijIdeaCommunity,
+                        IntelliJPlatformType.WebStorm,
+                    )
                 channels = listOf(ProductRelease.Channel.RELEASE, ProductRelease.Channel.EAP)
                 sinceBuild = providers.gradleProperty("pluginSinceBuild")
             }
