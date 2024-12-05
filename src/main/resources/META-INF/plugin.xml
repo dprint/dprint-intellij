@@ -1,4 +1,4 @@
-<idea-plugin>
+<idea-plugin require-restart="true">
     <id>com.dprint.intellij.plugin</id>
     <name>Dprint</name>
     <vendor>dprint</vendor>
