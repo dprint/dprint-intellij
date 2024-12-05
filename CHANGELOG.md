@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## 0.8.0 - 2024-12-05
+
 - Removed json validation of config file
 - Set minimum versions to 2024
 - Updated to newer build tooling
