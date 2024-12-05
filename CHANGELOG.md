@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+- Reinstate require restart, even though the plugin doesn't technically need it, it avoids issues that a restart would
+  fix.
+
 ## 0.8.0 - 2024-12-05
 
 - Removed json validation of config file
