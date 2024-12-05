@@ -5,8 +5,6 @@ gradleIntelliJPlugin = "2.1.0"
 kotestAssertions = "5.9.1"
 kotestRunner = "5.9.1"
 kotlin = "2.1.0"
-serialization = "2.1.0"
-serializationJson = "1.7.3"
 ktlint = "12.1.2"
 mockk = "1.13.13"
 versionCatalogUpdate = "0.8.5"
@@ -14,20 +12,17 @@ versions = "0.51.0"
 
 [libraries]
 commonsCollection4 = { module = "org.apache.commons:commons-collections4", version.ref = "commonsCollection4" }
-serializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref="serializationJson" }
 kotestAssertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotestAssertions" }
 kotestRunner = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotestRunner" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 
-[plugins]
+[plugins]a
 # Changelog update gradle plugin - https://github.com/JetBrains/gradle-changelog-plugin
 changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }
 # IntelliJ gradle plugin - https://plugins.gradle.org/plugin/org.jetbrains.intellij
 gradleIntelliJPlugin = { id = "org.jetbrains.intellij.platform", version.ref = "gradleIntelliJPlugin" }
 # Kotlin gradle plugin - https://plugins.gradle.org/plugin/org.jetbrains.kotlin.jvm
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-# Serialisation for kotlin https://plugins.gradle.org/plugin/org.jetbrains.kotlin.plugin.serialization
-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "serialization"}
 # ktlint formatter and linter - https://github.com/JLLeitschuh/ktlint-gradle
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 # Updates gradle plugin versions - https://github.com/littlerobots/version-catalog-update-plugin
