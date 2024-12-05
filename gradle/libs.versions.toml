@@ -1,18 +1,16 @@
 [versions]
-annotations = "24.0.1"
 changelog = "2.2.1"
 commonsCollection4 = "4.4"
-gradleIntelliJPlugin = "1.17.4"
+gradleIntelliJPlugin = "2.1.0"
 kotestAssertions = "5.9.1"
 kotestRunner = "5.9.1"
-kotlin = "2.0.0"
-ktlint = "12.1.1"
-mockk = "1.13.11"
-versionCatalogUpdate = "0.8.4"
+kotlin = "2.1.0"
+ktlint = "12.1.2"
+mockk = "1.13.13"
+versionCatalogUpdate = "0.8.5"
 versions = "0.51.0"
 
 [libraries]
-annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
 commonsCollection4 = { module = "org.apache.commons:commons-collections4", version.ref = "commonsCollection4" }
 kotestAssertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotestAssertions" }
 kotestRunner = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotestRunner" }
@@ -22,7 +20,7 @@ mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 # Changelog update gradle plugin - https://github.com/JetBrains/gradle-changelog-plugin
 changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }
 # IntelliJ gradle plugin - https://plugins.gradle.org/plugin/org.jetbrains.intellij
-gradleIntelliJPlugin = { id = "org.jetbrains.intellij", version.ref = "gradleIntelliJPlugin" }
+gradleIntelliJPlugin = { id = "org.jetbrains.intellij.platform", version.ref = "gradleIntelliJPlugin" }
 # Kotlin gradle plugin - https://plugins.gradle.org/plugin/org.jetbrains.kotlin.jvm
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 # ktlint formatter and linter - https://github.com/JLLeitschuh/ktlint-gradle

@@ -101,7 +101,7 @@ class DprintConfigurable(private val project: Project) : BoundSearchableConfigur
                         .label(DprintBundle.message("config.dprint.config.path"), LabelPosition.TOP)
                         .comment(DprintBundle.message("config.dprint.config.path.description"))
                         .validationOnInput {
-                            if (it.text.isEmpty() || validateConfigFile(project, it.text)) {
+                            if (it.text.isEmpty() || validateConfigFile(it.text)) {
                                 null
                             } else {
                                 this.error(DprintBundle.message("config.dprint.config.invalid"))

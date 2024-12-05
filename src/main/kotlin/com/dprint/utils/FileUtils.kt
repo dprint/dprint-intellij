@@ -2,8 +2,6 @@ package com.dprint.utils
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.i18n.DprintBundle
-import com.google.gson.JsonParser
-import com.google.gson.JsonSyntaxException
 import com.intellij.diff.util.DiffUtil
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
@@ -13,7 +11,6 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
-import java.io.FileReader
 
 // Need this for the IntelliJ logger
 private object FileUtils
@@ -23,6 +20,8 @@ private val DEFAULT_CONFIG_NAMES =
     listOf(
         "dprint.json",
         ".dprint.json",
+        "dprint.jsonc",
+        ".dprint.jsonc",
     )
 
 /*
@@ -32,12 +31,9 @@ private val DEFAULT_CONFIG_NAMES =
 /**
  * Validates that a path is a valid json file
  */
-fun validateConfigFile(
-    project: Project,
-    path: String,
-): Boolean {
+fun validateConfigFile(path: String): Boolean {
     val file = File(path)
-    return file.exists() && file.extension == "json" && checkIsValidJson(project, path)
+    return file.exists() && (file.extension == "json" || file.extension == "jsonc")
 }
 
 /**
@@ -48,7 +44,7 @@ fun getValidConfigPath(project: Project): String? {
     val configuredPath = config.state.configLocation
 
     when {
-        validateConfigFile(project, configuredPath) -> return configuredPath
+        validateConfigFile(configuredPath) -> return configuredPath
         configuredPath.isNotBlank() ->
             infoLogWithConsole(
                 DprintBundle.message("notification.invalid.config.path"),
@@ -73,7 +69,7 @@ fun getValidConfigPath(project: Project): String? {
         for (fileName in DEFAULT_CONFIG_NAMES) {
             val file = File(dir, fileName)
             when {
-                file.exists() && checkIsValidJson(project, file.path) -> return file.path
+                file.exists() -> return file.path
                 file.exists() ->
                     warnLogWithConsole(
                         DprintBundle.message("notification.invalid.default.config", file.path),
@@ -109,20 +105,6 @@ fun isFormattableFile(
         !DiffUtil.isFileWithoutContent(virtualFile)
 }
 
-private fun checkIsValidJson(
-    project: Project,
-    path: String,
-): Boolean {
-    return try {
-        // Need to use Gson here to handle json with comments
-        JsonParser.parseReader(FileReader(path))
-        true
-    } catch (e: JsonSyntaxException) {
-        errorLogWithConsole(e.message ?: "Failed to parse config JSON", e, project, LOGGER)
-        false
-    }
-}
-
 /**
  * Validates a path ends with 'dprint' or 'dprint.exe' and is executable
  */
@@ -133,13 +115,9 @@ fun validateExecutablePath(path: String): Boolean {
 /**
  * Attempts to get the dprint executable location by checking to see if it is discoverable.
  */
-private fun getLocationFromThePath(workingDirectory: String): String? {
-    val commandLine =
-        GeneralCommandLine(
-            if (System.getProperty("os.name").lowercase().contains("win")) "where" else "which",
-            "dprint",
-        )
-    commandLine.withWorkDirectory(workingDirectory)
+private fun getLocationFromThePath(): String? {
+    val args = listOf(if (System.getProperty("os.name").lowercase().contains("win")) "where" else "which", "dprint")
+    val commandLine = GeneralCommandLine(args)
     val output = ExecUtil.execAndGetOutput(commandLine)
 
     if (output.checkSuccess(LOGGER)) {
@@ -190,13 +168,11 @@ fun getValidExecutablePath(project: Project): String? {
             )
     }
 
-    project.basePath?.let { workingDirectory ->
-        getLocationFromTheNodeModules(project.basePath)?.let {
-            return it
-        }
-        getLocationFromThePath(workingDirectory)?.let {
-            return it
-        }
+    getLocationFromTheNodeModules(project.basePath)?.let {
+        return it
+    }
+    getLocationFromThePath()?.let {
+        return it
     }
 
     errorLogWithConsole(DprintBundle.message("notification.executable.not.found"), project, LOGGER)

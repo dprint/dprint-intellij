@@ -1,4 +1,6 @@
+.intellijPlatform
 .gradle
 .kotlin
 .idea
 build
+**/.DS_Store

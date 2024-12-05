@@ -23,14 +23,11 @@ class ConfigChangedAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSav
 
     override fun processDocuments(
         project: Project,
-        documents: Array<Document?>,
+        documents: Array<Document>,
     ) {
         val editorServiceManager = project.service<EditorServiceManager>()
         val manager = FileDocumentManager.getInstance()
         for (document in documents) {
-            if (document == null) {
-                continue
-            }
             manager.getFile(document)?.let { vfile ->
                 if (vfile.path == editorServiceManager.getConfigPath()) {
                     infoLogWithConsole(DprintBundle.message("config.changed.run"), project, LOGGER)

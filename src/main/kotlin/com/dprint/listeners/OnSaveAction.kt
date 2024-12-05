@@ -28,7 +28,7 @@ class OnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
 
     override fun processDocuments(
         project: Project,
-        documents: Array<Document?>,
+        documents: Array<Document>,
     ) {
         val currentCommandName = CommandProcessor.getInstance().currentCommandName
         if (currentCommandName == ReformatCodeProcessor.getCommandName()) {
@@ -36,12 +36,10 @@ class OnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
         }
         val formatterService = project.service<FormatterService>()
         val manager = FileDocumentManager.getInstance()
-        for (maybeDocument in documents) {
-            maybeDocument?.let { document ->
-                manager.getFile(document)?.let { vfile ->
-                    infoLogWithConsole(DprintBundle.message("save.action.run", vfile.path), project, LOGGER)
-                    formatterService.format(vfile, document)
-                }
+        for (document in documents) {
+            manager.getFile(document)?.let { vfile ->
+                infoLogWithConsole(DprintBundle.message("save.action.run", vfile.path), project, LOGGER)
+                formatterService.format(vfile, document)
             }
         }
     }
