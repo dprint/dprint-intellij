@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+- Removed json validation of config file
+- Set minimum versions to 2024
+- Updated to newer build tooling
+
 ## 0.7.0 - 2024-07-20
 
 - Fixed an issue where initialisation could get into an infinite loop.
@@ -23,8 +27,9 @@
 
 - Add check for dead processes to warn users that the dprint daemon is not responding
 - Increase severity of logging in the event processes die or errors are seen in process communication
-  - This may be a little noisy, and if so disabling the plugin is recommended unless the underlying issue with the process can be fixed
-  - For intermittent or one off errors, just restart the dprint plugin via the `Restart dprint` action
+    - This may be a little noisy, and if so disabling the plugin is recommended unless the underlying issue with the
+      process can be fixed
+    - For intermittent or one off errors, just restart the dprint plugin via the `Restart dprint` action
 - Upgrade dependencies
 - Attempt to fix changelog update on publish
 
@@ -68,7 +73,8 @@
 
 ## 0.3.6
 
-- Fix issue where using the IntelliJ formatter would result in a no-op on every second format, IntelliJ is reporting larger formatting ranges that content length and dprint would not format these files
+- Fix issue where using the IntelliJ formatter would result in a no-op on every second format, IntelliJ is reporting
+  larger formatting ranges that content length and dprint would not format these files
 - Better handling of virtual files
 - Silence an error that is thrown when restarting dprint
 - Improve verbose logging in the console
@@ -82,7 +88,8 @@
 
 - Reduce timeout when checking if a file can be formatted in the external formatter
 - Cache whether files can be formatted by dprint and create an action to clear this
-- Remove custom synchronization and move to an IntelliJ background task queue for dprint tasks (this appears to solve the hard to reproduce lock up issues)
+- Remove custom synchronization and move to an IntelliJ background task queue for dprint tasks (this appears to solve
+  the hard to reproduce lock up issues)
 
 ## 0.3.3
 
@@ -101,8 +108,10 @@
 
 - Introduced support for v5 of the dprint schema
 - Added a dprint tool window to provide better output of the formatting process
-- Added the `Restart Dprint` action so the underlying editor service can be restarted without needed to go to preferences
-- Removed the default key command of `cmd/ctrl+shift+option+D`, it clashed with too many other key commands. Users can still map this manually should they want it.
+- Added the `Restart Dprint` action so the underlying editor service can be restarted without needed to go to
+  preferences
+- Removed the default key command of `cmd/ctrl+shift+option+D`, it clashed with too many other key commands. Users can
+  still map this manually should they want it.
 
 ## 0.2.3
 
