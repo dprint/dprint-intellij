@@ -3,4 +3,4 @@
 .kotlin
 .idea
 build
-.DS_Store
+**/.DS_Store
