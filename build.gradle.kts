@@ -1,6 +1,8 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.models.ProductRelease
 
 plugins {
     // Java support
@@ -25,7 +27,6 @@ repositories {
     }
 }
 dependencies {
-    //    implementation(libs.annotations)
     implementation(libs.commonsCollection4)
     testImplementation(libs.kotestAssertions)
     testImplementation(libs.kotestRunner)
@@ -40,6 +41,8 @@ dependencies {
         intellijIdeaUltimate(version)
         instrumentationTools()
         pluginVerifier()
+
+        bundledPlugin("JavaScript")
     }
 }
 
@@ -52,6 +55,8 @@ kotlin {
 }
 
 intellijPlatform {
+    buildSearchableOptions = false
+
     pluginConfiguration {
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
@@ -103,7 +108,15 @@ intellijPlatform {
     pluginVerification {
         freeArgs = listOf("-mute", "TemplateWordInPluginId,TemplateWordInPluginName")
         ides {
-            recommended()
+            select {
+                types = listOf(
+                    IntelliJPlatformType.IntellijIdeaUltimate,
+                    IntelliJPlatformType.IntellijIdeaCommunity,
+                    IntelliJPlatformType.WebStorm
+                )
+                channels = listOf(ProductRelease.Channel.RELEASE, ProductRelease.Channel.EAP)
+                sinceBuild = providers.gradleProperty("pluginSinceBuild")
+            }
         }
     }
 }
@@ -149,7 +162,7 @@ tasks {
     }
 
     runIde {
-        jvmArgs("-Xmx12288m")
+        jvmArgs("-Xmx4098m")
     }
 
     wrapper {

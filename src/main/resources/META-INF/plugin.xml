@@ -1,4 +1,4 @@
-<idea-plugin require-restart="true">
+<idea-plugin>
     <id>com.dprint.intellij.plugin</id>
     <name>Dprint</name>
     <vendor>dprint</vendor>
@@ -8,7 +8,7 @@
     <resource-bundle>messages.Bundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <postStartupActivity implementation="com.dprint.listeners.ProjectStartupListener" />
+        <postStartupActivity implementation="com.dprint.listeners.ProjectStartupListener"/>
         <projectConfigurable parentId="tools"
                              instance="com.dprint.config.DprintConfigurable"
                              id="com.dprint.config"
