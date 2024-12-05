@@ -16,7 +16,7 @@ kotestAssertions = { module = "io.kotest:kotest-assertions-core", version.ref = 
 kotestRunner = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotestRunner" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 
-[plugins]a
+[plugins]
 # Changelog update gradle plugin - https://github.com/JetBrains/gradle-changelog-plugin
 changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }
 # IntelliJ gradle plugin - https://plugins.gradle.org/plugin/org.jetbrains.intellij
