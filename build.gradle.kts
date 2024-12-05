@@ -112,8 +112,6 @@ intellijPlatform {
                 types =
                     listOf(
                         IntelliJPlatformType.IntellijIdeaUltimate,
-                        IntelliJPlatformType.IntellijIdeaCommunity,
-                        IntelliJPlatformType.WebStorm,
                     )
                 channels = listOf(ProductRelease.Channel.RELEASE, ProductRelease.Channel.EAP)
                 sinceBuild = providers.gradleProperty("pluginSinceBuild")
