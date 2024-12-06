@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## 0.8.1 - 2024-12-06
+
 - Reinstate require restart, even though the plugin doesn't technically need it, it avoids issues that a restart would
   fix.
 
