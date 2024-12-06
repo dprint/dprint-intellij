@@ -35,7 +35,7 @@ Please report any issues with this Intellij plugin to the
 
 - Manually:
 
-  Download the [latest release](https://github.com/ryan-rushton/dprint-intellij-plugin/releases/latest) and install it
+  Download the [latest release](https://github.com/dprint/dprint-intellij/releases/latest) and install it
   manually using
   <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
 
