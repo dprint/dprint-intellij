@@ -106,7 +106,7 @@ intellijPlatform {
     }
 
     pluginVerification {
-        freeArgs = listOf("-mute", "TemplateWordInPluginId,TemplateWordInPluginName")
+        freeArgs = listOf("-mute", "TemplateWordInPluginId")
         ides {
             select {
                 types =

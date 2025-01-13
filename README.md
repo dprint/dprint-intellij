@@ -1,4 +1,4 @@
-# dprint-intellij-plugin
+# dprint
 
 <!-- Plugin description -->
 This plugin adds support for dprint, a flexible and extensible code formatter ([dprint.dev](https://dprint.dev/)). It is

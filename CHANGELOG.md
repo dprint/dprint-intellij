@@ -1,6 +1,6 @@
 <!-- Keep a Changelog guide -> https://keepachangelog.com -->
 
-# dprint-intellij-plugin Changelog
+# dprint Changelog
 
 ## [Unreleased]
 
