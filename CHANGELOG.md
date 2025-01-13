@@ -1,8 +1,10 @@
 <!-- Keep a Changelog guide -> https://keepachangelog.com -->
 
-# dprint-intellij-plugin Changelog
+# dprint Changelog
 
 ## [Unreleased]
+
+- Update plugin name for marketplace verification
 
 ## 0.8.1 - 2024-12-06
 
