@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## 0.8.2 - 2025-01-14
+
 - Update plugin name for marketplace verification
 
 ## 0.8.1 - 2024-12-06
