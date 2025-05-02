@@ -241,40 +241,43 @@ class DprintFormattingTask(
                 .setAttribute(AttributeKeys.CONTENT_LENGTH, contentToFormat.length.toLong())
                 .startSpan()
 
-        // Need to update the formatting id so the correct job would be cancelled
-        val formattingId = editorServiceManager.maybeGetFormatId()
-        formattingId?.let {
-            formattingIds.add(it)
-            span.setAttribute(AttributeKeys.FORMATTING_ID, it.toLong())
-        }
-
-        val nextFuture = CompletableFuture<FormatResult>()
-        allFormatFutures.add(nextFuture)
-        val nextHandler: (FormatResult) -> Unit = { nextResult ->
-            // Add result information to the span
-            if (nextResult.error != null) {
-                span.setStatus(StatusCode.ERROR, nextResult.error)
-            } else {
-                span.setStatus(StatusCode.OK)
-                if (nextResult.formattedContent != null) {
-                    val contentLengthDiff = nextResult.formattedContent.length - contentToFormat.length
-                    span.setAttribute("content_length_diff", contentLengthDiff.toLong())
-                }
+        // This span is ended in the callback, don't end it early.
+        return span.makeCurrent().use { scope ->
+            // Need to update the formatting id so the correct job would be cancelled
+            val formattingId = editorServiceManager.maybeGetFormatId()
+            formattingId?.let {
+                formattingIds.add(it)
+                span.setAttribute(AttributeKeys.FORMATTING_ID, it.toLong())
             }
-            span.end()
 
-            nextFuture.complete(nextResult)
+            val nextFuture = CompletableFuture<FormatResult>()
+            allFormatFutures.add(nextFuture)
+            val nextHandler: (FormatResult) -> Unit = { nextResult ->
+                // Add result information to the span
+                if (nextResult.error != null) {
+                    span.setStatus(StatusCode.ERROR, nextResult.error)
+                } else {
+                    span.setStatus(StatusCode.OK)
+                    if (nextResult.formattedContent != null) {
+                        val contentLengthDiff = nextResult.formattedContent.length - contentToFormat.length
+                        span.setAttribute("content_length_diff", contentLengthDiff.toLong())
+                    }
+                }
+                span.end()
+
+                nextFuture.complete(nextResult)
+            }
+            editorServiceManager.format(
+                formattingId,
+                path,
+                contentToFormat,
+                startIndex,
+                endIndex,
+                nextHandler,
+            )
+
+            nextFuture
         }
-        editorServiceManager.format(
-            formattingId,
-            path,
-            contentToFormat,
-            startIndex,
-            endIndex,
-            nextHandler,
-        )
-
-        return nextFuture
     }
 
     fun cancel(): Boolean {
