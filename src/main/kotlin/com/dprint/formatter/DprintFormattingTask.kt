@@ -34,7 +34,7 @@ class DprintFormattingTask(
      */
     private val allFormatFutures = mutableListOf<CompletableFuture<FormatResult>>()
 
-    fun run() {
+    fun run(): Result<Boolean> {
         val content = formattingRequest.documentText
         val ranges =
             if (editorServiceManager.canRangeFormat()) {
@@ -79,22 +79,26 @@ class DprintFormattingTask(
         val result = getFuture(nextFuture)
 
         // If cancelled there is no need to utilise the formattingRequest finalising methods
-        if (isCancelled) return
+        if (isCancelled) {
+            return Result.failure(IllegalStateException("Formatting was cancelled"))
+        }
 
         // If the result is null we don't want to change the document text, so we just set it to be the original.
         // This should only happen if getting the future throws.
         if (result == null) {
             formattingRequest.onTextReady(content)
-            return
+            return Result.failure(IllegalStateException("Failed to get formatting result"))
         }
 
         val error = result.error
         if (error != null) {
             formattingRequest.onError(DprintBundle.message("formatting.error"), error)
-        } else {
-            // If the result is a no op it will be null, in which case we pass the original content back in
-            formattingRequest.onTextReady(result.formattedContent ?: content)
+            return Result.failure(Exception(error))
         }
+
+        // If the result is a no op it will be null, in which case we pass the original content back in
+        formattingRequest.onTextReady(result.formattedContent ?: content)
+        return Result.success(true)
     }
 
     private fun getFuture(future: CompletableFuture<FormatResult>): FormatResult? {
