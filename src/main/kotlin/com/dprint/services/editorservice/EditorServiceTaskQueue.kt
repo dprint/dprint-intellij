@@ -5,7 +5,6 @@ import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -15,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -22,8 +22,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.CoroutineContext
 
 enum class TaskType {
@@ -37,11 +37,11 @@ data class TaskInfo(val taskType: TaskType, val path: String?, val formatId: Int
 
 private val LOGGER = logger<EditorServiceTaskQueue>()
 
-class EditorServiceTaskQueue(private val project: Project) : CoroutineScope, Disposable {
+class EditorServiceTaskQueue(private val project: Project) : CoroutineScope {
     private val job = SupervisorJob()
     private val mutex = Mutex() // For synchronized access to activeTasks
     private val activeTasks = HashSet<TaskInfo>()
-    private val taskQueue = Channel<Pair<TaskInfo, () -> Unit>>(Channel.UNLIMITED)
+    private val taskQueue = Channel<Pair<TaskInfo, suspend (ProgressIndicator) -> Unit>>(Channel.UNLIMITED)
 
     // Use the Application Dispatcher for background operations
     override val coroutineContext: CoroutineContext
@@ -72,7 +72,7 @@ class EditorServiceTaskQueue(private val project: Project) : CoroutineScope, Dis
 
     private fun runTask(
         taskInfo: TaskInfo,
-        operation: () -> Unit,
+        operation: suspend (ProgressIndicator) -> Unit,
     ) {
         val progressManager = ProgressManager.getInstance()
         val taskTitle = getTaskTitle(taskInfo)
@@ -82,7 +82,21 @@ class EditorServiceTaskQueue(private val project: Project) : CoroutineScope, Dis
                 override fun run(indicator: ProgressIndicator) {
                     indicator.text = taskTitle
                     infoLogWithConsole(indicator.text, project, LOGGER)
-                    operation()
+
+                    // Use a CountDownLatch to wait for the coroutine to complete
+                    val latch = CountDownLatch(1)
+
+                    // Launch a coroutine to run the operation with access to the indicator
+                    launch(Dispatchers.Default) {
+                        try {
+                            operation(indicator)
+                        } finally {
+                            latch.countDown()
+                        }
+                    }
+
+                    // Wait for the operation to complete - this will keep the progress indicator shown
+                    latch.await()
                 }
             },
         )
@@ -124,22 +138,19 @@ class EditorServiceTaskQueue(private val project: Project) : CoroutineScope, Dis
 
             // Queue the task
             taskQueue.send(
-                taskInfo to {
-                    // Use a countdown latch to wait for operation completion or timeout
-                    val latch = CountDownLatch(1)
+                taskInfo to { indicator ->
+                    // Use thread-safe flags for tracking completion status
+                    val operationCompleted = AtomicBoolean(false)
+                    val operationFailed = AtomicBoolean(false)
 
-                    // Use a volatile flag to track completion
-                    var operationCompleted = false
-                    var operationFailed = false
-
-                    // Create a job for the operation that we can cancel if it times out
+                    // The actual operation coroutine
                     val operationJob =
                         launch(Dispatchers.Default) {
                             try {
                                 operation()
-                                operationCompleted = true
+                                operationCompleted.set(true)
                             } catch (e: Exception) {
-                                operationFailed = true
+                                operationFailed.set(true)
                                 onFailure?.invoke()
                                 when (e) {
                                     is ProcessUnavailableException -> {
@@ -152,12 +163,7 @@ class EditorServiceTaskQueue(private val project: Project) : CoroutineScope, Dis
                                     }
 
                                     is CancellationException -> {
-                                        errorLogWithConsole(
-                                            "Dprint cancellation: $title",
-                                            e,
-                                            project,
-                                            LOGGER,
-                                        )
+                                        errorLogWithConsole("Dprint cancellation: $title", e, project, LOGGER)
                                     }
 
                                     else ->
@@ -168,23 +174,34 @@ class EditorServiceTaskQueue(private val project: Project) : CoroutineScope, Dis
                                             LOGGER,
                                         )
                                 }
-                            } finally {
-                                latch.countDown()
                             }
                         }
 
-                    // Wait for either completion or timeout
-                    val completed = latch.await(timeout, TimeUnit.MILLISECONDS)
+                    // The timeout coroutine
+                    val timeoutJob =
+                        launch(Dispatchers.Default) {
+                            delay(timeout)
+                            if (!operationCompleted.get() && !operationFailed.get() && operationJob.isActive) {
+                                operationJob.cancel()
+                                onFailure?.invoke()
 
-                    // If the operation hasn't completed and hasn't failed, it's a timeout
-                    if (!completed && !operationCompleted && !operationFailed) {
-                        operationJob.cancel()
-                        onFailure?.invoke()
-                        errorLogWithConsole("Dprint timeout: $title", TimeoutException(), project, LOGGER)
-                    }
+                                // Update the indicator text to show timeout
+                                indicator.text = "$title - Timed out"
+                                errorLogWithConsole("Dprint timeout: $title", TimeoutException(), project, LOGGER)
+                            }
+                        }
+
+                    // Wait for completion of the operation
+                    operationJob.join()
+                    timeoutJob.cancel()
                 },
             )
         }
+    }
+
+    fun clear() {
+        // Cancel all current tasks
+        job.cancel()
     }
 
     fun isEmpty(): Boolean {
@@ -194,8 +211,14 @@ class EditorServiceTaskQueue(private val project: Project) : CoroutineScope, Dis
             }
         }
     }
-    
-    override fun dispose() {
+
+    fun waitForTasksToFinish() {
+        runBlocking {
+            job.children.forEach { it.join() }
+        }
+    }
+
+    fun dispose() {
         job.cancel()
     }
 }
