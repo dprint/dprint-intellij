@@ -8,8 +8,12 @@ import com.dprint.utils.getValidConfigPath
 import com.dprint.utils.getValidExecutablePath
 import com.dprint.utils.infoLogWithConsole
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.nio.ByteBuffer
 
@@ -23,7 +27,8 @@ private val LOGGER = logger<EditorProcess>()
 // to 4x-1 in the jvm's signed bytes.
 private val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
 
-class EditorProcess(private val project: Project, private val userConfiguration: UserConfiguration) {
+@Service(Service.Level.PROJECT)
+class EditorProcess(private val project: Project) {
     private var process: Process? = null
     private var stderrListener: StdErrListener? = null
 
@@ -47,7 +52,7 @@ class EditorProcess(private val project: Project, private val userConfiguration:
             }
 
             else -> {
-                process = createEditorService(executablePath, configPath)
+                process = createDprintDaemon(executablePath, configPath)
                 process?.let { actualProcess ->
                     actualProcess.onExit().thenApply {
                         destroy()
@@ -73,7 +78,7 @@ class EditorProcess(private val project: Project, private val userConfiguration:
         return stdErrListener
     }
 
-    private fun createEditorService(
+    private fun createDprintDaemon(
         executablePath: String,
         configPath: String,
     ): Process {
@@ -89,7 +94,7 @@ class EditorProcess(private val project: Project, private val userConfiguration:
                 ijPid.toString(),
             )
 
-        if (userConfiguration.state.enableEditorServiceVerboseLogging) args.add("--verbose")
+        if (project.service<UserConfiguration>().state.enableEditorServiceVerboseLogging) args.add("--verbose")
 
         val commandLine = GeneralCommandLine(args)
         val workingDir = File(configPath).parent
@@ -136,31 +141,31 @@ class EditorProcess(private val project: Project, private val userConfiguration:
         )
     }
 
-    fun writeSuccess() {
+    suspend fun writeSuccess() {
         LOGGER.debug(DprintBundle.message("formatting.sending.success.to.editor.service"))
-        val stdin = getProcess().outputStream
-        stdin.write(SUCCESS_MESSAGE)
-        stdin.flush()
+        withContext(Dispatchers.IO) {
+            val stdin = getProcess().outputStream
+            stdin.write(SUCCESS_MESSAGE)
+            stdin.flush()
+        }
     }
 
-    fun writeInt(i: Int) {
-        val stdin = getProcess().outputStream
-
+    suspend fun writeInt(i: Int) {
         LOGGER.debug(DprintBundle.message("formatting.sending.to.editor.service", i))
-
-        val buffer = ByteBuffer.allocate(U32_BYTE_SIZE)
-        buffer.putInt(i)
-        stdin.write(buffer.array())
-        stdin.flush()
+        withContext(Dispatchers.IO) {
+            val stdin = getProcess().outputStream
+            val buffer = ByteBuffer.allocate(U32_BYTE_SIZE)
+            buffer.putInt(i)
+            stdin.write(buffer.array())
+            stdin.flush()
+        }
     }
 
-    fun writeString(string: String) {
-        val stdin = getProcess().outputStream
+    suspend fun writeString(string: String) {
         val byteArray = string.encodeToByteArray()
         var pointer = 0
 
         writeInt(byteArray.size)
-        stdin.flush()
 
         while (pointer < byteArray.size) {
             if (pointer != 0) {
@@ -169,18 +174,24 @@ class EditorProcess(private val project: Project, private val userConfiguration:
             val end = if (byteArray.size - pointer < BUFFER_SIZE) byteArray.size else pointer + BUFFER_SIZE
             val range = IntRange(pointer, end - 1)
             val chunk = byteArray.slice(range).toByteArray()
-            stdin.write(chunk)
-            stdin.flush()
+
+            withContext(Dispatchers.IO) {
+                val stdin = getProcess().outputStream
+                stdin.write(chunk)
+                stdin.flush()
+            }
             pointer = end
         }
     }
 
-    fun readAndAssertSuccess() {
+    suspend fun readAndAssertSuccess() {
         val stdout = process?.inputStream
         if (stdout != null) {
-            val bytes = stdout.readNBytes(U32_BYTE_SIZE)
-            for (i in 0 until U32_BYTE_SIZE) {
-                assert(bytes[i] == SUCCESS_MESSAGE[i])
+            withContext(Dispatchers.IO) {
+                val bytes = stdout.readNBytes(U32_BYTE_SIZE)
+                for (i in 0 until U32_BYTE_SIZE) {
+                    assert(bytes[i] == SUCCESS_MESSAGE[i])
+                }
             }
             LOGGER.debug(DprintBundle.message("formatting.received.success"))
         } else {
@@ -189,18 +200,19 @@ class EditorProcess(private val project: Project, private val userConfiguration:
         }
     }
 
-    fun readInt(): Int {
-        val stdout = getProcess().inputStream
-        val result = ByteBuffer.wrap(stdout.readNBytes(U32_BYTE_SIZE)).int
+    suspend fun readInt(): Int {
+        val result =
+            withContext(Dispatchers.IO) {
+                val stdout = getProcess().inputStream
+                ByteBuffer.wrap(stdout.readNBytes(U32_BYTE_SIZE)).int
+            }
         LOGGER.debug(DprintBundle.message("formatting.received.value", result))
         return result
     }
 
-    fun readString(): String {
-        val stdout = getProcess().inputStream
+    suspend fun readString(): String {
         val totalBytes = readInt()
         var result = ByteArray(0)
-
         var index = 0
 
         while (index < totalBytes) {
@@ -209,7 +221,11 @@ class EditorProcess(private val project: Project, private val userConfiguration:
             }
 
             val numBytes = if (totalBytes - index < BUFFER_SIZE) totalBytes - index else BUFFER_SIZE
-            val bytes = stdout.readNBytes(numBytes)
+            val bytes =
+                withContext(Dispatchers.IO) {
+                    val stdout = getProcess().inputStream
+                    stdout.readNBytes(numBytes)
+                }
             result += bytes
             index += numBytes
         }
@@ -219,14 +235,18 @@ class EditorProcess(private val project: Project, private val userConfiguration:
         return decodedResult
     }
 
-    fun writeBuffer(byteArray: ByteArray) {
-        val stdin = getProcess().outputStream
-        stdin.write(byteArray)
-        stdin.flush()
+    suspend fun writeBuffer(byteArray: ByteArray) {
+        withContext(Dispatchers.IO) {
+            val stdin = getProcess().outputStream
+            stdin.write(byteArray)
+            stdin.flush()
+        }
     }
 
-    fun readBuffer(totalBytes: Int): ByteArray {
-        val stdout = getProcess().inputStream
-        return stdout.readNBytes(totalBytes)
+    suspend fun readBuffer(totalBytes: Int): ByteArray {
+        return withContext(Dispatchers.IO) {
+            val stdout = getProcess().inputStream
+            stdout.readNBytes(totalBytes)
+        }
     }
 }

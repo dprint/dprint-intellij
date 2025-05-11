@@ -1,6 +1,6 @@
 package com.dprint.services.editorservice.v5
 
-import com.dprint.config.UserConfiguration
+import com.dprint.config.ProjectConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.FormatResult
 import com.dprint.services.editorservice.IEditorService
@@ -21,62 +21,11 @@ private val LOGGER = logger<EditorServiceV5>()
 private const val SHUTDOWN_TIMEOUT = 1000L
 
 @Service(Service.Level.PROJECT)
-class EditorServiceV5(val project: Project) : IEditorService {
-    private val impl =
-        EditorServiceV5Impl(project, EditorProcess(project, project.service<UserConfiguration>()), PendingMessages())
-
-    override fun initialiseEditorService() {
-        impl.initialiseEditorService()
-    }
-
-    override fun destroyEditorService() {
-        impl.destroyEditorService()
-    }
-
-    override fun canFormat(
-        filePath: String,
-        onFinished: (Boolean?) -> Unit,
-    ) {
-        impl.canFormat(filePath, onFinished)
-    }
-
-    override fun canRangeFormat(): Boolean {
-        return impl.canRangeFormat()
-    }
-
-    override fun fmt(
-        formatId: Int?,
-        filePath: String,
-        content: String,
-        startIndex: Int?,
-        endIndex: Int?,
-        onFinished: (FormatResult) -> Unit,
-    ): Int {
-        return impl.fmt(formatId, filePath, content, startIndex, endIndex, onFinished)
-    }
-
-    override fun canCancelFormat(): Boolean {
-        return impl.canCancelFormat()
-    }
-
-    override fun maybeGetFormatId(): Int {
-        return impl.maybeGetFormatId()
-    }
-
-    override fun dispose() {
-        impl.dispose()
-    }
-}
-
-class EditorServiceV5Impl(
-    private val project: Project,
-    private val editorProcess: EditorProcess,
-    private val pendingMessages: PendingMessages,
-) : IEditorService {
+class EditorServiceV5(private val project: Project) : IEditorService {
     private var stdoutListener: StdoutListener? = null
 
     private fun createStdoutListener(): StdoutListener {
-        val stdoutListener = StdoutListener(editorProcess, pendingMessages)
+        val stdoutListener = StdoutListener(project.service<EditorProcess>(), project.service<MessageChannel>())
         stdoutListener.listen()
         return stdoutListener
     }
@@ -93,7 +42,7 @@ class EditorServiceV5Impl(
             stdoutListener = null
         }
 
-        editorProcess.initialize()
+        project.service<EditorProcess>().initialize()
         stdoutListener = createStdoutListener()
     }
 
@@ -104,12 +53,11 @@ class EditorServiceV5Impl(
     override fun destroyEditorService() {
         infoLogWithConsole(DprintBundle.message("editor.service.destroy", getName()), project, LOGGER)
         val message = createNewMessage(MessageType.ShutDownProcess)
-        stdoutListener?.disposing = true
         try {
             runBlocking {
                 withTimeout(SHUTDOWN_TIMEOUT) {
                     launch {
-                        editorProcess.writeBuffer(message.build())
+                        project.service<EditorProcess>().writeBuffer(message.build())
                     }
                 }
             }
@@ -118,36 +66,33 @@ class EditorServiceV5Impl(
         } finally {
             stdoutListener?.dispose()
             dropMessages()
-            editorProcess.destroy()
+            project.service<EditorProcess>().destroy()
         }
     }
 
-    override fun canFormat(
-        filePath: String,
-        onFinished: (Boolean?) -> Unit,
-    ) {
+    override suspend fun canFormat(filePath: String): Boolean? {
         handleStaleMessages()
 
         infoLogWithConsole(DprintBundle.message("formatting.checking.can.format", filePath), project, LOGGER)
         val message = createNewMessage(MessageType.CanFormat)
         message.addString(filePath)
 
-        val handler: (PendingMessages.Result) -> Unit = {
-            handleCanFormatResult(it, onFinished, filePath)
-        }
-
-        pendingMessages.store(message.id, handler)
-        editorProcess.writeBuffer(message.build())
+        val timeout = project.service<ProjectConfiguration>().state.commandTimeout
+        project.service<EditorProcess>().writeBuffer(message.build())
+        val result = project.service<MessageChannel>().sendRequest(message.id, timeout)
+        return handleCanFormatResult(result, filePath)
     }
 
     private fun handleCanFormatResult(
-        result: PendingMessages.Result,
-        onFinished: (Boolean?) -> Unit,
+        result: MessageChannel.Result?,
         filePath: String,
-    ) {
-        when {
+    ): Boolean? {
+        if (result == null) {
+            return null
+        }
+        return when {
             (result.type == MessageType.CanFormatResponse && result.data is Boolean) -> {
-                onFinished(result.data)
+                result.data
             }
 
             (result.type == MessageType.ErrorResponse && result.data is String) -> {
@@ -156,12 +101,11 @@ class EditorServiceV5Impl(
                     project,
                     LOGGER,
                 )
-                onFinished(null)
+                null
             }
 
             (result.type === MessageType.Dropped) -> {
-                // do nothing
-                onFinished(null)
+                null
             }
 
             else -> {
@@ -170,45 +114,51 @@ class EditorServiceV5Impl(
                     project,
                     LOGGER,
                 )
-                onFinished(null)
+                null
             }
         }
     }
 
     /**
-     * If we find stale messages we assume there is an issue with the underlying process and try restart. In the event
+     * If we find pending messages we assume there is an issue with the underlying process and try restart. In the event
      * that doesn't work, it is likely there is a problem with the underlying daemon and the IJ process that runs on top
      * of it is not aware of its unhealthy state.
      */
     private fun handleStaleMessages() {
-        if (pendingMessages.hasStaleMessages()) {
-            infoLogWithConsole(DprintBundle.message("editor.service.stale.tasks"), project, LOGGER)
+        val messageChannel = project.service<MessageChannel>()
+        if (messageChannel.hasStaleRequests()) {
+            val removedCount = messageChannel.removeStaleRequests()
+            infoLogWithConsole(
+                DprintBundle.message("status.stale.requests.removed", removedCount),
+                project,
+                LOGGER,
+            )
             this.initialiseEditorService()
         }
     }
 
-    override fun canRangeFormat(): Boolean {
-        // TODO before we can enable this we need to ensure that the formatting indexes passed into fmt are converted
-        //  from string index to byte index correctly
-        return false
-    }
-
-    override fun fmt(
-        formatId: Int?,
+    override suspend fun fmt(
         filePath: String,
         content: String,
+        formatId: Int?,
+    ): FormatResult {
+        return fmt(filePath, content, formatId, null, null)
+    }
+
+    override suspend fun fmt(
+        filePath: String,
+        content: String,
+        formatId: Int?,
         startIndex: Int?,
         endIndex: Int?,
-        onFinished: (FormatResult) -> Unit,
-    ): Int {
+    ): FormatResult {
         infoLogWithConsole(DprintBundle.message("formatting.file", filePath), project, LOGGER)
-        val message = createFormatMessage(formatId, filePath, startIndex, endIndex, content)
-        val handler: (PendingMessages.Result) -> Unit = {
-            val formatResult: FormatResult = mapResultToFormatResult(it, filePath)
-            onFinished(formatResult)
-        }
-        pendingMessages.store(message.id, handler)
-        editorProcess.writeBuffer(message.build())
+        val message = createFormatMessage(formatId, filePath, content, startIndex, endIndex)
+        val timeout = project.service<ProjectConfiguration>().state.commandTimeout
+
+        project.service<EditorProcess>().writeBuffer(message.build())
+        val result = project.service<MessageChannel>().sendRequest(message.id, timeout)
+        val formatResult: FormatResult = mapResultToFormatResult(result, filePath)
 
         infoLogWithConsole(
             DprintBundle.message("editor.service.created.formatting.task", filePath, message.id),
@@ -216,15 +166,15 @@ class EditorServiceV5Impl(
             LOGGER,
         )
 
-        return message.id
+        return formatResult
     }
 
     private fun createFormatMessage(
         formatId: Int?,
         filePath: String,
+        content: String,
         startIndex: Int?,
         endIndex: Int?,
-        content: String,
     ): OutgoingMessage {
         val outgoingMessage = OutgoingMessage(formatId ?: getNextMessageId(), MessageType.FormatFile)
         outgoingMessage.addString(filePath)
@@ -264,9 +214,12 @@ class EditorServiceV5Impl(
     }
 
     private fun mapResultToFormatResult(
-        result: PendingMessages.Result,
+        result: MessageChannel.Result?,
         filePath: String,
     ): FormatResult {
+        if (result == null) {
+            return FormatResult(error = DprintBundle.message("error.request.timeout"))
+        }
         return when {
             (result.type == MessageType.FormatFileResponse && result.data is String?) -> {
                 val successMessage =
@@ -303,6 +256,10 @@ class EditorServiceV5Impl(
         }
     }
 
+    override fun canRangeFormat(): Boolean {
+        return false
+    }
+
     override fun canCancelFormat(): Boolean {
         return true
     }
@@ -315,14 +272,16 @@ class EditorServiceV5Impl(
         val message = createNewMessage(MessageType.CancelFormat)
         infoLogWithConsole(DprintBundle.message("editor.service.cancel.format", formatId), project, LOGGER)
         message.addInt(formatId)
-        editorProcess.writeBuffer(message.build())
-        pendingMessages.take(formatId)
+        runBlocking {
+            project.service<EditorProcess>().writeBuffer(message.build())
+        }
+        project.service<MessageChannel>().cancelRequest(formatId)
     }
 
     private fun dropMessages() {
-        for (message in pendingMessages.drain()) {
-            infoLogWithConsole(DprintBundle.message("editor.service.clearing.message", message.first), project, LOGGER)
-            message.second(PendingMessages.Result(MessageType.Dropped, null))
+        val cancelledIds = project.service<MessageChannel>().cancelAllRequests()
+        for (messageId in cancelledIds) {
+            infoLogWithConsole(DprintBundle.message("editor.service.clearing.message", messageId), project, LOGGER)
         }
     }
 

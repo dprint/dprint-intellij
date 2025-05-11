@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- Rearchitected to use coroutines for asynchronous operations, hopefully improving CPU utilisation. Please report any issues to the github, as there should be no changes to the experience.
+
 ## 0.8.4 - 2025-06-25
 
 - Fix issue where characters with special character encodings were causing the supplied range to the dprint daemon to

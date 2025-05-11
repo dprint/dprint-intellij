@@ -3,45 +3,66 @@ package com.dprint.services.editorservice.process
 import com.dprint.utils.errorLogWithConsole
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.nio.BufferUnderflowException
-import kotlin.concurrent.thread
 
 private val LOGGER = logger<StdErrListener>()
 
 class StdErrListener(private val project: Project, private val process: Process) {
-    private var listenerThread: Thread? = null
-    private var disposing = false
+    private var listenerJob: Job? = null
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     fun listen() {
-        disposing = false
-        listenerThread =
-            thread(start = true) {
-                while (true) {
-                    if (Thread.interrupted()) {
-                        return@thread
-                    }
+        listenerJob =
+            scope.launch {
+                try {
+                    process.errorStream?.bufferedReader()?.use { reader ->
+                        while (isActive) {
+                            try {
+                                val line =
+                                    withContext(Dispatchers.IO) {
+                                        reader.readLine()
+                                    }
 
-                    try {
-                        process.errorStream?.bufferedReader()?.readLine()?.let { error ->
-                            errorLogWithConsole("Dprint daemon ${process.pid()}: $error", project, LOGGER)
+                                if (line != null) {
+                                    errorLogWithConsole("Dprint daemon ${process.pid()}: $line", project, LOGGER)
+                                } else {
+                                    // End of stream reached
+                                    break
+                                }
+                            } catch (e: Exception) {
+                                if (isActive) {
+                                    when (e) {
+                                        is BufferUnderflowException -> {
+                                            // Happens when the editor service is shut down while reading
+                                            LOGGER.info("Buffer underflow while reading stderr", e)
+                                        }
+                                        else -> {
+                                            LOGGER.info("Error reading stderr", e)
+                                        }
+                                    }
+                                }
+                                break
+                            }
                         }
-                    } catch (e: InterruptedException) {
-                        if (!disposing) LOGGER.info(e)
-                        return@thread
-                    } catch (e: BufferUnderflowException) {
-                        // Happens when the editor service is shut down while this thread is waiting to read output
-                        if (!disposing) LOGGER.info(e)
-                        return@thread
-                    } catch (e: Exception) {
-                        if (!disposing) LOGGER.info(e)
-                        return@thread
+                    }
+                } catch (e: Exception) {
+                    if (isActive) {
+                        LOGGER.info("Error in stderr listener", e)
                     }
                 }
             }
     }
 
     fun dispose() {
-        disposing = true
-        listenerThread?.interrupt()
+        listenerJob?.cancel()
+        scope.cancel()
     }
 }

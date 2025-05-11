@@ -1,7 +1,6 @@
 package com.dprint.services.editorservice.v4
 
 import com.dprint.config.ProjectConfiguration
-import com.dprint.config.UserConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.FormatResult
 import com.dprint.services.editorservice.IEditorService
@@ -20,7 +19,7 @@ private val LOGGER = logger<EditorServiceV4>()
 
 @Service(Service.Level.PROJECT)
 class EditorServiceV4(private val project: Project) : IEditorService {
-    private var editorProcess = EditorProcess(project, project.service<UserConfiguration>())
+    private var editorProcess = project.service<EditorProcess>()
 
     override fun initialiseEditorService() {
         // If not enabled we don't start the editor service
@@ -42,10 +41,7 @@ class EditorServiceV4(private val project: Project) : IEditorService {
         editorProcess.destroy()
     }
 
-    override fun canFormat(
-        filePath: String,
-        onFinished: (Boolean?) -> Unit,
-    ) {
+    override suspend fun canFormat(filePath: String): Boolean? {
         infoLogWithConsole(DprintBundle.message("formatting.checking.can.format", filePath), project, LOGGER)
 
         editorProcess.writeInt(CHECK_COMMAND)
@@ -62,21 +58,28 @@ class EditorServiceV4(private val project: Project) : IEditorService {
             true -> infoLogWithConsole(DprintBundle.message("formatting.can.format", filePath), project, LOGGER)
             false -> infoLogWithConsole(DprintBundle.message("formatting.cannot.format", filePath), project, LOGGER)
         }
-        onFinished(result)
+        return result
     }
 
-    override fun canRangeFormat(): Boolean {
-        return false
-    }
-
-    override fun fmt(
+    override suspend fun fmt(
         filePath: String,
         content: String,
-        onFinished: (FormatResult) -> Unit,
-    ): Int? {
+        formatId: Int?,
+        startIndex: Int?,
+        endIndex: Int?,
+    ): FormatResult {
+        return fmt(filePath, content, formatId)
+    }
+
+    override suspend fun fmt(
+        filePath: String,
+        content: String,
+        formatId: Int?,
+    ): FormatResult {
         var result = FormatResult()
 
         infoLogWithConsole(DprintBundle.message("formatting.file", filePath), project, LOGGER)
+
         editorProcess.writeInt(FORMAT_COMMAND)
         editorProcess.writeString(filePath)
         editorProcess.writeString(content)
@@ -111,22 +114,11 @@ class EditorServiceV4(private val project: Project) : IEditorService {
         }
 
         editorProcess.readAndAssertSuccess()
-
-        onFinished(result)
-
-        // We cannot cancel in V4 so return null
-        return null
+        return result
     }
 
-    override fun fmt(
-        formatId: Int?,
-        filePath: String,
-        content: String,
-        startIndex: Int?,
-        endIndex: Int?,
-        onFinished: (FormatResult) -> Unit,
-    ): Int? {
-        return fmt(filePath, content, onFinished)
+    override fun canRangeFormat(): Boolean {
+        return false
     }
 
     override fun canCancelFormat(): Boolean {

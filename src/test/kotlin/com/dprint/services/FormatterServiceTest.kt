@@ -1,7 +1,7 @@
 package com.dprint.services
 
-import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.utils.isFormattableFile
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -12,7 +12,7 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.verify
 
-class FormatterServiceImplTest : FunSpec({
+class FormatterServiceTest : FunSpec({
     val testPath = "/test/path"
     val testText = "val test = \"test\""
 
@@ -21,13 +21,14 @@ class FormatterServiceImplTest : FunSpec({
     val virtualFile = mockk<VirtualFile>()
     val document = mockk<Document>()
     val project = mockk<Project>()
-    val editorServiceManager = mockk<EditorServiceManager>(relaxed = true)
+    val dprintService = mockk<DprintService>(relaxed = true)
 
-    val formatterService = FormatterServiceImpl(project, editorServiceManager)
+    val formatterService = FormatterService(project)
 
     beforeEach {
         every { virtualFile.path } returns testPath
         every { document.text } returns testText
+        every { project.service<DprintService>() } returns dprintService
     }
 
     afterEach {
@@ -36,28 +37,28 @@ class FormatterServiceImplTest : FunSpec({
 
     test("It doesn't format if cached can format result is false") {
         every { isFormattableFile(project, virtualFile) } returns true
-        every { editorServiceManager.canFormatCached(testPath) } returns false
+        every { dprintService.canFormatCached(testPath) } returns false
 
         formatterService.format(virtualFile, document)
 
-        verify(exactly = 0) { editorServiceManager.format(testPath, testPath, any()) }
+        verify(exactly = 0) { dprintService.format(testPath, testPath, any()) }
     }
 
     test("It doesn't format if cached can format result is null") {
         every { isFormattableFile(project, virtualFile) } returns true
-        every { editorServiceManager.canFormatCached(testPath) } returns null
+        every { dprintService.canFormatCached(testPath) } returns null
 
         formatterService.format(virtualFile, document)
 
-        verify(exactly = 0) { editorServiceManager.format(testPath, testPath, any()) }
+        verify(exactly = 0) { dprintService.format(testPath, testPath, any()) }
     }
 
     test("It formats if cached can format result is true") {
         every { isFormattableFile(project, virtualFile) } returns true
-        every { editorServiceManager.canFormatCached(testPath) } returns true
+        every { dprintService.canFormatCached(testPath) } returns true
 
         formatterService.format(virtualFile, document)
 
-        verify(exactly = 1) { editorServiceManager.format(testPath, testText, any()) }
+        verify(exactly = 1) { dprintService.format(testPath, testText, any()) }
     }
 })

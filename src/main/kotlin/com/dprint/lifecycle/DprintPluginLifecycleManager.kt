@@ -1,7 +1,7 @@
 package com.dprint.lifecycle
 
 import com.dprint.i18n.DprintBundle
-import com.dprint.services.editorservice.EditorServiceManager
+import com.dprint.services.DprintService
 import com.dprint.utils.infoLogWithConsole
 import com.intellij.ide.plugins.DynamicPluginListener
 import com.intellij.ide.plugins.IdeaPluginDescriptor
@@ -68,7 +68,7 @@ class DprintPluginLifecycleManager : DynamicPluginListener {
         projects.forEach { project ->
             try {
                 if (!project.isDisposed) {
-                    val dprintService = project.service<EditorServiceManager>()
+                    val dprintService = project.service<DprintService>()
                     infoLogWithConsole(
                         DprintBundle.message("lifecycle.plugin.shutdown.service"),
                         project,
@@ -92,13 +92,13 @@ class DprintPluginLifecycleManager : DynamicPluginListener {
         projects.forEach { project ->
             try {
                 if (!project.isDisposed) {
-                    val dprintService = project.service<EditorServiceManager>()
+                    val dprintService = project.service<DprintService>()
                     infoLogWithConsole(
                         DprintBundle.message("lifecycle.plugin.initialize.service"),
                         project,
                         LOGGER,
                     )
-                    dprintService.restartEditorService()
+                    dprintService.initializeEditorService()
                 }
             } catch (e: Exception) {
                 LOGGER.warn("Failed to initialize Dprint service for project ${project.name}", e)

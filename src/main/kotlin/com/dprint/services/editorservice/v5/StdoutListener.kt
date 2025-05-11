@@ -3,48 +3,61 @@ package com.dprint.services.editorservice.v5
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.process.EditorProcess
 import com.intellij.openapi.diagnostic.logger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.nio.BufferUnderflowException
-import kotlin.concurrent.thread
 
 private const val SLEEP_TIME = 500L
 
 private val LOGGER = logger<StdoutListener>()
 
-class StdoutListener(private val editorProcess: EditorProcess, private val pendingMessages: PendingMessages) {
-    private var listenerThread: Thread? = null
-    var disposing = false
+class StdoutListener(private val editorProcess: EditorProcess, private val messageChannel: MessageChannel) {
+    private var listenerJob: Job? = null
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     fun listen() {
-        disposing = false
-        listenerThread =
-            thread(start = true) {
-                LOGGER.info(DprintBundle.message("editor.service.started.stdout.listener"))
-                while (true) {
-                    if (Thread.interrupted()) {
-                        return@thread
+        listenerJob =
+            scope.launch {
+                try {
+                    LOGGER.info(DprintBundle.message("editor.service.started.stdout.listener"))
+                    while (isActive) {
+                        try {
+                            handleStdout()
+                        } catch (e: BufferUnderflowException) {
+                            // Happens when the editor service is shut down while waiting to read output
+                            if (isActive) {
+                                LOGGER.info("Buffer underflow while reading stdout", e)
+                            }
+                            break
+                        } catch (e: Exception) {
+                            if (isActive) {
+                                LOGGER.error(DprintBundle.message("editor.service.read.failed"), e)
+                                delay(SLEEP_TIME)
+                            } else {
+                                break
+                            }
+                        }
                     }
-                    try {
-                        handleStdout()
-                    } catch (e: InterruptedException) {
-                        if (!disposing) LOGGER.info(e)
-                        return@thread
-                    } catch (e: BufferUnderflowException) {
-                        // Happens when the editor service is shut down while this thread is waiting to read output
-                        if (!disposing) LOGGER.info(e)
-                        return@thread
-                    } catch (e: Exception) {
-                        if (!disposing) LOGGER.error(DprintBundle.message("editor.service.read.failed"), e)
-                        Thread.sleep(SLEEP_TIME)
+                } catch (e: Exception) {
+                    if (isActive) {
+                        LOGGER.error("Error in stdout listener", e)
                     }
                 }
             }
     }
 
     fun dispose() {
-        listenerThread?.interrupt()
+        listenerJob?.cancel()
+        scope.cancel()
     }
 
-    private fun handleStdout() {
+    private suspend fun handleStdout() {
         val messageId = editorProcess.readInt()
         val messageType = editorProcess.readInt()
         val bodyLength = editorProcess.readInt()
@@ -54,16 +67,16 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
         when (messageType) {
             MessageType.SuccessResponse.intValue -> {
                 val responseId = body.readInt()
-                val result = PendingMessages.Result(MessageType.SuccessResponse, null)
-                pendingMessages.take(responseId)?.let { it(result) }
+                val result = MessageChannel.Result(MessageType.SuccessResponse, null)
+                messageChannel.receiveResponse(responseId, result)
             }
 
             MessageType.ErrorResponse.intValue -> {
                 val responseId = body.readInt()
                 val errorMessage = body.readSizedString()
                 LOGGER.info(DprintBundle.message("editor.service.received.error.response", errorMessage))
-                val result = PendingMessages.Result(MessageType.ErrorResponse, errorMessage)
-                pendingMessages.take(responseId)?.let { it(result) }
+                val result = MessageChannel.Result(MessageType.ErrorResponse, errorMessage)
+                messageChannel.receiveResponse(responseId, result)
             }
 
             MessageType.Active.intValue -> {
@@ -73,8 +86,8 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
             MessageType.CanFormatResponse.intValue -> {
                 val responseId = body.readInt()
                 val canFormatResult = body.readInt()
-                val result = PendingMessages.Result(MessageType.CanFormatResponse, canFormatResult == 1)
-                pendingMessages.take(responseId)?.let { it(result) }
+                val result = MessageChannel.Result(MessageType.CanFormatResponse, canFormatResult == 1)
+                messageChannel.receiveResponse(responseId, result)
             }
 
             MessageType.FormatFileResponse.intValue -> {
@@ -85,8 +98,8 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
                         true -> body.readSizedString()
                         false -> null
                     }
-                val result = PendingMessages.Result(MessageType.FormatFileResponse, text)
-                pendingMessages.take(responseId)?.let { it(result) }
+                val result = MessageChannel.Result(MessageType.FormatFileResponse, text)
+                messageChannel.receiveResponse(responseId, result)
             }
 
             else -> {
@@ -97,13 +110,13 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
         }
     }
 
-    private fun sendSuccess(messageId: Int) {
+    private suspend fun sendSuccess(messageId: Int) {
         val message = createNewMessage(MessageType.SuccessResponse)
         message.addInt(messageId)
         sendResponse(message)
     }
 
-    private fun sendFailure(
+    private suspend fun sendFailure(
         messageId: Int,
         errorMessage: String,
     ) {
@@ -113,7 +126,7 @@ class StdoutListener(private val editorProcess: EditorProcess, private val pendi
         sendResponse(message)
     }
 
-    private fun sendResponse(outgoingMessage: OutgoingMessage) {
+    private suspend fun sendResponse(outgoingMessage: OutgoingMessage) {
         editorProcess.writeBuffer(outgoingMessage.build())
     }
 }
