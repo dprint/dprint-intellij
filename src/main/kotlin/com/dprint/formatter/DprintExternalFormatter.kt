@@ -30,8 +30,7 @@ private const val NAME = "dprintfmt"
  */
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun getFeatures(): MutableSet<FormattingService.Feature> {
-        // When range formatting is available we need to specify format fragments here.
-        return mutableSetOf()
+        return mutableSetOf(FormattingService.Feature.FORMAT_FRAGMENTS)
     }
 
     override fun canFormat(file: PsiFile): Boolean {
@@ -85,6 +84,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         }
 
         if (!editorServiceManager.canRangeFormat() && isRangeFormat(formattingRequest)) {
+            // When range formatting is available we need to add support here.
             infoLogWithConsole(DprintBundle.message("external.formatter.range.formatting"), project, LOGGER)
             return null
         }
