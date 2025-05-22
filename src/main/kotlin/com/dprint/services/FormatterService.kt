@@ -1,6 +1,7 @@
 package com.dprint.services
 
 import com.dprint.i18n.DprintBundle
+import com.dprint.messages.DprintAction
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.services.editorservice.FormatResult
 import com.dprint.utils.isFormattableFile
@@ -10,6 +11,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import kotlin.time.measureTimedValue
 
 interface IFormatterService {
     /**
@@ -51,20 +53,43 @@ class FormatterServiceImpl(
     ) {
         val content = document.text
         val filePath = virtualFile.path
-        if (content.isBlank() || !isFormattableFile(project, virtualFile)) return
 
-        if (editorServiceManager.canFormatCached(filePath) == true) {
-            val formatHandler: (FormatResult) -> Unit = {
-                it.formattedContent?.let {
-                    WriteCommandAction.runWriteCommandAction(project) {
-                        document.setText(it)
-                    }
+        if (content.isBlank() || !isFormattableFile(project, virtualFile)) {
+            DprintAction.publishFormattingSkipped(project, filePath)
+            return
+        }
+
+        if (editorServiceManager.canFormatCached(filePath) != true) {
+            DprintAction.publishFormattingSkipped(project, filePath)
+            DprintBundle.message("formatting.cannot.format", filePath)
+            return
+        }
+
+        try {
+            DprintAction.publishFormattingStarted(project, filePath)
+            val formattingDuration =
+                measureTimedValue {
+                    runFormat(filePath, document, content)
+                }
+            DprintAction.publishFormattingSucceeded(project, filePath, formattingDuration.duration.inWholeMilliseconds)
+        } catch (e: Throwable) {
+            DprintAction.publishFormattingFailed(project, filePath, 0, e.message)
+            throw e
+        }
+    }
+
+    private fun runFormat(
+        filePath: String,
+        document: Document,
+        content: String,
+    ) {
+        val formatHandler: (FormatResult) -> Unit = {
+            it.formattedContent?.let {
+                WriteCommandAction.runWriteCommandAction(project) {
+                    document.setText(it)
                 }
             }
-
-            editorServiceManager.format(filePath, content, formatHandler)
-        } else {
-            DprintBundle.message("formatting.cannot.format", filePath)
         }
+        editorServiceManager.format(filePath, content, formatHandler)
     }
 }

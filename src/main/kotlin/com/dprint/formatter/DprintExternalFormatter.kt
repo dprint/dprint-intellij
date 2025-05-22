@@ -3,7 +3,6 @@ package com.dprint.formatter
 import com.dprint.config.ProjectConfiguration
 import com.dprint.config.UserConfiguration
 import com.dprint.i18n.DprintBundle
-import com.dprint.messages.DprintAction
 import com.dprint.services.editorservice.EditorServiceManager
 import com.dprint.utils.infoConsole
 import com.dprint.utils.infoLogWithConsole
@@ -15,7 +14,6 @@ import com.intellij.formatting.service.FormattingService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.psi.PsiFile
-import kotlin.time.measureTimedValue
 
 private val LOGGER = logger<DprintExternalFormatter>()
 private const val NAME = "dprintfmt"
@@ -88,13 +86,11 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
 
         if (!editorServiceManager.canRangeFormat() && isRangeFormat(formattingRequest)) {
             infoLogWithConsole(DprintBundle.message("external.formatter.range.formatting"), project, LOGGER)
-            project.messageBus.syncPublisher(DprintAction.DPRINT_ACTION_TOPIC).formattingSkipped(path)
             return null
         }
 
         if (doAnyRangesIntersect(formattingRequest)) {
             infoLogWithConsole(DprintBundle.message("external.formatter.range.overlapping"), project, LOGGER)
-            project.messageBus.syncPublisher(DprintAction.DPRINT_ACTION_TOPIC).formattingSkipped(path)
             return null
         }
 
@@ -104,26 +100,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             val dprintTask = DprintFormattingTask(project, editorServiceManager, formattingRequest, path)
 
             override fun run() {
-                project.messageBus.syncPublisher(DprintAction.DPRINT_ACTION_TOPIC).formattingStarted(path)
-
-                val formattingResult = measureTimedValue {
-                    try {
-                        dprintTask.run()
-                    } catch (e: Exception) {
-                        Result.failure(e)
-                    }
-                }
-
-                val time = formattingResult.duration.inWholeMilliseconds
-                formattingResult.value
-                    .onFailure {
-                        project.messageBus.syncPublisher(DprintAction.DPRINT_ACTION_TOPIC)
-                            .formattingFailed(path, time, it.message)
-                    }
-                    .onSuccess {
-                        project.messageBus.syncPublisher(DprintAction.DPRINT_ACTION_TOPIC)
-                            .formattingSucceeded(path, time)
-                    }
+                return dprintTask.run()
             }
 
             override fun cancel(): Boolean {
