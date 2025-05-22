@@ -46,9 +46,14 @@ Please report any issues with this Intellij plugin to the
 This project is currently built using JDK 17. To install on a mac with homebrew run `brew install java` and set that
 be your project SDK.
 
+### Dprint setup
+
+To test this plugin, you will require dprint installed. To install on a mac with homebrew run `brew install dprint`. 
+When running the plugin via the `Run Plugin` configuration, add a default dprint config file by running `dprint init`.
+
 ### Intellij Setup
 
-- Set up linting settings, run <kbd>Gradle</kbd> > <kbd>Tasks</kbd> > <kbd>help</kbd> > <kbd>ktlintApplyToIdea</kbd>.
+- Set up linting settings, run <kbd>Gradle</kbd> > <kbd>Tasks</kbd> > <kbd>help</kbd> > <kbd>ktlintGernateBaseline</kbd>.
   This sets up intellij with appropriate formatting settings.
 
 ### Running
@@ -60,4 +65,4 @@ There are 3 default run configs set up
 - <kbd>Run Verifications</kbd> - This verifies the plugin is publishable.
 
 Depending on the version of IntellJ you are running for development, you will need to change the `platformType` property
-in `grade.properties`. It is IU for IntelliJ Ultimate and IC for IntelliJ Community.
+in `gradle.properties`. It is IU for IntelliJ Ultimate and IC for IntelliJ Community.
