@@ -21,16 +21,6 @@ interface DprintAction {
             }
         }
 
-        fun publishFormattingSkipped(
-            project: Project,
-            filePath: String,
-        ) {
-            publishSafely(project) {
-                project.messageBus.syncPublisher(DPRINT_ACTION_TOPIC)
-                    .formattingSkipped(filePath)
-            }
-        }
-
         fun publishFormattingSucceeded(
             project: Project,
             filePath: String,
@@ -45,12 +35,10 @@ interface DprintAction {
         fun publishFormattingFailed(
             project: Project,
             filePath: String,
-            timeElapsed: Long,
             message: String?,
         ) {
             publishSafely(project) {
-                project.messageBus.syncPublisher(DPRINT_ACTION_TOPIC)
-                    .formattingFailed(filePath, timeElapsed, message)
+                project.messageBus.syncPublisher(DPRINT_ACTION_TOPIC).formattingFailed(filePath, message)
             }
         }
 
@@ -68,8 +56,6 @@ interface DprintAction {
 
     fun formattingStarted(filePath: String)
 
-    fun formattingSkipped(filePath: String)
-
     fun formattingSucceeded(
         filePath: String,
         timeElapsed: Long,
@@ -77,7 +63,6 @@ interface DprintAction {
 
     fun formattingFailed(
         filePath: String,
-        timeElapsed: Long,
         message: String?,
     )
 }

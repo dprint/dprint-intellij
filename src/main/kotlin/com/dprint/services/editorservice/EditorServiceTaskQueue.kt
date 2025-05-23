@@ -46,7 +46,7 @@ class EditorServiceTaskQueue(private val project: Project) {
         title: String,
         operation: () -> Unit,
         timeout: Long,
-        onFailure: (() -> Unit)?,
+        onFailure: ((Throwable) -> Unit)?,
     ) {
         if (activeTasks.contains(taskInfo)) {
             infoLogWithConsole("Task is already queued so this will be dropped: $taskInfo", project, LOGGER)
@@ -64,10 +64,10 @@ class EditorServiceTaskQueue(private val project: Project) {
                         future.completeAsync(operation)
                         future.get(timeout, TimeUnit.MILLISECONDS)
                     } catch (e: TimeoutException) {
-                        onFailure?.invoke()
+                        onFailure?.invoke(e)
                         errorLogWithConsole("Dprint timeout: $title", e, project, LOGGER)
                     } catch (e: ExecutionException) {
-                        onFailure?.invoke()
+                        onFailure?.invoke(e)
                         if (e.cause is ProcessUnavailableException) {
                             warnLogWithConsole(
                                 DprintBundle.message("editor.service.process.is.dead"),
@@ -78,13 +78,13 @@ class EditorServiceTaskQueue(private val project: Project) {
                         }
                         errorLogWithConsole("Dprint execution exception: $title", e, project, LOGGER)
                     } catch (e: InterruptedException) {
-                        onFailure?.invoke()
+                        onFailure?.invoke(e)
                         errorLogWithConsole("Dprint interruption: $title", e, project, LOGGER)
                     } catch (e: CancellationException) {
-                        onFailure?.invoke()
+                        onFailure?.invoke(e)
                         errorLogWithConsole("Dprint cancellation: $title", e, project, LOGGER)
                     } catch (e: Exception) {
-                        onFailure?.invoke()
+                        onFailure?.invoke(e)
                         activeTasks.remove(taskInfo)
                         throw e
                     } finally {
