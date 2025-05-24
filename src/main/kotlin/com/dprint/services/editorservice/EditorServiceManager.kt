@@ -2,6 +2,7 @@ package com.dprint.services.editorservice
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.i18n.DprintBundle
+import com.dprint.messages.DprintAction
 import com.dprint.messages.DprintMessage
 import com.dprint.services.editorservice.v4.EditorServiceV4
 import com.dprint.services.editorservice.v5.EditorServiceV5
@@ -27,6 +28,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.apache.commons.collections4.map.LRUMap
 import java.io.File
+import kotlin.system.measureTimeMillis
 
 private val LOGGER = logger<EditorServiceManager>()
 private const val SCHEMA_V4 = 4
@@ -179,13 +181,18 @@ class EditorServiceManager(private val project: Project) {
             DprintBundle.message("editor.service.manager.creating.formatting.task", path),
             {
                 if (editorService == null) {
+                    DprintAction.publishFormattingFailed(project, path, "Editor service is not initialised.")
                     warnLogWithConsole(DprintBundle.message("editor.service.manager.not.initialised"), project, LOGGER)
                 }
-                editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished)
+                DprintAction.publishFormattingStarted(project, path)
+                val timeMs =
+                    measureTimeMillis { editorService?.fmt(formatId, path, content, startIndex, endIndex, onFinished) }
+                DprintAction.publishFormattingSucceeded(project, path, timeMs)
             },
             timeout,
             {
                 onFinished(FormatResult())
+                DprintAction.publishFormattingFailed(project, path, it.message)
             },
         )
     }
