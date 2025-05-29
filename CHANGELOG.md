@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+- While range formatting is not currently available, allow format fragment flows to come through so logging occurs.
+- Publish formatting stats through the DprintAction message bus topic.
+
 ## 0.8.2 - 2025-01-14
 
 - Update plugin name for marketplace verification
