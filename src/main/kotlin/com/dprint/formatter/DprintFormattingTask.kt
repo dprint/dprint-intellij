@@ -36,14 +36,6 @@ class DprintFormattingTask(
 
     fun run() {
         val content = formattingRequest.documentText
-        val ranges =
-            if (editorServiceManager.canRangeFormat()) {
-                formattingRequest.formattingRanges
-            } else {
-                mutableListOf(
-                    TextRange(0, content.length),
-                )
-            }
 
         infoLogWithConsole(
             DprintBundle.message("external.formatter.running.task", path),
@@ -51,32 +43,11 @@ class DprintFormattingTask(
             LOGGER,
         )
 
-        val initialResult = FormatResult(formattedContent = content)
-        val baseFormatFuture = CompletableFuture.completedFuture(initialResult)
-        allFormatFutures.add(baseFormatFuture)
-
-        var nextFuture = baseFormatFuture
-        for (range in ranges.subList(0, ranges.size)) {
-            nextFuture.thenCompose { formatResult ->
-                nextFuture =
-                    if (isCancelled) {
-                        // Revert to the initial contents
-                        CompletableFuture.completedFuture(initialResult)
-                    } else {
-                        applyNextRangeFormat(
-                            path,
-                            formatResult,
-                            getStartOfRange(formatResult.formattedContent, content, range),
-                            getEndOfRange(formatResult.formattedContent, content, range),
-                        )
-                    }
-                nextFuture
-            }
-        }
+        val formatFuture = createFormatFuture(path, content)
 
         // Timeouts are handled at the EditorServiceManager level and an empty result will be
         // returned if something goes wrong
-        val result = getFuture(nextFuture)
+        val result = getFuture(formatFuture)
 
         // If cancelled there is no need to utilise the formattingRequest finalising methods
         if (isCancelled) return
@@ -129,48 +100,30 @@ class DprintFormattingTask(
         }
     }
 
-    private fun applyNextRangeFormat(
+    private fun createFormatFuture(
         path: String,
-        previousFormatResult: FormatResult,
-        startIndex: Int?,
-        endIndex: Int?,
-    ): CompletableFuture<FormatResult>? {
-        val contentToFormat = previousFormatResult.formattedContent
-        if (contentToFormat == null || startIndex == null || endIndex == null) {
-            errorLogWithConsole(
-                DprintBundle.message(
-                    "external.formatter.illegal.state",
-                    startIndex ?: "null",
-                    endIndex ?: "null",
-                    contentToFormat ?: "null",
-                ),
-                project,
-                LOGGER,
-            )
-            return null
-        }
-
+        contentToFormat: String,
+    ): CompletableFuture<FormatResult> {
         // Need to update the formatting id so the correct job would be cancelled
         val formattingId = editorServiceManager.maybeGetFormatId()
         formattingId?.let {
             formattingIds.add(it)
         }
 
-        val nextFuture = CompletableFuture<FormatResult>()
-        allFormatFutures.add(nextFuture)
-        val nextHandler: (FormatResult) -> Unit = { nextResult ->
-            nextFuture.complete(nextResult)
+        val formatFuture = CompletableFuture<FormatResult>()
+        val nextHandler: (FormatResult) -> Unit = { result ->
+            formatFuture.complete(result)
         }
         editorServiceManager.format(
             formattingId,
             path,
             contentToFormat,
-            startIndex,
-            endIndex,
+            null,
+            null,
             nextHandler,
         )
 
-        return nextFuture
+        return formatFuture
     }
 
     fun cancel(): Boolean {

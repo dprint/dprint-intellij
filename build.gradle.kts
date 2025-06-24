@@ -162,6 +162,7 @@ tasks {
 
     runIde {
         jvmArgs("-Xmx4098m")
+        autoReload = true
     }
 
     wrapper {

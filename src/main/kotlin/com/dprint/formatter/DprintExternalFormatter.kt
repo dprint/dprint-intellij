@@ -74,7 +74,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
 
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
         val project = formattingRequest.context.project
-
+        val projectConfig = project.service<ProjectConfiguration>().state
         val editorServiceManager = project.service<EditorServiceManager>()
         val path = formattingRequest.ioFile?.path
 
@@ -83,7 +83,11 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             return null
         }
 
-        if (!editorServiceManager.canRangeFormat() && isRangeFormat(formattingRequest)) {
+        // TODO (ryanr) remove the range formatting from the manager, it hasn't been enabled in years.
+        if (!editorServiceManager.canRangeFormat() &&
+            isRangeFormat(formattingRequest) &&
+            !projectConfig.forceFullFileFormat
+        ) {
             // When range formatting is available we need to add support here.
             infoLogWithConsole(DprintBundle.message("external.formatter.range.formatting"), project, LOGGER)
             return null

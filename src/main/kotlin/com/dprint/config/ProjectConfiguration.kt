@@ -17,6 +17,7 @@ class ProjectConfiguration : PersistentStateComponent<ProjectConfiguration.State
         var executableLocation: String = ""
         var initialisationTimeout: Long = 10_000
         var commandTimeout: Long = 5_000
+        var forceFullFileFormat: Boolean = false
     }
 
     private var internalState = State()

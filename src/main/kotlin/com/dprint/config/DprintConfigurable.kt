@@ -80,6 +80,18 @@ class DprintConfigurable(private val project: Project) : BoundSearchableConfigur
                     .comment(DprintBundle.message("config.override.intellij.formatter.description"))
             }
 
+            // Force overriding range formatting with whole file
+            row {
+                checkBox(DprintBundle.message("config.override.intellij.formatter.force.full.file.format"))
+                    .bindSelected(
+                        { projectConfig.state.forceFullFileFormat },
+                        { projectConfig.state.forceFullFileFormat = it },
+                    )
+                    .comment(
+                        DprintBundle.message("config.override.intellij.formatter.force.full.file.format.description"),
+                    )
+            }
+
             // Verbose logging checkbox
             row {
                 checkBox(DprintBundle.message("config.verbose.logging"))
