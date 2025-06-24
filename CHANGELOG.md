@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+- Add a config option to force a full file format even when range formatting has been selected. This was necessary to
+  enable desired behaviour on codebases that are fully CI enforced for formatting.
+
 ## 0.8.3 - 2025-06-07
 
 - While range formatting is not currently available, allow format fragment flows to come through so logging occurs.
