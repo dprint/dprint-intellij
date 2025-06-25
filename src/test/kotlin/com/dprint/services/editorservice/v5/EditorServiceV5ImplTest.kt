@@ -162,4 +162,109 @@ class EditorServiceV5ImplTest : FunSpec({
         verify { pendingMessages.take(testId) }
         verify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
     }
+
+    test("fmt converts string indices to byte indices correctly for ASCII text") {
+        val testFile = "/test/File.kt"
+        val testContent = "hello world"
+        val onFinished = mockk<(FormatResult) -> Unit>()
+
+        every { editorProcess.writeBuffer(any()) } returns Unit
+        every { pendingMessages.store(any(), any()) } returns Unit
+        every { onFinished(any()) } returns Unit
+
+        editorServiceV5.fmt(1, testFile, testContent, 6, 11, onFinished)
+
+        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
+        expectedOutgoingMessage.addString(testFile)
+        expectedOutgoingMessage.addInt(6) // "hello " = 6 bytes
+        expectedOutgoingMessage.addInt(11) // "hello world" = 11 bytes
+        expectedOutgoingMessage.addInt(0)
+        expectedOutgoingMessage.addString(testContent)
+
+        verify(exactly = 1) { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+    }
+
+    test("fmt converts string indices to byte indices correctly for Unicode text") {
+        val testFile = "/test/File.kt"
+        val testContent = "🚀 rocket"
+        val onFinished = mockk<(FormatResult) -> Unit>()
+
+        every { editorProcess.writeBuffer(any()) } returns Unit
+        every { pendingMessages.store(any(), any()) } returns Unit
+        every { onFinished(any()) } returns Unit
+
+        editorServiceV5.fmt(1, testFile, testContent, 2, 8, onFinished)
+
+        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
+        expectedOutgoingMessage.addString(testFile)
+        expectedOutgoingMessage.addInt(4) // 🚀 is 2 bytes then another 2 for ' r'
+        expectedOutgoingMessage.addInt(10)
+        expectedOutgoingMessage.addInt(0)
+        expectedOutgoingMessage.addString(testContent)
+
+        verify(exactly = 1) { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+    }
+
+    test("fmt handles edge case with start index 0") {
+        val testFile = "/test/File.kt"
+        val testContent = "test"
+        val onFinished = mockk<(FormatResult) -> Unit>()
+
+        every { editorProcess.writeBuffer(any()) } returns Unit
+        every { pendingMessages.store(any(), any()) } returns Unit
+        every { onFinished(any()) } returns Unit
+
+        editorServiceV5.fmt(1, testFile, testContent, 0, 2, onFinished)
+
+        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
+        expectedOutgoingMessage.addString(testFile)
+        expectedOutgoingMessage.addInt(0) // start at 0
+        expectedOutgoingMessage.addInt(2) // "te" = 2 bytes
+        expectedOutgoingMessage.addInt(0)
+        expectedOutgoingMessage.addString(testContent)
+
+        verify(exactly = 1) { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+    }
+
+    test("fmt handles edge case with index beyond content length") {
+        val testFile = "/test/File.kt"
+        val testContent = "test"
+        val onFinished = mockk<(FormatResult) -> Unit>()
+
+        every { editorProcess.writeBuffer(any()) } returns Unit
+        every { pendingMessages.store(any(), any()) } returns Unit
+        every { onFinished(any()) } returns Unit
+
+        editorServiceV5.fmt(1, testFile, testContent, 10, 20, onFinished)
+
+        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
+        expectedOutgoingMessage.addString(testFile)
+        expectedOutgoingMessage.addInt(4) // beyond length returns full content byte size
+        expectedOutgoingMessage.addInt(4) // beyond length returns full content byte size
+        expectedOutgoingMessage.addInt(0)
+        expectedOutgoingMessage.addString(testContent)
+
+        verify(exactly = 1) { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+    }
+
+    test("fmt handles mixed Unicode characters correctly") {
+        val testFile = "/test/File.kt"
+        val testContent = "café 🎉 test"
+        val onFinished = mockk<(FormatResult) -> Unit>()
+
+        every { editorProcess.writeBuffer(any()) } returns Unit
+        every { pendingMessages.store(any(), any()) } returns Unit
+        every { onFinished(any()) } returns Unit
+
+        editorServiceV5.fmt(1, testFile, testContent, 5, 7, onFinished)
+
+        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
+        expectedOutgoingMessage.addString(testFile)
+        expectedOutgoingMessage.addInt(testContent.substring(0, 5).encodeToByteArray().size) // Dynamic calculation
+        expectedOutgoingMessage.addInt(testContent.substring(0, 7).encodeToByteArray().size) // Dynamic calculation
+        expectedOutgoingMessage.addInt(0)
+        expectedOutgoingMessage.addString(testContent)
+
+        verify(exactly = 1) { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+    }
 })

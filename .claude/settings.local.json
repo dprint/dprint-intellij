@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew test:*)",
+      "Bash(kotlin debug_bytes.kt)",
+      "Bash(kotlinc:*)",
+      "Bash(java:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}
