@@ -5,6 +5,8 @@ This plugin adds support for dprint, a flexible and extensible code formatter ([
 in active early development, please report bugs and feature requests to
 our [github](https://github.com/dprint/dprint-intellij/issues).
 
+N.B. Currently only UTF-8 file formats are supported correctly.
+
 To use this plugin:
 
 - Install and configure dprint for your repository, [dprint.dev/setup](https://dprint.dev/setup/)
@@ -48,12 +50,13 @@ be your project SDK.
 
 ### Dprint setup
 
-To test this plugin, you will require dprint installed. To install on a mac with homebrew run `brew install dprint`. 
+To test this plugin, you will require dprint installed. To install on a mac with homebrew run `brew install dprint`.
 When running the plugin via the `Run Plugin` configuration, add a default dprint config file by running `dprint init`.
 
 ### Intellij Setup
 
-- Set up linting settings, run <kbd>Gradle</kbd> > <kbd>Tasks</kbd> > <kbd>help</kbd> > <kbd>ktlintGernateBaseline</kbd>.
+- Set up linting settings, run <kbd>Gradle</kbd> > <kbd>Tasks</kbd> > <kbd>help</kbd> > <kbd>
+  ktlintGernateBaseline</kbd>.
   This sets up intellij with appropriate formatting settings.
 
 ### Running

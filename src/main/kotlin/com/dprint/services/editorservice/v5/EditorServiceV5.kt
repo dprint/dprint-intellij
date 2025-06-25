@@ -149,6 +149,7 @@ class EditorServiceV5Impl(
             (result.type == MessageType.CanFormatResponse && result.data is Boolean) -> {
                 onFinished(result.data)
             }
+
             (result.type == MessageType.ErrorResponse && result.data is String) -> {
                 infoLogWithConsole(
                     DprintBundle.message("editor.service.format.check.failed", filePath, result.data),
@@ -157,10 +158,12 @@ class EditorServiceV5Impl(
                 )
                 onFinished(null)
             }
+
             (result.type === MessageType.Dropped) -> {
                 // do nothing
                 onFinished(null)
             }
+
             else -> {
                 infoLogWithConsole(
                     DprintBundle.message("editor.service.unsupported.message.type", result.type),
@@ -225,12 +228,39 @@ class EditorServiceV5Impl(
     ): OutgoingMessage {
         val outgoingMessage = OutgoingMessage(formatId ?: getNextMessageId(), MessageType.FormatFile)
         outgoingMessage.addString(filePath)
-        // TODO We need to properly handle string index to byte index here
-        outgoingMessage.addInt(startIndex ?: 0) // for range formatting add starting index
-        outgoingMessage.addInt(endIndex ?: content.encodeToByteArray().size) // add ending index
+
+        // Converting string indices to bytes
+        val startByteIndex =
+            if (startIndex != null) {
+                getByteIndex(content, startIndex)
+            } else {
+                0
+            }
+
+        val endByteIndex =
+            if (endIndex != null) {
+                getByteIndex(content, endIndex)
+            } else {
+                content.encodeToByteArray().size
+            }
+
+        outgoingMessage.addInt(startByteIndex) // for range formatting add starting index
+        outgoingMessage.addInt(endByteIndex) // add ending index
         outgoingMessage.addInt(0) // Override config
         outgoingMessage.addString(content)
         return outgoingMessage
+    }
+
+    private fun getByteIndex(
+        content: String,
+        stringIndex: Int,
+    ): Int {
+        // Handle edge cases
+        if (stringIndex <= 0) return 0
+        if (stringIndex >= content.length) return content.encodeToByteArray().size
+
+        // Get substring up to the string index and convert to bytes
+        return content.substring(0, stringIndex).encodeToByteArray().size
     }
 
     private fun mapResultToFormatResult(
@@ -247,6 +277,7 @@ class EditorServiceV5Impl(
                 infoLogWithConsole(successMessage, project, LOGGER)
                 FormatResult(formattedContent = result.data)
             }
+
             (result.type == MessageType.ErrorResponse && result.data is String) -> {
                 warnLogWithConsole(
                     DprintBundle.message("editor.service.format.failed", filePath, result.data),
@@ -255,6 +286,7 @@ class EditorServiceV5Impl(
                 )
                 FormatResult(error = result.data)
             }
+
             (result.type != MessageType.Dropped) -> {
                 val errorMessage = DprintBundle.message("editor.service.unsupported.message.type", result.type)
                 warnLogWithConsole(
@@ -263,7 +295,9 @@ class EditorServiceV5Impl(
                     LOGGER,
                 )
                 FormatResult(error = errorMessage)
-            } else -> {
+            }
+
+            else -> {
                 FormatResult()
             }
         }
