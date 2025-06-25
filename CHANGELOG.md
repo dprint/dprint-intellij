@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+- Fix issue where characters with special character encodings were causing the supplied range to the dprint daemon to
+  be incorrect. This is a side effect of https://github.com/dprint/dprint-intellij/pull/107 as IJ now sends a full file
+  range when the internal IJ formatter is overridden.
+
 ## 0.8.3 - 2025-06-07
 
 - While range formatting is not currently available, allow format fragment flows to come through so logging occurs.
