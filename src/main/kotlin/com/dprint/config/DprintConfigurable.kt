@@ -34,15 +34,15 @@ class DprintConfigurable(private val project: Project) : BoundSearchableConfigur
     override fun createPanel(): DialogPanel {
         val projectConfig = project.service<ProjectConfiguration>()
         val userConfig = project.service<UserConfiguration>()
-        val editorServiceManager = project.service<EditorServiceManager>()
+        val dprintService = project.service<EditorServiceManager>()
 
         return panel {
             // Restart or destroy editor service on apply
             onApply {
                 if (projectConfig.state.enabled) {
-                    editorServiceManager.restartEditorService()
+                    dprintService.restartEditorService()
                 } else {
-                    editorServiceManager.destroyEditorService()
+                    dprintService.destroyEditorService()
                 }
             }
 
@@ -168,12 +168,36 @@ class DprintConfigurable(private val project: Project) : BoundSearchableConfigur
                 }
             }
 
-            // Restart button
+            // Reset to defaults button
             indent {
                 row {
-                    button(DprintBundle.message("config.reload")) {
-                        editorServiceManager.restartEditorService()
-                    }.comment(DprintBundle.message("config.reload.description"))
+                    button(DprintBundle.message("config.reset")) {
+                        // Reset project configuration to defaults
+                        val defaultProjectState = ProjectConfiguration.State()
+                        projectConfig.state.enabled = defaultProjectState.enabled
+                        projectConfig.state.configLocation = defaultProjectState.configLocation
+                        projectConfig.state.executableLocation = defaultProjectState.executableLocation
+                        projectConfig.state.initialisationTimeout = defaultProjectState.initialisationTimeout
+                        projectConfig.state.commandTimeout = defaultProjectState.commandTimeout
+
+                        // Reset user configuration to defaults
+                        val defaultUserState = UserConfiguration.State()
+                        userConfig.state.runOnSave = defaultUserState.runOnSave
+                        userConfig.state.overrideIntelliJFormatter =
+                            defaultUserState.overrideIntelliJFormatter
+                        userConfig.state.enableEditorServiceVerboseLogging =
+                            defaultUserState.enableEditorServiceVerboseLogging
+
+                        // Reset the form to reflect the new values
+                        reset()
+
+                        // Restart dprint service with new defaults
+                        if (projectConfig.state.enabled) {
+                            dprintService.restartEditorService()
+                        } else {
+                            dprintService.destroyEditorService()
+                        }
+                    }.comment(DprintBundle.message("config.reset.description"))
                 }
             }
         }

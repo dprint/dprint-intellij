@@ -1,29 +1,21 @@
 package com.dprint.config
 
-import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 
 /**
- * Persists configuration between IDE sessions per project. Configuration is stored in .idea/dprintConfig.xml.
+ * User-level configuration for personal preferences.
+ * These settings are stored in .idea/dprintUserConfig.xml and should NOT be checked into version control.
  */
 @Service(Service.Level.PROJECT)
 @State(name = "DprintUserConfiguration", storages = [Storage("dprintUserConfig.xml")])
-class UserConfiguration : PersistentStateComponent<UserConfiguration.State> {
-    class State {
-        var runOnSave = false
-        var overrideIntelliJFormatter = true
-        var enableEditorServiceVerboseLogging = true
-    }
+class UserConfiguration : BaseConfiguration<UserConfiguration.State>() {
+    data class State(
+        var runOnSave: Boolean = false,
+        var overrideIntelliJFormatter: Boolean = true,
+        var enableEditorServiceVerboseLogging: Boolean = true,
+    )
 
-    private var internalState = State()
-
-    override fun getState(): State {
-        return internalState
-    }
-
-    override fun loadState(state: State) {
-        internalState = state
-    }
+    override fun createDefaultState(): State = State()
 }
