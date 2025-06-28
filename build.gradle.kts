@@ -112,7 +112,6 @@ intellijPlatform {
                 channels = listOf(ProductRelease.Channel.RELEASE)
                 sinceBuild = providers.gradleProperty("pluginSinceBuild")
             }
-
         }
     }
 }
