@@ -103,31 +103,33 @@ class DprintRangeFormattingTask(
             }
         } catch (e: CancellationException) {
             // This is expected when the user cancels the operation
-            infoLogWithConsole(DprintBundle.message("error.range.format.cancelled.by.user"), project, LOGGER)
+            infoLogWithConsole(DprintBundle.message("error.format.cancelled.by.user"), project, LOGGER)
             null
         } catch (e: TimeoutCancellationException) {
             errorLogWithConsole(
-                DprintBundle.message("error.range.format.timeout", FORMATTING_TIMEOUT.inWholeSeconds),
+                DprintBundle.message("error.format.timeout", FORMATTING_TIMEOUT.inWholeSeconds),
                 e,
                 project,
                 LOGGER,
             )
             formattingRequest.onError(
                 DprintBundle.message("dialog.title.dprint.formatter"),
-                DprintBundle.message("error.range.format.process.timeout", FORMATTING_TIMEOUT.inWholeSeconds),
+                DprintBundle.message("error.format.process.timeout", FORMATTING_TIMEOUT.inWholeSeconds),
             )
             dprintService.restartEditorService()
             null
         } catch (e: Exception) {
+            val message =
+                DprintBundle.message("error.format.unexpected", e.javaClass.simpleName, e.message ?: "unknown")
             errorLogWithConsole(
-                DprintBundle.message("error.range.format.unexpected", e.javaClass.simpleName, e.message ?: "unknown"),
+                message,
                 e,
                 project,
                 LOGGER,
             )
             formattingRequest.onError(
                 DprintBundle.message("dialog.title.dprint.formatter"),
-                DprintBundle.message("error.format.unexpected.generic", e.message ?: e.javaClass.simpleName),
+                message,
             )
             // Only restart service for unexpected errors that might indicate a corrupted state
             dprintService.restartEditorService()

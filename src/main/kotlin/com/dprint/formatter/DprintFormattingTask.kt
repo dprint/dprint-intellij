@@ -92,15 +92,17 @@ class DprintFormattingTask(
             dprintService.restartEditorService()
             null
         } catch (e: Exception) {
+            val message =
+                DprintBundle.message("error.format.unexpected", e.javaClass.simpleName, e.message ?: "unknown")
             errorLogWithConsole(
-                DprintBundle.message("error.format.unexpected", e.javaClass.simpleName, e.message ?: "unknown"),
+                message,
                 e,
                 project,
                 LOGGER,
             )
             formattingRequest.onError(
                 DprintBundle.message("dialog.title.dprint.formatter"),
-                DprintBundle.message("error.format.unexpected.generic", e.message ?: e.javaClass.simpleName),
+                message,
             )
             // Only restart service for unexpected errors that might indicate a corrupted state
             dprintService.restartEditorService()
