@@ -2,7 +2,6 @@ import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
-import org.jetbrains.intellij.platform.gradle.models.ProductRelease
 
 plugins {
     // Java support
@@ -38,8 +37,6 @@ dependencies {
 
         create(type, version)
 
-        intellijIdeaUltimate(version)
-        instrumentationTools()
         pluginVerifier()
 
         bundledPlugin("JavaScript")
@@ -108,14 +105,12 @@ intellijPlatform {
     pluginVerification {
         freeArgs = listOf("-mute", "TemplateWordInPluginId")
         ides {
-            select {
-                types =
-                    listOf(
-                        IntelliJPlatformType.IntellijIdeaUltimate,
-                    )
-                channels = listOf(ProductRelease.Channel.RELEASE, ProductRelease.Channel.EAP)
-                sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            }
+            val version = providers.gradleProperty("platformVersion")
+            val type = providers.gradleProperty("platformType")
+            ide(type, version)
+            // Try keep this up to day with latest version, I need to restrict it to oldest and latest for github
+            // actions
+            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2025.1.3")
         }
     }
 }

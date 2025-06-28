@@ -57,6 +57,9 @@ jobs:
       # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          gradle-home-cache-cleanup: true
 
       # Set environment variables
       - name: Export Properties
@@ -143,6 +146,10 @@ jobs:
           tool-cache: false
           large-packages: false
 
+      - name: Clean Gradle IDEA Cache
+        run: |
+          rm -rf ~/.gradle/caches/modules-2/files-2.1/idea/ideaIU
+
       # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
@@ -158,16 +165,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Cache Plugin Verifier IDEs
-      - name: Setup Plugin Verifier IDEs Cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ needs.build.outputs.pluginVerifierHomeDir }}/ides
-          key: plugin-verifier-${{ hashFiles('build/listProductsReleases.txt') }}
-
       # Run Verify Plugin task and IntelliJ Plugin Verifier tool
       - name: Run Plugin Verification tasks
-        run: ./gradlew verifyPlugin -Dplugin.verifier.home.dir=${{ needs.build.outputs.pluginVerifierHomeDir }}
+        run: ./gradlew verifyPlugin
 
       # Collect Plugin Verifier Result
       - name: Collect Plugin Verifier Result

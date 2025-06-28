@@ -22,7 +22,7 @@
                            isLogByDefault="false"/>
         <formattingService implementation="com.dprint.formatter.DprintExternalFormatter"/>
         <documentMerger implementation="com.dprint.formatter.DprintDocumentMerger"/>
-        <toolWindow factoryClass="com.dprint.toolwindow.ConsoleToolWindowFactory" id="Dprint" anchor="bottom"/>
+        <toolWindow factoryClass="com.dprint.toolwindow.ConsoleToolWindowFactory" id="Dprint" anchor="bottom" icon="/META-INF/toolWindowIcon.svg"/>
         <actionOnSave id="DprintActionOnSave"
                       implementation="com.dprint.listeners.OnSaveAction"
                       order="after FormatOnSaveAction, after ESLintActionOnSave"/>
@@ -41,6 +41,11 @@
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
     </actions>
+
+    <applicationListeners>
+        <listener class="com.dprint.lifecycle.DprintPluginLifecycleManager"
+                  topic="com.intellij.ide.plugins.DynamicPluginListener"/>
+    </applicationListeners>
 
     <projectListeners>
         <listener class="com.dprint.listeners.FileOpenedListener"
