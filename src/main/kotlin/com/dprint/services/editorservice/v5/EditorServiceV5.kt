@@ -218,7 +218,7 @@ class EditorServiceV5(private val project: Project) : IEditorService {
         filePath: String,
     ): FormatResult {
         if (result == null) {
-            return FormatResult(error = DprintBundle.message("error.request.timeout"))
+            return FormatResult()
         }
         return when {
             (result.type == MessageType.FormatFileResponse && result.data is String?) -> {
