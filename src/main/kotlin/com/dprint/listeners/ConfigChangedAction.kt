@@ -2,7 +2,7 @@ package com.dprint.listeners
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.i18n.DprintBundle
-import com.dprint.services.editorservice.EditorServiceManager
+import com.dprint.services.DprintService
 import com.dprint.utils.infoLogWithConsole
 import com.intellij.ide.actionsOnSave.impl.ActionsOnSaveFileDocumentManagerListener
 import com.intellij.openapi.components.service
@@ -25,13 +25,13 @@ class ConfigChangedAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSav
         project: Project,
         documents: Array<Document>,
     ) {
-        val editorServiceManager = project.service<EditorServiceManager>()
+        val dprintService = project.service<DprintService>()
         val manager = FileDocumentManager.getInstance()
         for (document in documents) {
             manager.getFile(document)?.let { vfile ->
-                if (vfile.path == editorServiceManager.getConfigPath()) {
+                if (vfile.path == dprintService.getConfigPath()) {
                     infoLogWithConsole(DprintBundle.message("config.changed.run"), project, LOGGER)
-                    editorServiceManager.restartEditorService()
+                    dprintService.restartEditorService()
                 }
             }
         }

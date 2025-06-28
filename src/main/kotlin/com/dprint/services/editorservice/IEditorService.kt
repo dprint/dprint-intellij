@@ -1,5 +1,6 @@
 package com.dprint.services.editorservice
 
+import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.exceptions.HandlerNotImplementedException
 import com.intellij.openapi.Disposable
 
@@ -17,29 +18,7 @@ interface IEditorService : Disposable {
     /**
      * Returns whether dprint can format the given file path based on the config used in the editor service.
      */
-    fun canFormat(
-        filePath: String,
-        onFinished: (Boolean?) -> Unit,
-    )
-
-    fun canRangeFormat(): Boolean
-
-    /**
-     * This runs dprint using the editor service with the supplied file path and content as stdin.
-     * @param filePath The path of the file being formatted. This is needed so the correct dprint configuration file
-     * located.
-     * @param content The content of the file as a string. This is formatted via Dprint and returned via the result.
-     * @param onFinished A callback that is called when the formatting job has finished. The only param to this callback
-     * will be the result of the formatting job. The class providing this should handle timeouts themselves.
-     * @return A result object containing the formatted content is successful or an error.
-     */
-    fun fmt(
-        filePath: String,
-        content: String,
-        onFinished: (FormatResult) -> Unit,
-    ): Int? {
-        return fmt(maybeGetFormatId(), filePath, content, null, null, onFinished)
-    }
+    suspend fun canFormat(filePath: String): Boolean?
 
     /**
      * This runs dprint using the editor service with the supplied file path and content as stdin.
@@ -48,20 +27,37 @@ interface IEditorService : Disposable {
      * @param filePath The path of the file being formatted. This is needed so the correct dprint configuration file
      * located.
      * @param content The content of the file as a string. This is formatted via Dprint and returned via the result.
-     * @param startIndex The starting index of a range format, null if the format is not for a range in the file.
-     * @param endIndex The ending index of a range format, null if the format is not for a range in the file.
-     * @param onFinished A callback that is called when the formatting job has finished. The only param to this callback
-     * will be the result of the formatting job. The class providing this should handle timeouts themselves.
      * @return A result object containing the formatted content is successful or an error.
      */
-    fun fmt(
-        formatId: Int?,
+    suspend fun fmt(
         filePath: String,
         content: String,
+        formatId: Int?,
+    ): FormatResult
+
+    /**
+     * This runs dprint using the editor service with the supplied file path and content as stdin.
+     * @param formatId The id of the message that is passed to the underlying editor service. This is exposed at this
+     * level, so we can cancel requests if need be.
+     * @param filePath The path of the file being formatted. This is needed so the correct dprint configuration file
+     * located.
+     * @param content The content of the file as a string. This is formatted via Dprint and returned via the result.
+     * @param startIndex The char index indicating where to start range formatting from
+     * @param endIndex The char indicating where to range format up to (not inclusive)
+     * @return A result object containing the formatted content is successful or an error.
+     */
+    suspend fun fmt(
+        filePath: String,
+        content: String,
+        formatId: Int?,
         startIndex: Int?,
         endIndex: Int?,
-        onFinished: (FormatResult) -> Unit,
-    ): Int?
+    ): FormatResult
+
+    /**
+     * Whether the editor service implementation supports range formatting.
+     */
+    fun canRangeFormat(): Boolean
 
     /**
      * Whether the editor service implementation supports cancellation of formats.
@@ -78,6 +74,6 @@ interface IEditorService : Disposable {
      * service doesn't.
      */
     fun cancelFormat(formatId: Int) {
-        throw HandlerNotImplementedException("Cancel format has not been implemented")
+        throw HandlerNotImplementedException(DprintBundle.message("error.cancel.format.not.implemented"))
     }
 }

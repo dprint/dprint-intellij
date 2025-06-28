@@ -8,16 +8,17 @@ import com.dprint.utils.infoLogWithConsole
 import com.intellij.formatting.service.AsyncFormattingRequest
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlin.time.Duration.Companion.seconds
 
-private val LOGGER = logger<DprintFormattingTask>()
+private val LOGGER = logger<DprintRangeFormattingTask>()
 private val FORMATTING_TIMEOUT = 10.seconds
 
-class DprintFormattingTask(
+class DprintRangeFormattingTask(
     private val project: Project,
     private val dprintService: DprintService,
     private val formattingRequest: AsyncFormattingRequest,
@@ -28,6 +29,7 @@ class DprintFormattingTask(
 
     fun run() {
         val content = formattingRequest.documentText
+        val ranges = formattingRequest.formattingRanges
 
         infoLogWithConsole(
             DprintBundle.message("external.formatter.running.task", path),
@@ -35,7 +37,7 @@ class DprintFormattingTask(
             LOGGER,
         )
 
-        val result = runFormatting(content)
+        val result = runRangeFormatting(content, ranges)
 
         // If cancelled there is no need to utilise the formattingRequest finalising methods
         if (isCancelled) return
@@ -56,22 +58,47 @@ class DprintFormattingTask(
         }
     }
 
-    private fun runFormatting(content: String): FormatResult? {
+    private fun runRangeFormatting(
+        content: String,
+        ranges: List<TextRange>,
+    ): FormatResult? {
         return try {
             runBlocking {
                 withTimeout(FORMATTING_TIMEOUT) {
                     if (isCancelled) return@withTimeout null
-                    // Need to update the formatting id so the correct job would be cancelled
-                    val formatId = dprintService.maybeGetFormatId()
-                    formatId?.let {
-                        formattingIds.add(it)
+
+                    // For multiple ranges, we need to format them sequentially
+                    // starting from the end to avoid offset issues
+                    val sortedRanges = ranges.sortedByDescending { it.startOffset }
+                    var currentContent = content
+
+                    for (range in sortedRanges) {
+                        if (isCancelled) return@withTimeout null
+
+                        // Need to update the formatting id so the correct job would be cancelled
+                        val formatId = dprintService.maybeGetFormatId()
+                        formatId?.let {
+                            formattingIds.add(it)
+                        }
+
+                        val result =
+                            dprintService.formatSuspend(
+                                path = path,
+                                content = currentContent,
+                                formatId = formatId,
+                                startIndex = range.startOffset,
+                                endIndex = range.endOffset,
+                            )
+
+                        if (result == null || result.error != null) {
+                            return@withTimeout result
+                        }
+
+                        // Update content for next iteration if formatting was successful
+                        currentContent = result.formattedContent ?: currentContent
                     }
 
-                    dprintService.formatSuspend(
-                        path = path,
-                        content = content,
-                        formatId = formatId,
-                    )
+                    FormatResult(formattedContent = currentContent)
                 }
             }
         } catch (e: CancellationException) {

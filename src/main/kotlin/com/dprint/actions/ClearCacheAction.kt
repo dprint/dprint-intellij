@@ -2,7 +2,7 @@ package com.dprint.actions
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.i18n.DprintBundle
-import com.dprint.services.editorservice.EditorServiceManager
+import com.dprint.services.DprintService
 import com.dprint.utils.infoLogWithConsole
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -20,7 +20,7 @@ class ClearCacheAction : AnAction() {
             val projectConfig = it.service<ProjectConfiguration>().state
             if (!projectConfig.enabled) return@let
             infoLogWithConsole(DprintBundle.message("clear.cache.action.run"), it, LOGGER)
-            it.service<EditorServiceManager>().clearCanFormatCache()
+            it.service<DprintService>().clearCanFormatCache()
         }
     }
 }

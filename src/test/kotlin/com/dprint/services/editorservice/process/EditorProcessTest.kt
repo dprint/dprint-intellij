@@ -5,6 +5,7 @@ import com.dprint.utils.getValidConfigPath
 import com.dprint.utils.getValidExecutablePath
 import com.dprint.utils.infoLogWithConsole
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import io.kotest.core.spec.style.FunSpec
 import io.mockk.EqMatcher
@@ -27,10 +28,11 @@ class EditorProcessTest : FunSpec({
     val process = mockk<Process>()
     val userConfig = mockk<UserConfiguration>()
 
-    val editorProcess = EditorProcess(project, userConfig)
+    val editorProcess = EditorProcess(project)
 
     beforeEach {
         every { infoLogWithConsole(any(), project, any()) } returns Unit
+        every { project.service<UserConfiguration>() } returns userConfig
     }
 
     afterEach {

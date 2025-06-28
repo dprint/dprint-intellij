@@ -3,7 +3,7 @@ package com.dprint.formatter
 import com.dprint.config.ProjectConfiguration
 import com.dprint.config.UserConfiguration
 import com.dprint.i18n.DprintBundle
-import com.dprint.services.editorservice.EditorServiceManager
+import com.dprint.services.DprintService
 import com.dprint.utils.infoConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.isFormattableFile
@@ -36,7 +36,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun canFormat(file: PsiFile): Boolean {
         val projectConfig = file.project.service<ProjectConfiguration>().state
         val userConfig = file.project.service<UserConfiguration>().state
-        val editorServiceManager = file.project.service<EditorServiceManager>()
+        val dprintService = file.project.service<DprintService>()
 
         if (!projectConfig.enabled) return false
 
@@ -52,7 +52,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         val virtualFile = file.virtualFile ?: file.originalFile.virtualFile
         val canFormat =
             if (virtualFile != null && isFormattableFile(file.project, virtualFile)) {
-                editorServiceManager.canFormatCached(virtualFile.path)
+                dprintService.canFormatCached(virtualFile.path)
             } else {
                 false
             }
@@ -75,7 +75,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
     override fun createFormattingTask(formattingRequest: AsyncFormattingRequest): FormattingTask? {
         val project = formattingRequest.context.project
 
-        val editorServiceManager = project.service<EditorServiceManager>()
+        val dprintService = project.service<DprintService>()
         val path = formattingRequest.ioFile?.path
 
         if (path == null) {
@@ -83,10 +83,30 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             return null
         }
 
-        if (!editorServiceManager.canRangeFormat() && isRangeFormat(formattingRequest)) {
+        if (!dprintService.canRangeFormat() && isRangeFormat(formattingRequest)) {
             // When range formatting is available we need to add support here.
             infoLogWithConsole(DprintBundle.message("external.formatter.range.formatting"), project, LOGGER)
             return null
+        }
+
+        if (dprintService.canRangeFormat() && isRangeFormat(formattingRequest)) {
+            infoLogWithConsole(DprintBundle.message("external.formatter.range.formatting"), project, LOGGER)
+
+            return object : FormattingTask {
+                val dprintTask = DprintRangeFormattingTask(project, dprintService, formattingRequest, path)
+
+                override fun run() {
+                    return dprintTask.run()
+                }
+
+                override fun cancel(): Boolean {
+                    return dprintTask.cancel()
+                }
+
+                override fun isRunUnderProgress(): Boolean {
+                    return dprintTask.isRunUnderProgress()
+                }
+            }
         }
 
         if (doAnyRangesIntersect(formattingRequest)) {
@@ -97,7 +117,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         infoLogWithConsole(DprintBundle.message("external.formatter.creating.task", path), project, LOGGER)
 
         return object : FormattingTask {
-            val dprintTask = DprintFormattingTask(project, editorServiceManager, formattingRequest, path)
+            val dprintTask = DprintFormattingTask(project, dprintService, formattingRequest, path)
 
             override fun run() {
                 return dprintTask.run()

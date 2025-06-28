@@ -1,7 +1,7 @@
 package com.dprint.config
 
 import com.dprint.i18n.DprintBundle
-import com.dprint.services.editorservice.EditorServiceManager
+import com.dprint.services.DprintService
 import com.dprint.utils.validateConfigFile
 import com.dprint.utils.validateExecutablePath
 import com.intellij.ide.actionsOnSave.ActionOnSaveBackedByOwnConfigurable
@@ -34,7 +34,7 @@ class DprintConfigurable(private val project: Project) : BoundSearchableConfigur
     override fun createPanel(): DialogPanel {
         val projectConfig = project.service<ProjectConfiguration>()
         val userConfig = project.service<UserConfiguration>()
-        val dprintService = project.service<EditorServiceManager>()
+        val dprintService = project.service<DprintService>()
 
         return panel {
             // Restart or destroy editor service on apply
