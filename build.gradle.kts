@@ -38,8 +38,6 @@ dependencies {
 
         create(type, version)
 
-        intellijIdeaUltimate(version)
-        instrumentationTools()
         pluginVerifier()
 
         bundledPlugin("JavaScript")
