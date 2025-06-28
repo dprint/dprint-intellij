@@ -106,14 +106,13 @@ intellijPlatform {
     pluginVerification {
         freeArgs = listOf("-mute", "TemplateWordInPluginId")
         ides {
+            recommended()
             select {
-                types =
-                    listOf(
-                        IntelliJPlatformType.IntellijIdeaUltimate,
-                    )
-                channels = listOf(ProductRelease.Channel.RELEASE, ProductRelease.Channel.EAP)
+                types = listOf(IntelliJPlatformType.IntellijIdeaUltimate)
+                channels = listOf(ProductRelease.Channel.RELEASE)
                 sinceBuild = providers.gradleProperty("pluginSinceBuild")
             }
+
         }
     }
 }
