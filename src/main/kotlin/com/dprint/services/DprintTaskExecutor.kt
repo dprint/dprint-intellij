@@ -42,7 +42,8 @@ private val LOGGER = logger<DprintTaskExecutor>()
  */
 class DprintTaskExecutor(
     private val project: Project,
-) : CoroutineScope, Disposable {
+) : CoroutineScope,
+    Disposable {
     private val job = SupervisorJob()
     private val taskQueue = Channel<QueuedTask>(Channel.UNLIMITED)
     private val activeTasks = HashSet<TaskInfo>()

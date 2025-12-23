@@ -5,7 +5,10 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.messages.MessageBus
 
-data class MessageWithThrowable(val message: String, val throwable: Throwable?) {
+data class MessageWithThrowable(
+    val message: String,
+    val throwable: Throwable?,
+) {
     override fun toString(): String {
         if (throwable != null) {
             return "$message\n\t$throwable"

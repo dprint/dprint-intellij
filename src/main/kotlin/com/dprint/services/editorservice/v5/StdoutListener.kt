@@ -17,7 +17,10 @@ private const val SLEEP_TIME = 500L
 
 private val LOGGER = logger<StdoutListener>()
 
-class StdoutListener(private val editorProcess: EditorProcess, private val messageChannel: MessageChannel) {
+class StdoutListener(
+    private val editorProcess: EditorProcess,
+    private val messageChannel: MessageChannel,
+) {
     private var listenerJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 

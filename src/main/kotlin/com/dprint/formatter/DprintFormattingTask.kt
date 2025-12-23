@@ -126,7 +126,5 @@ class DprintFormattingTask(
         return true
     }
 
-    fun isRunUnderProgress(): Boolean {
-        return true
-    }
+    fun isRunUnderProgress(): Boolean = true
 }

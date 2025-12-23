@@ -10,7 +10,10 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Request data including the deferred result and timestamp for stale detection
  */
-data class PendingRequest(val deferred: CompletableDeferred<MessageChannel.Result>, val timestamp: Long)
+data class PendingRequest(
+    val deferred: CompletableDeferred<MessageChannel.Result>,
+    val timestamp: Long,
+)
 
 /**
  * Channel-based message handling that replaces PendingMessages.
@@ -18,7 +21,9 @@ data class PendingRequest(val deferred: CompletableDeferred<MessageChannel.Resul
  * Includes proper timestamp-based stale message detection.
  */
 @Service(Service.Level.PROJECT)
-class MessageChannel(private val project: Project) {
+class MessageChannel(
+    private val project: Project,
+) {
     private val pendingRequests = ConcurrentHashMap<Int, PendingRequest>()
 
     companion object {
@@ -28,7 +33,10 @@ class MessageChannel(private val project: Project) {
     /**
      * Result wrapper that matches the original PendingMessages.Result structure
      */
-    data class Result(val type: MessageType, val data: Any?)
+    data class Result(
+        val type: MessageType,
+        val data: Any?,
+    )
 
     /**
      * Send a request and wait for the response with timeout
@@ -63,12 +71,11 @@ class MessageChannel(private val project: Project) {
     /**
      * Cancel a specific request
      */
-    fun cancelRequest(id: Int): Boolean {
-        return pendingRequests.remove(id)?.let { pendingRequest ->
+    fun cancelRequest(id: Int): Boolean =
+        pendingRequests.remove(id)?.let { pendingRequest ->
             pendingRequest.deferred.complete(Result(MessageType.Dropped, null))
             true
         } ?: false
-    }
 
     /**
      * Cancel all pending requests and return their IDs

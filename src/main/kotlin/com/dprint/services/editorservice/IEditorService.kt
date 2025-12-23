@@ -73,7 +73,6 @@ interface IEditorService : Disposable {
      * Cancels the format for a given id if the service supports it. Will throw HandlerNotImplementedException if the
      * service doesn't.
      */
-    fun cancelFormat(formatId: Int) {
+    fun cancelFormat(formatId: Int): Unit =
         throw HandlerNotImplementedException(DprintBundle.message("error.cancel.format.not.implemented"))
-    }
 }

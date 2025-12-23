@@ -10,7 +10,9 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @Service(Service.Level.PROJECT)
-class Console(val project: Project) {
+class Console(
+    val project: Project,
+) {
     val consoleView = ConsoleViewImpl(project, GlobalSearchScope.allScope(project), false, false)
 
     init {
@@ -34,7 +36,6 @@ class Console(val project: Project) {
         }
     }
 
-    private fun decorateText(text: String): String {
-        return "${DateTimeFormatter.ofPattern("yyyy MM dd HH:mm:ss").format(LocalDateTime.now())}:  ${text}\n"
-    }
+    private fun decorateText(text: String): String =
+        "${DateTimeFormatter.ofPattern("yyyy MM dd HH:mm:ss").format(LocalDateTime.now())}:  ${text}\n"
 }

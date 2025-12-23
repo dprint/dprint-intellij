@@ -18,7 +18,9 @@ private val LOGGER = logger<EditorServiceCache>()
  * Manages caching of canFormat results so that the external formatter can do fast synchronous checks.
  * Uses an LRU cache to limit memory usage while maintaining performance.
  */
-class EditorServiceCache(private val project: Project) {
+class EditorServiceCache(
+    private val project: Project,
+) {
     private var canFormatCache = LRUMap<String, Boolean>()
 
     /**

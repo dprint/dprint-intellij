@@ -28,7 +28,9 @@ private val LOGGER = logger<EditorProcess>()
 private val SUCCESS_MESSAGE = byteArrayOf(-1, -1, -1, -1)
 
 @Service(Service.Level.PROJECT)
-class EditorProcess(private val project: Project) {
+class EditorProcess(
+    private val project: Project,
+) {
     private var process: Process? = null
     private var stderrListener: StdErrListener? = null
 
@@ -42,12 +44,14 @@ class EditorProcess(private val project: Project) {
 
         when {
             configPath.isNullOrBlank() -> {
-                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                project.messageBus
+                    .syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
                     .info(DprintBundle.message("error.config.path"))
             }
 
             executablePath.isNullOrBlank() -> {
-                project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                project.messageBus
+                    .syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
                     .info(DprintBundle.message("error.executable.path"))
             }
 
@@ -243,10 +247,9 @@ class EditorProcess(private val project: Project) {
         }
     }
 
-    suspend fun readBuffer(totalBytes: Int): ByteArray {
-        return withContext(Dispatchers.IO) {
+    suspend fun readBuffer(totalBytes: Int): ByteArray =
+        withContext(Dispatchers.IO) {
             val stdout = getProcess().inputStream
             stdout.readNBytes(totalBytes)
         }
-    }
 }

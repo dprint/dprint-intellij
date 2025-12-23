@@ -1,14 +1,14 @@
 [versions]
-changelog = "2.2.1"
+changelog = "2.5.0"
 commonsCollection4 = "4.5.0"
-gradleIntelliJPlugin = "2.6.0"
-kotestAssertions = "5.9.1"
-kotestRunner = "5.9.1"
-kotlin = "2.1.21"
-ktlint = "12.3.0"
-mockk = "1.14.2"
-versionCatalogUpdate = "1.0.0"
-versions = "0.52.0"
+gradleIntelliJPlugin = "2.10.5"
+kotestAssertions = "6.0.7"
+kotestRunner = "6.0.7"
+kotlin = "2.3.0"
+ktlint = "14.0.1"
+mockk = "1.14.7"
+versionCatalogUpdate = "1.0.1"
+versions = "0.53.0"
 
 [libraries]
 commonsCollection4 = { module = "org.apache.commons:commons-collections4", version.ref = "commonsCollection4" }

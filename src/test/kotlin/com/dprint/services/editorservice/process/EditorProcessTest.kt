@@ -18,67 +18,68 @@ import io.mockk.verify
 import java.io.File
 import java.util.concurrent.CompletableFuture
 
-class EditorProcessTest : FunSpec({
-    mockkStatic(ProcessHandle::current)
-    mockkStatic(::infoLogWithConsole)
-    mockkStatic("com.dprint.utils.FileUtilsKt")
+class EditorProcessTest :
+    FunSpec({
+        mockkStatic(ProcessHandle::current)
+        mockkStatic(::infoLogWithConsole)
+        mockkStatic("com.dprint.utils.FileUtilsKt")
 
-    val project = mockk<Project>()
-    val processHandle = mockk<ProcessHandle>()
-    val process = mockk<Process>()
-    val userConfig = mockk<UserConfiguration>()
+        val project = mockk<Project>()
+        val processHandle = mockk<ProcessHandle>()
+        val process = mockk<Process>()
+        val userConfig = mockk<UserConfiguration>()
 
-    val editorProcess = EditorProcess(project)
+        val editorProcess = EditorProcess(project)
 
-    beforeEach {
-        every { infoLogWithConsole(any(), project, any()) } returns Unit
-        every { project.service<UserConfiguration>() } returns userConfig
-    }
+        beforeEach {
+            every { infoLogWithConsole(any(), project, any()) } returns Unit
+            every { project.service<UserConfiguration>() } returns userConfig
+        }
 
-    afterEach {
-        clearAllMocks()
-    }
+        afterEach {
+            clearAllMocks()
+        }
 
-    test("it creates a process with the correct args") {
-        val execPath = "/bin/dprint"
-        val configPath = "./dprint.json"
-        val workingDir = "/working/dir"
-        val parentProcessId = 1L
+        test("it creates a process with the correct args") {
+            val execPath = "/bin/dprint"
+            val configPath = "./dprint.json"
+            val workingDir = "/working/dir"
+            val parentProcessId = 1L
 
-        mockkConstructor(GeneralCommandLine::class)
-        mockkConstructor(File::class)
-        mockkConstructor(StdErrListener::class)
+            mockkConstructor(GeneralCommandLine::class)
+            mockkConstructor(File::class)
+            mockkConstructor(StdErrListener::class)
 
-        every { getValidExecutablePath(project) } returns execPath
-        every { getValidConfigPath(project) } returns configPath
+            every { getValidExecutablePath(project) } returns execPath
+            every { getValidConfigPath(project) } returns configPath
 
-        every { ProcessHandle.current() } returns processHandle
-        every { processHandle.pid() } returns parentProcessId
-        every { userConfig.state } returns UserConfiguration.State()
-        every { constructedWith<File>(EqMatcher(configPath)).parent } returns workingDir
-        every { process.pid() } returns 2L
-        every { process.onExit() } returns CompletableFuture.completedFuture(process)
-        every { anyConstructed<StdErrListener>().listen() } returns Unit
+            every { ProcessHandle.current() } returns processHandle
+            every { processHandle.pid() } returns parentProcessId
+            every { userConfig.state } returns UserConfiguration.State()
+            every { constructedWith<File>(EqMatcher(configPath)).parent } returns workingDir
+            every { process.pid() } returns 2L
+            every { process.onExit() } returns CompletableFuture.completedFuture(process)
+            every { anyConstructed<StdErrListener>().listen() } returns Unit
 
-        val expectedArgs =
-            listOf(
-                execPath,
-                "editor-service",
-                "--config",
-                configPath,
-                "--parent-pid",
-                parentProcessId.toString(),
-                "--verbose",
-            )
+            val expectedArgs =
+                listOf(
+                    execPath,
+                    "editor-service",
+                    "--config",
+                    configPath,
+                    "--parent-pid",
+                    parentProcessId.toString(),
+                    "--verbose",
+                )
 
-        // This essentially tests the correct args are passed in.
-        every { constructedWith<GeneralCommandLine>(EqMatcher(expectedArgs)).createProcess() } returns process
+            // This essentially tests the correct args are passed in.
+            every { constructedWith<GeneralCommandLine>(EqMatcher(expectedArgs)).createProcess() } returns process
 
-        editorProcess.initialize()
+            editorProcess.initialize()
 
-        verify(
-            exactly = 1,
-        ) { constructedWith<GeneralCommandLine>(EqMatcher(expectedArgs)).withWorkDirectory(workingDir) }
-        verify(exactly = 1) { constructedWith<GeneralCommandLine>(EqMatcher(expectedArgs)).createProcess() }
-    }
-})
+            verify(
+                exactly = 1,
+            ) { constructedWith<GeneralCommandLine>(EqMatcher(expectedArgs)).withWorkDirectory(workingDir) }
+            verify(exactly = 1) { constructedWith<GeneralCommandLine>(EqMatcher(expectedArgs)).createProcess() }
+        }
+    })

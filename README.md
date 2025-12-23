@@ -47,7 +47,7 @@ Please report any issues with this Intellij plugin to the
 
 ## Development
 
-This project is currently built using JDK 21 and targets IntelliJ 2024.3+. To install on a mac with homebrew run `brew install openjdk@21` and set that
+This project is currently built using JDK 21 and targets IntelliJ 2025.1+. To install on a mac with homebrew run `brew install openjdk@21` and set that
 as your project SDK.
 
 ### Dprint setup

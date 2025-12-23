@@ -12,53 +12,54 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.verify
 
-class FormatterServiceTest : FunSpec({
-    val testPath = "/test/path"
-    val testText = "val test = \"test\""
+class FormatterServiceTest :
+    FunSpec({
+        val testPath = "/test/path"
+        val testText = "val test = \"test\""
 
-    mockkStatic(::isFormattableFile)
+        mockkStatic(::isFormattableFile)
 
-    val virtualFile = mockk<VirtualFile>()
-    val document = mockk<Document>()
-    val project = mockk<Project>()
-    val dprintService = mockk<DprintService>(relaxed = true)
+        val virtualFile = mockk<VirtualFile>()
+        val document = mockk<Document>()
+        val project = mockk<Project>()
+        val dprintService = mockk<DprintService>(relaxed = true)
 
-    val formatterService = FormatterService(project)
+        val formatterService = FormatterService(project)
 
-    beforeEach {
-        every { virtualFile.path } returns testPath
-        every { document.text } returns testText
-        every { project.service<DprintService>() } returns dprintService
-    }
+        beforeEach {
+            every { virtualFile.path } returns testPath
+            every { document.text } returns testText
+            every { project.service<DprintService>() } returns dprintService
+        }
 
-    afterEach {
-        clearAllMocks()
-    }
+        afterEach {
+            clearAllMocks()
+        }
 
-    test("It doesn't format if cached can format result is false") {
-        every { isFormattableFile(project, virtualFile) } returns true
-        every { dprintService.canFormatCached(testPath) } returns false
+        test("It doesn't format if cached can format result is false") {
+            every { isFormattableFile(project, virtualFile) } returns true
+            every { dprintService.canFormatCached(testPath) } returns false
 
-        formatterService.format(virtualFile, document)
+            formatterService.format(virtualFile, document)
 
-        verify(exactly = 0) { dprintService.format(testPath, testPath, any()) }
-    }
+            verify(exactly = 0) { dprintService.format(testPath, testPath, any()) }
+        }
 
-    test("It doesn't format if cached can format result is null") {
-        every { isFormattableFile(project, virtualFile) } returns true
-        every { dprintService.canFormatCached(testPath) } returns null
+        test("It doesn't format if cached can format result is null") {
+            every { isFormattableFile(project, virtualFile) } returns true
+            every { dprintService.canFormatCached(testPath) } returns null
 
-        formatterService.format(virtualFile, document)
+            formatterService.format(virtualFile, document)
 
-        verify(exactly = 0) { dprintService.format(testPath, testPath, any()) }
-    }
+            verify(exactly = 0) { dprintService.format(testPath, testPath, any()) }
+        }
 
-    test("It formats if cached can format result is true") {
-        every { isFormattableFile(project, virtualFile) } returns true
-        every { dprintService.canFormatCached(testPath) } returns true
+        test("It formats if cached can format result is true") {
+            every { isFormattableFile(project, virtualFile) } returns true
+            every { dprintService.canFormatCached(testPath) } returns true
 
-        formatterService.format(virtualFile, document)
+            formatterService.format(virtualFile, document)
 
-        verify(exactly = 1) { dprintService.format(testPath, testText, any()) }
-    }
-})
+            verify(exactly = 1) { dprintService.format(testPath, testText, any()) }
+        }
+    })

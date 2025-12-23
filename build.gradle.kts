@@ -30,6 +30,8 @@ dependencies {
     testImplementation(libs.kotestAssertions)
     testImplementation(libs.kotestRunner)
     testImplementation(libs.mockk)
+    // Needed because the IJ platform uses version 4 for tests but kotest uses 5
+    testRuntimeOnly("junit:junit:4.13.2")
 
     intellijPlatform {
         val version = providers.gradleProperty("platformVersion")
