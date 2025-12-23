@@ -7,15 +7,14 @@ import java.util.concurrent.atomic.AtomicInteger
 
 private var messageId = AtomicInteger(0)
 
-fun createNewMessage(type: MessageType): OutgoingMessage {
-    return OutgoingMessage(getNextMessageId(), type)
-}
+fun createNewMessage(type: MessageType): OutgoingMessage = OutgoingMessage(getNextMessageId(), type)
 
-fun getNextMessageId(): Int {
-    return messageId.incrementAndGet()
-}
+fun getNextMessageId(): Int = messageId.incrementAndGet()
 
-class OutgoingMessage(val id: Int, private val type: MessageType) {
+class OutgoingMessage(
+    val id: Int,
+    private val type: MessageType,
+) {
     // Dprint uses unsigned bytes of 4x255 for the success message and that translates
     // to 4x-1 in the jvm's signed bytes.
     private val successMessage = byteArrayOf(-1, -1, -1, -1)

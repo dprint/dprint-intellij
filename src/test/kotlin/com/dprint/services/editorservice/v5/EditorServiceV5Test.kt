@@ -17,283 +17,284 @@ import io.mockk.mockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 
-class EditorServiceV5Test : FunSpec({
+class EditorServiceV5Test :
+    FunSpec({
 
-    mockkStatic(::infoLogWithConsole)
-    mockkStatic(::createNewMessage)
+        mockkStatic(::infoLogWithConsole)
+        mockkStatic(::createNewMessage)
 
-    val project = mockk<Project>()
-    val editorProcess = mockk<EditorProcess>()
-    val messageChannel = mockk<MessageChannel>()
-    val projectConfiguration = mockk<ProjectConfiguration>()
-    val configState = mockk<ProjectConfiguration.State>()
+        val project = mockk<Project>()
+        val editorProcess = mockk<EditorProcess>()
+        val messageChannel = mockk<MessageChannel>()
+        val projectConfiguration = mockk<ProjectConfiguration>()
+        val configState = mockk<ProjectConfiguration.State>()
 
-    val editorServiceV5 = EditorServiceV5(project)
+        val editorServiceV5 = EditorServiceV5(project)
 
-    beforeEach {
-        every { infoLogWithConsole(any(), project, any()) } returns Unit
-        every { createNewMessage(any()) } answers {
-            OutgoingMessage(1, firstArg())
+        beforeEach {
+            every { infoLogWithConsole(any(), project, any()) } returns Unit
+            every { createNewMessage(any()) } answers {
+                OutgoingMessage(1, firstArg())
+            }
+            every { messageChannel.hasStaleRequests(any()) } returns false
+            every { project.service<ProjectConfiguration>() } returns projectConfiguration
+            every { projectConfiguration.state } returns configState
+            every { configState.commandTimeout } returns 5000L
+            every { project.service<EditorProcess>() } returns editorProcess
+            every { project.service<MessageChannel>() } returns messageChannel
         }
-        every { messageChannel.hasStaleRequests(any()) } returns false
-        every { project.service<ProjectConfiguration>() } returns projectConfiguration
-        every { projectConfiguration.state } returns configState
-        every { configState.commandTimeout } returns 5000L
-        every { project.service<EditorProcess>() } returns editorProcess
-        every { project.service<MessageChannel>() } returns messageChannel
-    }
-
-    afterEach {
-        clearAllMocks()
-    }
-
-    test("canFormat sends the correct message and waits for response") {
-        val testFile = "/test/File.kt"
-
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery {
-            messageChannel.sendRequest(any(), any())
-        } returns MessageChannel.Result(MessageType.CanFormatResponse, true)
 
-        val result = runBlocking { editorServiceV5.canFormat(testFile) }
-
-        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.CanFormat)
-        expectedOutgoingMessage.addString(testFile)
+        afterEach {
+            clearAllMocks()
+        }
 
-        result shouldBe true
-        coVerify(exactly = 1) { messageChannel.sendRequest(1, 5000L) }
-        coVerify(exactly = 1) { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
-    }
+        test("canFormat sends the correct message and waits for response") {
+            val testFile = "/test/File.kt"
 
-    test("canFormat returns null on error") {
-        val testFile = "/test/File.kt"
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery {
+                messageChannel.sendRequest(any(), any())
+            } returns MessageChannel.Result(MessageType.CanFormatResponse, true)
 
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery {
-            messageChannel.sendRequest(any(), any())
-        } returns MessageChannel.Result(MessageType.ErrorResponse, "error")
+            val result = runBlocking { editorServiceV5.canFormat(testFile) }
 
-        val result = runBlocking { editorServiceV5.canFormat(testFile) }
+            val expectedOutgoingMessage = OutgoingMessage(1, MessageType.CanFormat)
+            expectedOutgoingMessage.addString(testFile)
 
-        result shouldBe null
-    }
+            result shouldBe true
+            coVerify(exactly = 1) { messageChannel.sendRequest(1, 5000L) }
+            coVerify(exactly = 1) { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+        }
 
-    test("canFormat returns null on timeout") {
-        val testFile = "/test/File.kt"
+        test("canFormat returns null on error") {
+            val testFile = "/test/File.kt"
 
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery { messageChannel.sendRequest(any(), any()) } returns null // timeout
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery {
+                messageChannel.sendRequest(any(), any())
+            } returns MessageChannel.Result(MessageType.ErrorResponse, "error")
 
-        val result = runBlocking { editorServiceV5.canFormat(testFile) }
+            val result = runBlocking { editorServiceV5.canFormat(testFile) }
 
-        result shouldBe null
-    }
+            result shouldBe null
+        }
 
-    test("fmt sends the correct message and waits for response") {
-        val testFile = "/test/File.kt"
-        val testContent = "val test = \"test\""
+        test("canFormat returns null on timeout") {
+            val testFile = "/test/File.kt"
 
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery {
-            messageChannel.sendRequest(any(), any())
-        } returns MessageChannel.Result(MessageType.FormatFileResponse, null)
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery { messageChannel.sendRequest(any(), any()) } returns null // timeout
 
-        val result = runBlocking { editorServiceV5.fmt(testFile, testContent, 1) }
+            val result = runBlocking { editorServiceV5.canFormat(testFile) }
 
-        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
-        // path
-        expectedOutgoingMessage.addString(testFile)
-        // start position
-        expectedOutgoingMessage.addInt(0)
-        // content length
-        expectedOutgoingMessage.addInt(testContent.toByteArray().size)
-        // don't override config
-        expectedOutgoingMessage.addInt(0)
-        // content
-        expectedOutgoingMessage.addString(testContent)
+            result shouldBe null
+        }
 
-        result.formattedContent shouldBe null
-        coVerify(exactly = 1) { messageChannel.sendRequest(1, 5000L) }
-        coVerify(exactly = 1) { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
-    }
+        test("fmt sends the correct message and waits for response") {
+            val testFile = "/test/File.kt"
+            val testContent = "val test = \"test\""
 
-    test("fmt returns the new content on success") {
-        val testFile = "/test/File.kt"
-        val testContent = "val test =   \"test\""
-        val formattedContent = "val test = \"test\""
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery {
+                messageChannel.sendRequest(any(), any())
+            } returns MessageChannel.Result(MessageType.FormatFileResponse, null)
 
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery {
-            messageChannel.sendRequest(any(), any())
-        } returns MessageChannel.Result(MessageType.FormatFileResponse, formattedContent)
+            val result = runBlocking { editorServiceV5.fmt(testFile, testContent, 1) }
 
-        val result = runBlocking { editorServiceV5.fmt(testFile, testContent, 1) }
-
-        result.formattedContent shouldBe formattedContent
-    }
+            val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
+            // path
+            expectedOutgoingMessage.addString(testFile)
+            // start position
+            expectedOutgoingMessage.addInt(0)
+            // content length
+            expectedOutgoingMessage.addInt(testContent.toByteArray().size)
+            // don't override config
+            expectedOutgoingMessage.addInt(0)
+            // content
+            expectedOutgoingMessage.addString(testContent)
 
-    test("fmt returns the error on failure") {
-        val testFile = "/test/File.kt"
-        val testContent = "val test =   \"test\""
-        val testError = "test error"
+            result.formattedContent shouldBe null
+            coVerify(exactly = 1) { messageChannel.sendRequest(1, 5000L) }
+            coVerify(exactly = 1) { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+        }
 
-        mockkStatic("com.dprint.utils.LogUtilsKt")
+        test("fmt returns the new content on success") {
+            val testFile = "/test/File.kt"
+            val testContent = "val test =   \"test\""
+            val formattedContent = "val test = \"test\""
 
-        every { infoLogWithConsole(any(), project, any()) } returns Unit
-        every { warnLogWithConsole(any(), project, any()) } returns Unit
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery {
-            messageChannel.sendRequest(any(), any())
-        } returns MessageChannel.Result(MessageType.ErrorResponse, testError)
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery {
+                messageChannel.sendRequest(any(), any())
+            } returns MessageChannel.Result(MessageType.FormatFileResponse, formattedContent)
 
-        val result = runBlocking { editorServiceV5.fmt(testFile, testContent, 1) }
+            val result = runBlocking { editorServiceV5.fmt(testFile, testContent, 1) }
 
-        result.error shouldBe testError
-    }
+            result.formattedContent shouldBe formattedContent
+        }
 
-    test("Cancel format creates the correct message") {
-        val testId = 7
+        test("fmt returns the error on failure") {
+            val testFile = "/test/File.kt"
+            val testContent = "val test =   \"test\""
+            val testError = "test error"
 
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        every { messageChannel.cancelRequest(any()) } returns true
+            mockkStatic("com.dprint.utils.LogUtilsKt")
 
-        editorServiceV5.cancelFormat(testId)
+            every { infoLogWithConsole(any(), project, any()) } returns Unit
+            every { warnLogWithConsole(any(), project, any()) } returns Unit
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery {
+                messageChannel.sendRequest(any(), any())
+            } returns MessageChannel.Result(MessageType.ErrorResponse, testError)
 
-        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.CancelFormat)
-        expectedOutgoingMessage.addInt(testId)
+            val result = runBlocking { editorServiceV5.fmt(testFile, testContent, 1) }
 
-        verify { messageChannel.cancelRequest(testId) }
-        coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
-    }
+            result.error shouldBe testError
+        }
 
-    test("canFormat uses configurable timeout from project configuration") {
-        val testFile = "/test/File.kt"
-        val customTimeout = 15000L
+        test("Cancel format creates the correct message") {
+            val testId = 7
 
-        // Override the timeout for this test
-        every { configState.commandTimeout } returns customTimeout
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            every { messageChannel.cancelRequest(any()) } returns true
 
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery {
-            messageChannel.sendRequest(any(), any())
-        } returns MessageChannel.Result(MessageType.CanFormatResponse, true)
+            editorServiceV5.cancelFormat(testId)
 
-        runBlocking { editorServiceV5.canFormat(testFile) }
+            val expectedOutgoingMessage = OutgoingMessage(1, MessageType.CancelFormat)
+            expectedOutgoingMessage.addInt(testId)
 
-        coVerify(exactly = 1) { messageChannel.sendRequest(1, customTimeout) }
-    }
+            verify { messageChannel.cancelRequest(testId) }
+            coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+        }
 
-    test("fmt converts string indices to byte indices correctly for ASCII text") {
-        val testFile = "/test/File.kt"
-        val testContent = "hello world"
+        test("canFormat uses configurable timeout from project configuration") {
+            val testFile = "/test/File.kt"
+            val customTimeout = 15000L
 
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery {
-            messageChannel.sendRequest(any(), any())
-        } returns MessageChannel.Result(MessageType.FormatFileResponse, testContent)
+            // Override the timeout for this test
+            every { configState.commandTimeout } returns customTimeout
 
-        runBlocking { editorServiceV5.fmt(testFile, testContent, 1, 6, 11) }
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery {
+                messageChannel.sendRequest(any(), any())
+            } returns MessageChannel.Result(MessageType.CanFormatResponse, true)
 
-        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
-        expectedOutgoingMessage.addString(testFile)
-        expectedOutgoingMessage.addInt(6) // "hello " = 6 bytes
-        expectedOutgoingMessage.addInt(11) // "hello world" = 11 bytes
-        expectedOutgoingMessage.addInt(0)
-        expectedOutgoingMessage.addString(testContent)
-
-        coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
-    }
-
-    test("fmt converts string indices to byte indices correctly for Unicode text") {
-        val testFile = "/test/File.kt"
-        val testContent = "🚀 rocket"
-
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery {
-            messageChannel.sendRequest(any(), any())
-        } returns MessageChannel.Result(MessageType.FormatFileResponse, testContent)
-
-        runBlocking { editorServiceV5.fmt(testFile, testContent, 1, 2, 9) }
-
-        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
-        expectedOutgoingMessage.addString(testFile)
-        expectedOutgoingMessage.addInt(
-            testContent.substring(0, 2).encodeToByteArray().size,
-        ) // Dynamic calculation for string index 2
-        expectedOutgoingMessage.addInt(
-            testContent.substring(0, 9).encodeToByteArray().size,
-        ) // Dynamic calculation for string index 9
-        expectedOutgoingMessage.addInt(0)
-        expectedOutgoingMessage.addString(testContent)
-
-        coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
-    }
-
-    test("fmt handles edge case with start index 0") {
-        val testFile = "/test/File.kt"
-        val testContent = "test"
-
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery {
-            messageChannel.sendRequest(any(), any())
-        } returns MessageChannel.Result(MessageType.FormatFileResponse, testContent)
-
-        runBlocking { editorServiceV5.fmt(testFile, testContent, 1, 0, 2) }
-
-        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
-        expectedOutgoingMessage.addString(testFile)
-        expectedOutgoingMessage.addInt(0) // start at 0
-        expectedOutgoingMessage.addInt(2) // "te" = 2 bytes
-        expectedOutgoingMessage.addInt(0)
-        expectedOutgoingMessage.addString(testContent)
-
-        coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
-    }
-
-    test("fmt handles edge case with index beyond content length") {
-        val testFile = "/test/File.kt"
-        val testContent = "test"
-
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery {
-            messageChannel.sendRequest(any(), any())
-        } returns MessageChannel.Result(MessageType.FormatFileResponse, testContent)
-
-        runBlocking { editorServiceV5.fmt(testFile, testContent, 1, 10, 20) }
-
-        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
-        expectedOutgoingMessage.addString(testFile)
-        expectedOutgoingMessage.addInt(4) // beyond length returns full content byte size
-        expectedOutgoingMessage.addInt(4) // beyond length returns full content byte size
-        expectedOutgoingMessage.addInt(0)
-        expectedOutgoingMessage.addString(testContent)
-
-        coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
-    }
-
-    test("fmt handles mixed Unicode characters correctly") {
-        val testFile = "/test/File.kt"
-        val testContent = "café 🎉 test"
-
-        coEvery { editorProcess.writeBuffer(any()) } returns Unit
-        coEvery {
-            messageChannel.sendRequest(any(), any())
-        } returns MessageChannel.Result(MessageType.FormatFileResponse, testContent)
-
-        runBlocking { editorServiceV5.fmt(testFile, testContent, 1, 5, 7) }
-
-        val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
-        expectedOutgoingMessage.addString(testFile)
-        expectedOutgoingMessage.addInt(testContent.substring(0, 5).encodeToByteArray().size) // Dynamic calculation
-        expectedOutgoingMessage.addInt(testContent.substring(0, 7).encodeToByteArray().size) // Dynamic calculation
-        expectedOutgoingMessage.addInt(0)
-        expectedOutgoingMessage.addString(testContent)
-
-        coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
-    }
-
-    test("canRangeFormat returns true for V5") {
-        val result = editorServiceV5.canRangeFormat()
-        result shouldBe false
-    }
-})
+            runBlocking { editorServiceV5.canFormat(testFile) }
+
+            coVerify(exactly = 1) { messageChannel.sendRequest(1, customTimeout) }
+        }
+
+        test("fmt converts string indices to byte indices correctly for ASCII text") {
+            val testFile = "/test/File.kt"
+            val testContent = "hello world"
+
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery {
+                messageChannel.sendRequest(any(), any())
+            } returns MessageChannel.Result(MessageType.FormatFileResponse, testContent)
+
+            runBlocking { editorServiceV5.fmt(testFile, testContent, 1, 6, 11) }
+
+            val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
+            expectedOutgoingMessage.addString(testFile)
+            expectedOutgoingMessage.addInt(6) // "hello " = 6 bytes
+            expectedOutgoingMessage.addInt(11) // "hello world" = 11 bytes
+            expectedOutgoingMessage.addInt(0)
+            expectedOutgoingMessage.addString(testContent)
+
+            coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+        }
+
+        test("fmt converts string indices to byte indices correctly for Unicode text") {
+            val testFile = "/test/File.kt"
+            val testContent = "🚀 rocket"
+
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery {
+                messageChannel.sendRequest(any(), any())
+            } returns MessageChannel.Result(MessageType.FormatFileResponse, testContent)
+
+            runBlocking { editorServiceV5.fmt(testFile, testContent, 1, 2, 9) }
+
+            val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
+            expectedOutgoingMessage.addString(testFile)
+            expectedOutgoingMessage.addInt(
+                testContent.substring(0, 2).encodeToByteArray().size,
+            ) // Dynamic calculation for string index 2
+            expectedOutgoingMessage.addInt(
+                testContent.substring(0, 9).encodeToByteArray().size,
+            ) // Dynamic calculation for string index 9
+            expectedOutgoingMessage.addInt(0)
+            expectedOutgoingMessage.addString(testContent)
+
+            coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+        }
+
+        test("fmt handles edge case with start index 0") {
+            val testFile = "/test/File.kt"
+            val testContent = "test"
+
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery {
+                messageChannel.sendRequest(any(), any())
+            } returns MessageChannel.Result(MessageType.FormatFileResponse, testContent)
+
+            runBlocking { editorServiceV5.fmt(testFile, testContent, 1, 0, 2) }
+
+            val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
+            expectedOutgoingMessage.addString(testFile)
+            expectedOutgoingMessage.addInt(0) // start at 0
+            expectedOutgoingMessage.addInt(2) // "te" = 2 bytes
+            expectedOutgoingMessage.addInt(0)
+            expectedOutgoingMessage.addString(testContent)
+
+            coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+        }
+
+        test("fmt handles edge case with index beyond content length") {
+            val testFile = "/test/File.kt"
+            val testContent = "test"
+
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery {
+                messageChannel.sendRequest(any(), any())
+            } returns MessageChannel.Result(MessageType.FormatFileResponse, testContent)
+
+            runBlocking { editorServiceV5.fmt(testFile, testContent, 1, 10, 20) }
+
+            val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
+            expectedOutgoingMessage.addString(testFile)
+            expectedOutgoingMessage.addInt(4) // beyond length returns full content byte size
+            expectedOutgoingMessage.addInt(4) // beyond length returns full content byte size
+            expectedOutgoingMessage.addInt(0)
+            expectedOutgoingMessage.addString(testContent)
+
+            coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+        }
+
+        test("fmt handles mixed Unicode characters correctly") {
+            val testFile = "/test/File.kt"
+            val testContent = "café 🎉 test"
+
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+            coEvery {
+                messageChannel.sendRequest(any(), any())
+            } returns MessageChannel.Result(MessageType.FormatFileResponse, testContent)
+
+            runBlocking { editorServiceV5.fmt(testFile, testContent, 1, 5, 7) }
+
+            val expectedOutgoingMessage = OutgoingMessage(1, MessageType.FormatFile)
+            expectedOutgoingMessage.addString(testFile)
+            expectedOutgoingMessage.addInt(testContent.substring(0, 5).encodeToByteArray().size) // Dynamic calculation
+            expectedOutgoingMessage.addInt(testContent.substring(0, 7).encodeToByteArray().size) // Dynamic calculation
+            expectedOutgoingMessage.addInt(0)
+            expectedOutgoingMessage.addString(testContent)
+
+            coVerify { editorProcess.writeBuffer(expectedOutgoingMessage.build()) }
+        }
+
+        test("canRangeFormat returns true for V5") {
+            val result = editorServiceV5.canRangeFormat()
+            result shouldBe false
+        }
+    })

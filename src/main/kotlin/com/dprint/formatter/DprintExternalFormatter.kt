@@ -29,9 +29,8 @@ private const val NAME = "dprintfmt"
  * until it eventually gets to the IJ formatter as a last resort.
  */
 class DprintExternalFormatter : AsyncDocumentFormattingService() {
-    override fun getFeatures(): MutableSet<FormattingService.Feature> {
-        return mutableSetOf(FormattingService.Feature.FORMAT_FRAGMENTS)
-    }
+    override fun getFeatures(): MutableSet<FormattingService.Feature> =
+        mutableSetOf(FormattingService.Feature.FORMAT_FRAGMENTS)
 
     override fun canFormat(file: PsiFile): Boolean {
         val projectConfig = file.project.service<ProjectConfiguration>().state
@@ -95,17 +94,11 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
             return object : FormattingTask {
                 val dprintTask = DprintRangeFormattingTask(project, dprintService, formattingRequest, path)
 
-                override fun run() {
-                    return dprintTask.run()
-                }
+                override fun run() = dprintTask.run()
 
-                override fun cancel(): Boolean {
-                    return dprintTask.cancel()
-                }
+                override fun cancel(): Boolean = dprintTask.cancel()
 
-                override fun isRunUnderProgress(): Boolean {
-                    return dprintTask.isRunUnderProgress()
-                }
+                override fun isRunUnderProgress(): Boolean = dprintTask.isRunUnderProgress()
             }
         }
 
@@ -119,17 +112,11 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         return object : FormattingTask {
             val dprintTask = DprintFormattingTask(project, dprintService, formattingRequest, path)
 
-            override fun run() {
-                return dprintTask.run()
-            }
+            override fun run() = dprintTask.run()
 
-            override fun cancel(): Boolean {
-                return dprintTask.cancel()
-            }
+            override fun cancel(): Boolean = dprintTask.cancel()
 
-            override fun isRunUnderProgress(): Boolean {
-                return dprintTask.isRunUnderProgress()
-            }
+            override fun isRunUnderProgress(): Boolean = dprintTask.isRunUnderProgress()
         }
     }
 
@@ -164,11 +151,7 @@ class DprintExternalFormatter : AsyncDocumentFormattingService() {
         }
     }
 
-    override fun getNotificationGroupId(): String {
-        return "Dprint"
-    }
+    override fun getNotificationGroupId(): String = "Dprint"
 
-    override fun getName(): String {
-        return NAME
-    }
+    override fun getName(): String = NAME
 }

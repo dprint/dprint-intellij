@@ -16,7 +16,8 @@ interface DprintAction {
             filePath: String,
         ) {
             publishSafely(project) {
-                project.messageBus.syncPublisher(DPRINT_ACTION_TOPIC)
+                project.messageBus
+                    .syncPublisher(DPRINT_ACTION_TOPIC)
                     .formattingStarted(filePath)
             }
         }
@@ -27,7 +28,8 @@ interface DprintAction {
             timeElapsed: Long,
         ) {
             publishSafely(project) {
-                project.messageBus.syncPublisher(DPRINT_ACTION_TOPIC)
+                project.messageBus
+                    .syncPublisher(DPRINT_ACTION_TOPIC)
                     .formattingSucceeded(filePath, timeElapsed)
             }
         }

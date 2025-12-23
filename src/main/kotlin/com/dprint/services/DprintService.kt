@@ -36,7 +36,9 @@ data class ServiceStateData(
 )
 
 @Service(Service.Level.PROJECT)
-class DprintService(private val project: Project) : Disposable {
+class DprintService(
+    private val project: Project,
+) : Disposable {
     private val taskExecutor = DprintTaskExecutor(project)
     private val cache = EditorServiceCache(project)
     private val initializer = EditorServiceInitializer(project)
@@ -253,13 +255,9 @@ class DprintService(private val project: Project) : Disposable {
         }
     }
 
-    fun getConfigPath(): String? {
-        return serviceState.get().configPath
-    }
+    fun getConfigPath(): String? = serviceState.get().configPath
 
-    fun maybeGetFormatId(): Int? {
-        return serviceState.get().editorService?.maybeGetFormatId()
-    }
+    fun maybeGetFormatId(): Int? = serviceState.get().editorService?.maybeGetFormatId()
 
     fun cancelFormat(formatId: Int) {
         val timeout = project.service<ProjectConfiguration>().state.commandTimeout
@@ -275,13 +273,9 @@ class DprintService(private val project: Project) : Disposable {
         )
     }
 
-    fun canRangeFormat(): Boolean {
-        return serviceState.get().editorService?.canRangeFormat() == true
-    }
+    fun canRangeFormat(): Boolean = serviceState.get().editorService?.canRangeFormat() == true
 
-    fun canCancelFormat(): Boolean {
-        return serviceState.get().editorService?.canCancelFormat() == true
-    }
+    fun canCancelFormat(): Boolean = serviceState.get().editorService?.canCancelFormat() == true
 
     fun clearCanFormatCache() {
         cache.clearCanFormatCache()

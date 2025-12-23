@@ -8,7 +8,9 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 
-class ConsoleToolWindowFactory : ToolWindowFactory, DumbAware {
+class ConsoleToolWindowFactory :
+    ToolWindowFactory,
+    DumbAware {
     override fun createToolWindowContent(
         project: Project,
         toolWindow: ToolWindow,
@@ -21,7 +23,5 @@ class ConsoleToolWindowFactory : ToolWindowFactory, DumbAware {
         toolWindow.contentManager.addContent(content)
     }
 
-    override suspend fun isApplicableAsync(project: Project): Boolean {
-        return true
-    }
+    override suspend fun isApplicableAsync(project: Project): Boolean = true
 }

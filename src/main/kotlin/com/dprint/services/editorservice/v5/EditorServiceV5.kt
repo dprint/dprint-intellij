@@ -21,7 +21,9 @@ private val LOGGER = logger<EditorServiceV5>()
 private const val SHUTDOWN_TIMEOUT = 1000L
 
 @Service(Service.Level.PROJECT)
-class EditorServiceV5(private val project: Project) : IEditorService {
+class EditorServiceV5(
+    private val project: Project,
+) : IEditorService {
     private var stdoutListener: StdoutListener? = null
 
     private fun createStdoutListener(): StdoutListener {
@@ -141,9 +143,7 @@ class EditorServiceV5(private val project: Project) : IEditorService {
         filePath: String,
         content: String,
         formatId: Int?,
-    ): FormatResult {
-        return fmt(filePath, content, formatId, null, null)
-    }
+    ): FormatResult = fmt(filePath, content, formatId, null, null)
 
     override suspend fun fmt(
         filePath: String,
@@ -256,17 +256,11 @@ class EditorServiceV5(private val project: Project) : IEditorService {
         }
     }
 
-    override fun canRangeFormat(): Boolean {
-        return false
-    }
+    override fun canRangeFormat(): Boolean = false
 
-    override fun canCancelFormat(): Boolean {
-        return true
-    }
+    override fun canCancelFormat(): Boolean = true
 
-    override fun maybeGetFormatId(): Int {
-        return getNextMessageId()
-    }
+    override fun maybeGetFormatId(): Int = getNextMessageId()
 
     override fun cancelFormat(formatId: Int) {
         val message = createNewMessage(MessageType.CancelFormat)
@@ -285,7 +279,5 @@ class EditorServiceV5(private val project: Project) : IEditorService {
         }
     }
 
-    private fun getName(): String {
-        return this::class.java.simpleName
-    }
+    private fun getName(): String = this::class.java.simpleName
 }

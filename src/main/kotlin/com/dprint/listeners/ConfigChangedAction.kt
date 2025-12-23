@@ -17,9 +17,7 @@ private val LOGGER = logger<ConfigChangedAction>()
  * This listener restarts the editor service if the config file is updated.
  */
 class ConfigChangedAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
-    override fun isEnabledForProject(project: Project): Boolean {
-        return project.service<ProjectConfiguration>().state.enabled
-    }
+    override fun isEnabledForProject(project: Project): Boolean = project.service<ProjectConfiguration>().state.enabled
 
     override fun processDocuments(
         project: Project,

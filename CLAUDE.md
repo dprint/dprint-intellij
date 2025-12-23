@@ -64,8 +64,8 @@ IntelliJ IDEs. The plugin allows users to format their code using dprint directl
 
 ## Development Notes
 
-1. The plugin is developed using Kotlin and targets IntelliJ 2024.3+
-2. JDK 17 is required for development
+1. The plugin is developed using Kotlin and targets IntelliJ 2025.1+
+2. JDK 21 is required for development
 3. To test the plugin locally:
     - Install dprint CLI (`brew install dprint` on macOS)
     - Run `dprint init` to create a default config
@@ -110,9 +110,12 @@ IntelliJ IDEs. The plugin allows users to format their code using dprint directl
 - **Progress integration** - Better integration with IntelliJ's progress system for background operations
 
 ### Technical Updates
+- **Build system modernization** - Updated to Gradle 9.2.1 and IntelliJ Platform Gradle Plugin 2.10.5
+- **Java toolchain update** - Upgraded from Java 17 to Java 21 for better performance and modern language features
 - **Dependency updates** - Updated all dependencies for 2025, including Gradle foojay-resolver-convention plugin (0.7.0 → 1.0.0)
-- **IntelliJ platform updates** - Updated to target IntelliJ 2024.3+ with latest platform APIs
+- **IntelliJ platform updates** - Updated to target IntelliJ 2025.1+ with latest platform APIs
 - **Deprecated code removal** - Cleaned up deprecated class usage and modernized codebase
+- **Test configuration improvements** - Fixed Kotest integration with JUnit 5 to work seamlessly with Gradle test infrastructure
 - **Test improvements** - Added comprehensive test suite for new architecture including `DprintServiceUnitTest`, `EditorServiceCacheTest`, and improved V5 service tests
 
 ### Configuration & UI Improvements

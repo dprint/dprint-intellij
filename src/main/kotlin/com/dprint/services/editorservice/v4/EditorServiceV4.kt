@@ -18,7 +18,9 @@ private const val FORMAT_COMMAND = 2
 private val LOGGER = logger<EditorServiceV4>()
 
 @Service(Service.Level.PROJECT)
-class EditorServiceV4(private val project: Project) : IEditorService {
+class EditorServiceV4(
+    private val project: Project,
+) : IEditorService {
     private var editorProcess = project.service<EditorProcess>()
 
     override fun initialiseEditorService() {
@@ -67,9 +69,7 @@ class EditorServiceV4(private val project: Project) : IEditorService {
         formatId: Int?,
         startIndex: Int?,
         endIndex: Int?,
-    ): FormatResult {
-        return fmt(filePath, content, formatId)
-    }
+    ): FormatResult = fmt(filePath, content, formatId)
 
     override suspend fun fmt(
         filePath: String,
@@ -117,19 +117,11 @@ class EditorServiceV4(private val project: Project) : IEditorService {
         return result
     }
 
-    override fun canRangeFormat(): Boolean {
-        return false
-    }
+    override fun canRangeFormat(): Boolean = false
 
-    override fun canCancelFormat(): Boolean {
-        return false
-    }
+    override fun canCancelFormat(): Boolean = false
 
-    override fun maybeGetFormatId(): Int? {
-        return null
-    }
+    override fun maybeGetFormatId(): Int? = null
 
-    private fun getName(): String {
-        return this::class.java.simpleName
-    }
+    private fun getName(): String = this::class.java.simpleName
 }

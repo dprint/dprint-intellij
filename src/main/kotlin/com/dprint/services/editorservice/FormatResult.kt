@@ -5,4 +5,7 @@ package com.dprint.services.editorservice
  *
  * If both parameters are null, it represents a no-op from the format operation.
  */
-data class FormatResult(val formattedContent: String? = null, val error: String? = null)
+data class FormatResult(
+    val formattedContent: String? = null,
+    val error: String? = null,
+)

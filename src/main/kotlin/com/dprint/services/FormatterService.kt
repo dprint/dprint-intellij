@@ -14,7 +14,9 @@ import com.intellij.openapi.vfs.VirtualFile
  * A project service that handles reading virtual files, formatting their contents and writing the formatted result.
  */
 @Service(Service.Level.PROJECT)
-class FormatterService(private val project: Project) {
+class FormatterService(
+    private val project: Project,
+) {
     fun format(
         virtualFile: VirtualFile,
         document: Document,

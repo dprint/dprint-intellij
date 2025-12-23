@@ -30,7 +30,9 @@ private const val SCHEMA_V5 = 5
  * Handles initialization and lifecycle management of editor services.
  * Detects schema versions and creates appropriate service implementations.
  */
-class EditorServiceInitializer(private val project: Project) {
+class EditorServiceInitializer(
+    private val project: Project,
+) {
     private fun getSchemaVersion(configPath: String?): Int? {
         val executablePath = getValidExecutablePath(project)
         if (executablePath == null) {
@@ -70,7 +72,11 @@ class EditorServiceInitializer(private val project: Project) {
                 return null
             }
 
-            Json.parseToJsonElement(jsonText).jsonObject["schemaVersion"]?.jsonPrimitive?.int
+            Json
+                .parseToJsonElement(jsonText)
+                .jsonObject["schemaVersion"]
+                ?.jsonPrimitive
+                ?.int
         } catch (e: RuntimeException) {
             val stdout = result.stdout.trim()
             val stderr = result.stderr.trim()
@@ -148,7 +154,8 @@ class EditorServiceInitializer(private val project: Project) {
                 }
 
                 schemaVersion < SCHEMA_V4 -> {
-                    project.messageBus.syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
+                    project.messageBus
+                        .syncPublisher(DprintMessage.DPRINT_MESSAGE_TOPIC)
                         .info(
                             DprintBundle.message("config.dprint.schemaVersion.older"),
                         )
@@ -188,7 +195,6 @@ class EditorServiceInitializer(private val project: Project) {
                     "editor.service.manager.initialising.editor.service.failed.content",
                 ),
                 NotificationType.ERROR,
-            )
-            .notify(project)
+            ).notify(project)
     }
 }

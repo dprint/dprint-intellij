@@ -15,7 +15,10 @@ import java.nio.BufferUnderflowException
 
 private val LOGGER = logger<StdErrListener>()
 
-class StdErrListener(private val project: Project, private val process: Process) {
+class StdErrListener(
+    private val project: Project,
+    private val process: Process,
+) {
     private var listenerJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 

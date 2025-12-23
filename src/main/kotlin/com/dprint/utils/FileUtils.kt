@@ -108,9 +108,7 @@ fun isFormattableFile(
 /**
  * Validates a path ends with 'dprint' or 'dprint.exe' and is executable
  */
-fun validateExecutablePath(path: String): Boolean {
-    return path.endsWith(getExecutableFile()) && File(path).canExecute()
-}
+fun validateExecutablePath(path: String): Boolean = path.endsWith(getExecutableFile()) && File(path).canExecute()
 
 /**
  * Attempts to get the dprint executable location by checking to see if it is discoverable.
@@ -141,12 +139,11 @@ private fun getLocationFromTheNodeModules(basePath: String?): String? {
     return null
 }
 
-private fun getExecutableFile(): String {
-    return when (System.getProperty("os.name").lowercase().contains("win")) {
+private fun getExecutableFile(): String =
+    when (System.getProperty("os.name").lowercase().contains("win")) {
         true -> "dprint.exe"
         false -> "dprint"
     }
-}
 
 /**
  * Gets a valid dprint executable path. It will try to use the configured path and will fall
