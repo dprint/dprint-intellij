@@ -26,6 +26,7 @@ class EditorServiceV4(
     override fun initialiseEditorService() {
         // If not enabled we don't start the editor service
         if (!project.service<ProjectConfiguration>().state.enabled) return
+        // Reset the destroyed flag when reinitializing
         editorProcess.initialize()
         infoLogWithConsole(
             DprintBundle.message("editor.service.initialize", getName()),
@@ -39,8 +40,10 @@ class EditorServiceV4(
     }
 
     override fun destroyEditorService() {
-        infoLogWithConsole(DprintBundle.message("editor.service.destroy", getName()), project, LOGGER)
-        editorProcess.destroy()
+        if (editorProcess.isAlive()) {
+            infoLogWithConsole(DprintBundle.message("editor.service.destroy", getName()), project, LOGGER)
+            editorProcess.destroy()
+        }
     }
 
     override suspend fun canFormat(filePath: String): Boolean? {
