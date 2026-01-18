@@ -4,6 +4,7 @@ import com.dprint.config.ProjectConfiguration
 import com.dprint.i18n.DprintBundle
 import com.dprint.services.editorservice.FormatResult
 import com.dprint.services.editorservice.IEditorService
+import com.dprint.services.editorservice.exceptions.ProcessUnavailableException
 import com.dprint.services.editorservice.process.EditorProcess
 import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
@@ -70,6 +71,8 @@ class EditorServiceV5(
             }
         } catch (e: TimeoutCancellationException) {
             errorLogWithConsole(DprintBundle.message("editor.service.shutting.down.timed.out"), e, project, LOGGER)
+        } catch (e: ProcessUnavailableException) {
+            infoLogWithConsole("Process already terminated, skipping shutdown message", project, LOGGER)
         } finally {
             stdoutListener?.dispose()
             dropMessages()
