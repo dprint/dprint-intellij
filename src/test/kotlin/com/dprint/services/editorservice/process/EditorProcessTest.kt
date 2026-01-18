@@ -29,8 +29,6 @@ class EditorProcessTest :
         val process = mockk<Process>()
         val userConfig = mockk<UserConfiguration>()
 
-        val editorProcess = EditorProcess(project)
-
         beforeEach {
             every { infoLogWithConsole(any(), project, any()) } returns Unit
             every { project.service<UserConfiguration>() } returns userConfig
@@ -41,6 +39,7 @@ class EditorProcessTest :
         }
 
         test("it creates a process with the correct args") {
+            val editorProcess = EditorProcess(project)
             val execPath = "/bin/dprint"
             val configPath = "./dprint.json"
             val workingDir = "/working/dir"
@@ -81,5 +80,23 @@ class EditorProcessTest :
                 exactly = 1,
             ) { constructedWith<GeneralCommandLine>(EqMatcher(expectedArgs)).withWorkDirectory(workingDir) }
             verify(exactly = 1) { constructedWith<GeneralCommandLine>(EqMatcher(expectedArgs)).createProcess() }
+        }
+
+        test("isAlive returns false initially") {
+            val editorProcess = EditorProcess(project)
+            assert(!editorProcess.isAlive()) { "EditorProcess should not be alive before initialization" }
+        }
+
+        test("destroy is idempotent - multiple calls are safe") {
+            val editorProcess = EditorProcess(project)
+
+            // Call destroy multiple times when process was never initialized
+            // This should not throw any exceptions
+            editorProcess.destroy()
+            editorProcess.destroy()
+            editorProcess.destroy()
+
+            // Process should still not be alive
+            assert(!editorProcess.isAlive()) { "EditorProcess should remain not alive after multiple destroy calls" }
         }
     })

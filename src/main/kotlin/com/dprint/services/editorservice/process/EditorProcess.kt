@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.nio.ByteBuffer
+import java.util.concurrent.atomic.AtomicBoolean
 
 private const val BUFFER_SIZE = 1024
 private const val ZERO = 0
@@ -33,6 +34,7 @@ class EditorProcess(
 ) {
     private var process: Process? = null
     private var stderrListener: StdErrListener? = null
+    private val isDestroyed = AtomicBoolean(true) // Start as destroyed (not alive)
 
     fun initialize() {
         val executablePath = getValidExecutablePath(project)
@@ -61,6 +63,7 @@ class EditorProcess(
                     actualProcess.onExit().thenApply {
                         destroy()
                     }
+                    isDestroyed.set(false)
                     createStderrListener(actualProcess)
                 }
             }
@@ -69,12 +72,19 @@ class EditorProcess(
 
     /**
      * Shuts down the editor service and destroys the process.
+     * This method is idempotent and safe to call multiple times.
      */
     fun destroy() {
+        if (!isDestroyed.compareAndSet(false, true)) {
+            // Already destroyed, return early
+            return
+        }
         stderrListener?.dispose()
         process?.destroy()
         process = null
     }
+
+    fun isAlive(): Boolean = !isDestroyed.get()
 
     private fun createStderrListener(actualProcess: Process): StdErrListener {
         val stdErrListener = StdErrListener(project, actualProcess)

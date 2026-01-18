@@ -53,9 +53,14 @@ class EditorServiceV5(
     }
 
     override fun destroyEditorService() {
-        infoLogWithConsole(DprintBundle.message("editor.service.destroy", getName()), project, LOGGER)
-        val message = createNewMessage(MessageType.ShutDownProcess)
+        val editorService = project.service<EditorProcess>()
+        if (!editorService.isAlive()) {
+            return
+        }
+
         try {
+            infoLogWithConsole(DprintBundle.message("editor.service.destroy", getName()), project, LOGGER)
+            val message = createNewMessage(MessageType.ShutDownProcess)
             runBlocking {
                 withTimeout(SHUTDOWN_TIMEOUT) {
                     launch {

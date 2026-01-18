@@ -2,6 +2,7 @@ package com.dprint.services.editorservice.v5
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.services.editorservice.process.EditorProcess
+import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
 import com.intellij.openapi.components.service
@@ -296,5 +297,55 @@ class EditorServiceV5Test :
         test("canRangeFormat returns true for V5") {
             val result = editorServiceV5.canRangeFormat()
             result shouldBe false
+        }
+
+        test("destroyEditorService only destroys if process is alive") {
+            mockkStatic("com.dprint.utils.LogUtilsKt")
+            every { infoLogWithConsole(any(), project, any()) } returns Unit
+
+            // Process is not alive
+            every { editorProcess.isAlive() } returns false
+
+            editorServiceV5.destroyEditorService()
+
+            // Verify destroy was not called on the process
+            verify(exactly = 0) { editorProcess.destroy() }
+        }
+
+        test("destroyEditorService calls destroy when process is alive") {
+            mockkStatic("com.dprint.utils.LogUtilsKt")
+            every { infoLogWithConsole(any(), project, any()) } returns Unit
+            every { errorLogWithConsole(any<String>(), any<Throwable>(), project, any()) } returns Unit
+
+            // Process is alive
+            every { editorProcess.isAlive() } returns true
+            every { editorProcess.destroy() } returns Unit
+            every { messageChannel.cancelAllRequests() } returns emptyList()
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+
+            editorServiceV5.destroyEditorService()
+
+            // Verify destroy was called on the process
+            verify(exactly = 1) { editorProcess.destroy() }
+        }
+
+        test("destroyEditorService is safe to call multiple times") {
+            mockkStatic("com.dprint.utils.LogUtilsKt")
+            every { infoLogWithConsole(any(), project, any()) } returns Unit
+            every { errorLogWithConsole(any<String>(), any<Throwable>(), project, any()) } returns Unit
+
+            // Process is alive for first call, then not alive for subsequent calls
+            every { editorProcess.isAlive() } returnsMany listOf(true, false, false)
+            every { editorProcess.destroy() } returns Unit
+            every { messageChannel.cancelAllRequests() } returns emptyList()
+            coEvery { editorProcess.writeBuffer(any()) } returns Unit
+
+            // Call destroy multiple times
+            editorServiceV5.destroyEditorService()
+            editorServiceV5.destroyEditorService()
+            editorServiceV5.destroyEditorService()
+
+            // Verify destroy was only called once (when isAlive was true)
+            verify(exactly = 1) { editorProcess.destroy() }
         }
     })

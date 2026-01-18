@@ -39,8 +39,10 @@ class EditorServiceV4(
     }
 
     override fun destroyEditorService() {
-        infoLogWithConsole(DprintBundle.message("editor.service.destroy", getName()), project, LOGGER)
-        editorProcess.destroy()
+        if (editorProcess.isAlive()) {
+            infoLogWithConsole(DprintBundle.message("editor.service.destroy", getName()), project, LOGGER)
+            editorProcess.destroy()
+        }
     }
 
     override suspend fun canFormat(filePath: String): Boolean? {
