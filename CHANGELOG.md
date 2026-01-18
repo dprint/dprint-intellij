@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## 0.9.1 - 2026-01-18
+
 - Fix issue where multiple process shutdowns occurring when closing a project can throw an error,
   fixes https://github.com/dprint/dprint-intellij/issues/121
 - Downgrade kotlin version to 2.2.21, fixes https://github.com/dprint/dprint-intellij/issues/122
