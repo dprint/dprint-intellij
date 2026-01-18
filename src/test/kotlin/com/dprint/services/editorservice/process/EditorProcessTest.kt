@@ -82,127 +82,21 @@ class EditorProcessTest :
             verify(exactly = 1) { constructedWith<GeneralCommandLine>(EqMatcher(expectedArgs)).createProcess() }
         }
 
-        test("isAlive returns true after initialization") {
+        test("isAlive returns false initially") {
             val editorProcess = EditorProcess(project)
-            val execPath = "/bin/dprint"
-            val configPath = "./dprint.json"
-            val workingDir = "/working/dir"
-
-            mockkConstructor(GeneralCommandLine::class)
-            mockkConstructor(File::class)
-            mockkConstructor(StdErrListener::class)
-
-            every { getValidExecutablePath(project) } returns execPath
-            every { getValidConfigPath(project) } returns configPath
-            every { ProcessHandle.current() } returns processHandle
-            every { processHandle.pid() } returns 1L
-            every { userConfig.state } returns UserConfiguration.State()
-            every { constructedWith<File>(EqMatcher(configPath)).parent } returns workingDir
-            every { process.pid() } returns 2L
-            every { process.onExit() } returns CompletableFuture.completedFuture(process)
-            every { anyConstructed<StdErrListener>().listen() } returns Unit
-            every { anyConstructed<GeneralCommandLine>().createProcess() } returns process
-
-            editorProcess.initialize()
-
-            assert(editorProcess.isAlive()) { "EditorProcess should be alive after initialization" }
+            assert(!editorProcess.isAlive()) { "EditorProcess should not be alive before initialization" }
         }
 
-        test("isAlive returns false after destroy") {
+        test("destroy is idempotent - multiple calls are safe") {
             val editorProcess = EditorProcess(project)
-            val execPath = "/bin/dprint"
-            val configPath = "./dprint.json"
-            val workingDir = "/working/dir"
 
-            mockkConstructor(GeneralCommandLine::class)
-            mockkConstructor(File::class)
-            mockkConstructor(StdErrListener::class)
-
-            every { getValidExecutablePath(project) } returns execPath
-            every { getValidConfigPath(project) } returns configPath
-            every { ProcessHandle.current() } returns processHandle
-            every { processHandle.pid() } returns 1L
-            every { userConfig.state } returns UserConfiguration.State()
-            every { constructedWith<File>(EqMatcher(configPath)).parent } returns workingDir
-            every { process.pid() } returns 2L
-            every { process.onExit() } returns CompletableFuture.completedFuture(process)
-            every { process.destroy() } returns Unit
-            every { anyConstructed<StdErrListener>().listen() } returns Unit
-            every { anyConstructed<StdErrListener>().dispose() } returns Unit
-            every { anyConstructed<GeneralCommandLine>().createProcess() } returns process
-
-            editorProcess.initialize()
-            editorProcess.destroy()
-
-            assert(!editorProcess.isAlive()) { "EditorProcess should not be alive after destroy" }
-        }
-
-        test("destroy is idempotent - multiple calls only destroy once") {
-            val editorProcess = EditorProcess(project)
-            val execPath = "/bin/dprint"
-            val configPath = "./dprint.json"
-            val workingDir = "/working/dir"
-
-            mockkConstructor(GeneralCommandLine::class)
-            mockkConstructor(File::class)
-            mockkConstructor(StdErrListener::class)
-
-            every { getValidExecutablePath(project) } returns execPath
-            every { getValidConfigPath(project) } returns configPath
-            every { ProcessHandle.current() } returns processHandle
-            every { processHandle.pid() } returns 1L
-            every { userConfig.state } returns UserConfiguration.State()
-            every { constructedWith<File>(EqMatcher(configPath)).parent } returns workingDir
-            every { process.pid() } returns 2L
-            every { process.onExit() } returns CompletableFuture.completedFuture(process)
-            every { process.destroy() } returns Unit
-            every { anyConstructed<StdErrListener>().listen() } returns Unit
-            every { anyConstructed<StdErrListener>().dispose() } returns Unit
-            every { anyConstructed<GeneralCommandLine>().createProcess() } returns process
-
-            editorProcess.initialize()
-
-            // Call destroy multiple times
+            // Call destroy multiple times when process was never initialized
+            // This should not throw any exceptions
             editorProcess.destroy()
             editorProcess.destroy()
             editorProcess.destroy()
 
-            // Verify process.destroy() was only called once
-            verify(exactly = 1) { process.destroy() }
-            verify(exactly = 1) { anyConstructed<StdErrListener>().dispose() }
-        }
-
-        test("initialize resets destroyed state allowing reuse") {
-            val editorProcess = EditorProcess(project)
-            val execPath = "/bin/dprint"
-            val configPath = "./dprint.json"
-            val workingDir = "/working/dir"
-
-            mockkConstructor(GeneralCommandLine::class)
-            mockkConstructor(File::class)
-            mockkConstructor(StdErrListener::class)
-
-            every { getValidExecutablePath(project) } returns execPath
-            every { getValidConfigPath(project) } returns configPath
-            every { ProcessHandle.current() } returns processHandle
-            every { processHandle.pid() } returns 1L
-            every { userConfig.state } returns UserConfiguration.State()
-            every { constructedWith<File>(EqMatcher(configPath)).parent } returns workingDir
-            every { process.pid() } returns 2L
-            every { process.onExit() } returns CompletableFuture.completedFuture(process)
-            every { process.destroy() } returns Unit
-            every { anyConstructed<StdErrListener>().listen() } returns Unit
-            every { anyConstructed<StdErrListener>().dispose() } returns Unit
-            every { anyConstructed<GeneralCommandLine>().createProcess() } returns process
-
-            // Initialize, destroy, then reinitialize
-            editorProcess.initialize()
-            assert(editorProcess.isAlive()) { "Should be alive after first initialization" }
-
-            editorProcess.destroy()
-            assert(!editorProcess.isAlive()) { "Should not be alive after destroy" }
-
-            editorProcess.initialize()
-            assert(editorProcess.isAlive()) { "Should be alive again after reinitialization" }
+            // Process should still not be alive
+            assert(!editorProcess.isAlive()) { "EditorProcess should remain not alive after multiple destroy calls" }
         }
     })

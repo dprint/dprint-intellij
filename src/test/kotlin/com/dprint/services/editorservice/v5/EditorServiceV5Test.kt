@@ -2,9 +2,9 @@ package com.dprint.services.editorservice.v5
 
 import com.dprint.config.ProjectConfiguration
 import com.dprint.services.editorservice.process.EditorProcess
+import com.dprint.utils.errorLogWithConsole
 import com.dprint.utils.infoLogWithConsole
 import com.dprint.utils.warnLogWithConsole
-import com.dprint.utils.errorLogWithConsole
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import io.kotest.core.spec.style.FunSpec

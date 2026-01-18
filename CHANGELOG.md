@@ -4,11 +4,15 @@
 
 ## [Unreleased]
 
+- Fix issue where multiple process shutdowns occurring when closing a project can throw an error
+
 ## 0.9.0 - 2025-12-23
 
-- Rearchitected to use coroutines for asynchronous operations, hopefully improving CPU utilisation. Please report any issues to the github, as there should be no changes to the experience.
+- Rearchitected to use coroutines for asynchronous operations, hopefully improving CPU utilisation. Please report any
+  issues to the github, as there should be no changes to the experience.
 - Updated build system to Gradle 9.2.1 and IntelliJ Platform Gradle Plugin 2.10.5
-- Fixed test configuration to properly support Kotest with JUnit 5 while maintaining compatibility with Gradle test infrastructure
+- Fixed test configuration to properly support Kotest with JUnit 5 while maintaining compatibility with Gradle test
+  infrastructure
 
 ## 0.8.4 - 2025-06-25
 

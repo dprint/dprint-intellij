@@ -34,7 +34,7 @@ class EditorProcess(
 ) {
     private var process: Process? = null
     private var stderrListener: StdErrListener? = null
-    private val isDestroyed = AtomicBoolean(false)
+    private val isDestroyed = AtomicBoolean(true) // Start as destroyed (not alive)
 
     fun initialize() {
         val executablePath = getValidExecutablePath(project)
@@ -86,9 +86,7 @@ class EditorProcess(
         process = null
     }
 
-    fun isAlive(): Boolean {
-        return !isDestroyed.get()
-    }
+    fun isAlive(): Boolean = !isDestroyed.get()
 
     private fun createStderrListener(actualProcess: Process): StdErrListener {
         val stdErrListener = StdErrListener(project, actualProcess)
