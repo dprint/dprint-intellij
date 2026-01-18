@@ -58,13 +58,12 @@ class EditorProcess(
             }
 
             else -> {
-                // Reset the destroyed flag when initializing a new process
-                isDestroyed.set(false)
                 process = createDprintDaemon(executablePath, configPath)
                 process?.let { actualProcess ->
                     actualProcess.onExit().thenApply {
                         destroy()
                     }
+                    isDestroyed.set(false)
                     createStderrListener(actualProcess)
                 }
             }
@@ -86,7 +85,7 @@ class EditorProcess(
         process = null
     }
 
-    fun isAlive(): Boolean = !isDestroyed.get()
+    fun isAlive(): Boolean = !isDestroyed.get() || process != null
 
     private fun createStderrListener(actualProcess: Process): StdErrListener {
         val stdErrListener = StdErrListener(project, actualProcess)
