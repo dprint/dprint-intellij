@@ -79,13 +79,12 @@ class EditorProcess(
             // Already destroyed, return early
             return
         }
-
         stderrListener?.dispose()
         process?.destroy()
         process = null
     }
 
-    fun isAlive(): Boolean = !isDestroyed.get() || process != null
+    fun isAlive(): Boolean = !isDestroyed.get()
 
     private fun createStderrListener(actualProcess: Process): StdErrListener {
         val stdErrListener = StdErrListener(project, actualProcess)
