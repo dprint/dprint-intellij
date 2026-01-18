@@ -72,7 +72,6 @@ class EditorServiceV5(
         } catch (e: TimeoutCancellationException) {
             errorLogWithConsole(DprintBundle.message("editor.service.shutting.down.timed.out"), e, project, LOGGER)
         } catch (e: ProcessUnavailableException) {
-            // Process already dead, no need to send shutdown message
             infoLogWithConsole("Process already terminated, skipping shutdown message", project, LOGGER)
         } finally {
             stdoutListener?.dispose()
